@@ -1,19 +1,21 @@
 import {
   createConnection,
+  ProposedFeatures,
   TextDocuments,
   type InitializeParams,
+  DidChangeConfigurationNotification,
   TextDocumentSyncKind,
   type InitializeResult,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
-// Create a connection for the server. The connection uses stdio.
 const connection = createConnection(process.stdin, process.stdout);
 
 // Create a simple text document manager.
 const documents = new TextDocuments(TextDocument);
 
 connection.onInitialize((params: InitializeParams): InitializeResult => {
+  connection.console.info("Initializing Stan language server...");
   return {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
@@ -22,5 +24,23 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
   };
 });
 
+connection.onInitialized(() => {
+  connection.console.info("Stan language server is initialized!");
+});
+
+
+// Log a message when the server receives an exit notification
+connection.onExit(() => {
+  connection.console.info("Stan language server is exiting...");
+});
+
+documents.onDidChangeContent((change) => {
+  connection.sendNotification("window/logMessage", {
+    type: 3, // Info
+    message: `Document ${change.document.uri} has changed.`,
+  });
+});
+
 documents.listen(connection);
+
 connection.listen();
