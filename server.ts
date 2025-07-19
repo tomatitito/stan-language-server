@@ -1,9 +1,7 @@
 import {
   createConnection,
-  ProposedFeatures,
   TextDocuments,
   type InitializeParams,
-  DidChangeConfigurationNotification,
   TextDocumentSyncKind,
   type InitializeResult,
 } from "vscode-languageserver/node";
@@ -29,13 +27,12 @@ connection.onInitialized(() => {
 });
 
 
-// Log a message when the server receives an exit notification
 connection.onExit(() => {
   connection.console.info("Stan language server is exiting...");
 });
 
 documents.onDidChangeContent((change) => {
-  connection.sendNotification("window/logMessage", {
+  connection.sendNotification("window/showMessage", {
     type: 3, // Info
     message: `Document ${change.document.uri} has changed.`,
   });
