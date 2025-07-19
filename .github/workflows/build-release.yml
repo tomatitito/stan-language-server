@@ -1,0 +1,100 @@
+name: Build and Release Executables
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  create_release:
+    name: Create Github Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+        run: |
+          gh release create "$tag" \
+            --repo="$GITHUB_REPOSITORY" \
+            --title="$tag" \
+            --generate-notes \
+            --draft
+            
+  build_artifact:
+    needs: [create_release]
+    name: ${{ matrix.os }}/${{ matrix.arch }}/${{ github.ref }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest 
+            platform: linux
+            arch: x86_64
+          - os: ubuntu-24.04-arm 
+            platform: linux
+            arch: arm64
+          - os: macos-13
+            platform: macos
+            arch: x86_64
+          - os: macos-15
+            platform: macos
+            arch: aarch64
+          - os: windows-latest 
+            platform: windows
+            arch: x86_64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --verbose
+
+      - name: Set version number
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" =~ refs/tags/ ]]; then
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and compile executable
+        run: |
+          mkdir -p bin
+          bun build server.ts --compile --outfile ./bin/stan-language-server 
+        
+      - if: "!contains(matrix.os, 'windows')"
+        name: Set zip file path not on windows
+        run: |
+          echo "ZIP_PATH=./bin/stan-ls-${{ steps.version.outputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.zip" >> $GITHUB_ENV
+          
+      - if: "contains(matrix.os, 'windows')"
+        name: Set zip file path on windows
+        run: |
+          echo "ZIP_PATH=./bin/stan-ls-${{ steps.version.outputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.zip" >> $env:GITHUB_ENV
+          
+      - if: "!contains(matrix.os, 'windows')"
+        name: Zip executable not on windows
+        run: |
+          zip -j "${{ env.ZIP_PATH }}" ./bin/stan-language-server
+          
+      - if: "contains(matrix.os, 'windows')"
+        name: Zip executable not on windows
+        run: |
+          7z a "${{ env.ZIP_PATH }}" ./bin/stan-language-server.exe
+          
+      - name: Upload Release Asset
+        id: upload-release-asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ steps.version.outputs.version }}" "${{ env.ZIP_PATH }}#${{ matrix.platform }}-${{ matrix.arch }}.zip" --repo="$GITHUB_REPOSITORY"

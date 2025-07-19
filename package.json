@@ -1,6 +1,6 @@
 {
   "name": "stan-language-server",
-  "module": "index.ts",
+  "module": "server.ts",
   "type": "module",
   "private": true,
   "devDependencies": {
