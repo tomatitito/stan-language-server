@@ -1,0 +1,104 @@
+name: Build and Release Executables
+
+on:
+  push:
+    branches:
+      - "*"         # All branches
+    tags:
+      - "*"         # All tags
+
+jobs:
+  build-x64:
+    name: Build x64 Executables
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        arch: [x64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Set version number
+        id: version
+        run: |
+          if [[ "${GITHUB_REF}" =~ refs/tags/ ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+
+      - name: Build and compile executable
+        run: bun build --compile
+
+      - name: Find built executable
+        id: find_exe
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            exe_ext=".exe"
+          else
+            exe_ext=""
+          fi
+          exe_path=$(find . -type f -name "stan-language-server${exe_ext}" | head -n 1)
+          echo "exe_path=${exe_path}" >> $GITHUB_OUTPUT
+
+      - name: Prepare output directory
+        shell: bash
+        run: |
+          case "${{ matrix.os }}" in
+            ubuntu-latest) PLATFORM="linux";;
+            macos-latest)  PLATFORM="macos";;
+            windows-latest) PLATFORM="windows";;
+            *) PLATFORM="unknown";;
+          esac
+          OUTDIR="stan-ls-${PLATFORM}-x64/${{ steps.version.outputs.VERSION }}"
+          mkdir -p "${OUTDIR}"
+          cp "${{ steps.find_exe.outputs.exe_path }}" "${OUTDIR}/stan-language-server"
+
+      - name: Zip output directory
+        shell: bash
+        run: |
+          case "${{ matrix.os }}" in
+            ubuntu-latest) PLATFORM="linux";;
+            macos-latest)  PLATFORM="macos";;
+            windows-latest) PLATFORM="windows";;
+            *) PLATFORM="unknown";;
+          esac
+          OUTDIR="stan-ls-${PLATFORM}-x64/${{ steps.version.outputs.VERSION }}"
+          zip -r "${OUTDIR}.zip" "${OUTDIR}"
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          release_name: Release ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: stan-ls-${{ matrix.os == 'ubuntu-latest' && 'linux' || (matrix.os == 'macos-latest' && 'macos' || (matrix.os == 'windows-latest' && 'windows' || 'unknown')) }}-x64/${{ steps.version.outputs.VERSION }}.zip
+          asset_name: stan-ls-${{ matrix.os == 'ubuntu-latest' && 'linux' || (matrix.os == 'macos-latest' && 'macos' || (matrix.os == 'windows-latest' && 'windows' || 'unknown')) }}-x64-${{ steps.version.outputs.VERSION }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload executable artifact
+        if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: stan-ls-${{ matrix.os == 'ubuntu-latest' && 'linux' || (matrix.os == 'macos-latest' && 'macos' || (matrix.os == 'windows-latest' && 'windows' || 'unknown')) }}-x64-${{ steps.version.outputs.VERSION }}
+          path: stan-ls-${{ matrix.os == 'ubuntu-latest' && 'linux' || (matrix.os == 'macos-latest' && 'macos' || (matrix.os == 'windows-latest' && 'windows' || 'unknown')) }}-x64/${{ steps.version.outputs.VERSION }}/stan-language-server
