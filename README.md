@@ -1,15 +1,21 @@
 # stan-language-server
 
+A language server for the Stan probabilistic programming language written in TypeScript and using Bun to build an executable binary. This is work in progress. 
+
 To install dependencies:
 
 ```bash
 bun install
 ```
 
-To run:
+To run the language server:
 
 ```bash
-bun run index.ts
+bun run server.ts
 ```
 
-This project was created using `bun init` in bun v1.2.18. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+Building a binary executable:
+
+```bash
+bun build server.ts --compile --outfile stan-language-server
+```
