@@ -35,6 +35,7 @@ jobs:
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
             echo "VERSION=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build and compile executable
         run: bun build --compile
