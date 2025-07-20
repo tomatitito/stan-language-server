@@ -38,7 +38,7 @@ jobs:
           fi
 
       - name: Build and compile executable
-        run: bun build --compile
+        run: bun build server.ts --compile --outfile stan-language-server 
 
       - name: Find built executable
         id: find_exe
