@@ -68,12 +68,8 @@ jobs:
 
       - name: Zip output directory
         shell: bash
+        if: matrix.os != 'windows-latest'
         run: |
-          case "${{ matrix.os }}" in
-            ubuntu-latest) PLATFORM="linux";;
-            macos-latest)  PLATFORM="macos";;
-            *) PLATFORM="unknown";;
-          esac
           OUTDIR="stan-ls-${PLATFORM}-x64/${{ steps.version.outputs.VERSION }}"
           zip -r "${OUTDIR}.zip" "${OUTDIR}"
           
