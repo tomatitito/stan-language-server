@@ -72,11 +72,17 @@ jobs:
           case "${{ matrix.os }}" in
             ubuntu-latest) PLATFORM="linux";;
             macos-latest)  PLATFORM="macos";;
-            windows-latest) PLATFORM="windows";;
             *) PLATFORM="unknown";;
           esac
           OUTDIR="stan-ls-${PLATFORM}-x64/${{ steps.version.outputs.VERSION }}"
           zip -r "${OUTDIR}.zip" "${OUTDIR}"
+          
+      - name: Zip output directory (windows)
+        shell: pwsh
+        if: matrix.os == 'windows-latest'
+        run: |
+          OUTDIR="stan-ls-${PLATFORM}-x64/${{ steps.version.outputs.VERSION }}"
+          7z -r "${OUTDIR}.zip" "${OUTDIR}"
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
