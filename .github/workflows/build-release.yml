@@ -33,17 +33,35 @@ jobs:
         shell: bash
         run: |
           if [[ "${GITHUB_REF}" =~ refs/tags/ ]]; then
-            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
-            echo "VERSION=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "version=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Get platform identifier
+        id: platform
+        shell: bash
+        run: |
+          case "${{ matrix.os }}" in
+            ubuntu-latest) PLATFORM="linux";;
+            macos-latest)  PLATFORM="macos";;
+            windows-latest) PLATFORM="windows";;
+          esac
+          echo "platform=${PLATFORM}" >> "$GITHUB_OUTPUT"
+          
+      - name: Build output directory name
+        id: outdir
+        shell: bash
+        run: |
+          OUTDIR="stan-ls-${{ steps.platform.outputs.platform }}-x64/${{ steps.version.outputs.version }}"
+          echo "outdir=${OUTDIR}" >> "$GITHUB_OUTPUT"  
+          
       - name: Build and compile executable
         run: bun build server.ts --compile --outfile stan-language-server 
 
       - name: Find built executable
         id: find_exe
-        shell: bash
+        shell: bash # important, because [[ ]] will not work in power shell
         run: |
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             exe_ext=".exe"
@@ -52,55 +70,55 @@ jobs:
           fi
           exe_path=$(find . -type f -name "stan-language-server${exe_ext}" | head -n 1)
           echo "exe_path=${exe_path}" >> $GITHUB_OUTPUT
-
-      - name: Prepare output directory
+          
+      - name: Copy executable into output directory
+        shell: bash
+        run: |
+          OUTDIR="stan-ls-${{ steps.platform.outputs.platform }}-x64/${{ steps.version.outputs.VERSION }}"
+          mkdir -p "${OUTDIR}"
+          cp "${{ steps.find_exe.outputs.exe_path }}" "${OUTDIR}/stan-language-server"
+          
+      - name: Zip output directory
         shell: bash
         run: |
           case "${{ matrix.os }}" in
-            ubuntu-latest) PLATFORM="linux";;
-            macos-latest)  PLATFORM="macos";;
-            windows-latest) PLATFORM="windows";;
-            *) PLATFORM="unknown";;
+            ubuntu-latest) zip -r "${{ steps.outdir.outputs.outdir }}.zip" "${{ steps.outdir.outputs.outdir }}";;
+            macos-latest)  zip -r "${{ steps.outdir.outputs.outdir }}.zip" "${{ steps.outdir.outputs.outdir }}";;
+            windows-latest) 7z a "${{ steps.outdir.outputs.outdir }}.zip" "${{ steps.outdir.outputs.outdir }}";;
           esac
-          OUTDIR="stan-ls-${PLATFORM}-x64/${{ steps.version.outputs.VERSION }}"
-          mkdir -p "${OUTDIR}"
-          cp "${{ steps.find_exe.outputs.exe_path }}" "${OUTDIR}/stan-language-server"
 
-      - name: Zip output directory
-        shell: bash
-        if: matrix.os != 'windows-latest'
-        run: |
-          OUTDIR="stan-ls-${PLATFORM}-x64/${{ steps.version.outputs.VERSION }}"
-          zip -r "${OUTDIR}.zip" "${OUTDIR}"
+      # - name: Create Release
+      #   if: startsWith(github.ref, 'refs/tags/')
+      #   uses: actions/create-release@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: ${{ steps.version.outputs.version }}
+      #     release_name: Release ${{ steps.version.outputs.version }}
+      #     draft: false
+      #     prerelease: false
           
-      - name: Zip output directory (windows)
-        shell: pwsh
-        if: matrix.os == 'windows-latest'
+      - name: Compute Asset Path
+        id: asset_path
         run: |
-          OUTDIR="stan-ls-${PLATFORM}-x64/${{ steps.version.outputs.VERSION }}"
-          7z -r "${OUTDIR}.zip" "${OUTDIR}"
-
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "asset_path=stan-ls-${{ matrix.os == 'ubuntu-latest' && 'linux' || (matrix.os == 'macos-latest' && 'macos' || (matrix.os == 'windows-latest' && 'windows')) }}-x64/${{ steps.version.outputs.version }}.zip" >> "$GITHUB_OUTPUT"
+          
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag'
         with:
-          tag_name: ${{ steps.version.outputs.VERSION }}
-          release_name: Release ${{ steps.version.outputs.VERSION }}
-          draft: false
-          prerelease: false
+          files: "${{ steps.asset_path.outputs.asset_path }}"
 
-      - name: Upload Release Asset
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: stan-ls-${{ matrix.os == 'ubuntu-latest' && 'linux' || (matrix.os == 'macos-latest' && 'macos' || (matrix.os == 'windows-latest' && 'windows' || 'unknown')) }}-x64/${{ steps.version.outputs.VERSION }}.zip
-          asset_name: stan-ls-${{ matrix.os == 'ubuntu-latest' && 'linux' || (matrix.os == 'macos-latest' && 'macos' || (matrix.os == 'windows-latest' && 'windows' || 'unknown')) }}-x64-${{ steps.version.outputs.VERSION }}.zip
-          asset_content_type: application/zip
+      # - name: Upload Release Asset
+      #   if: startsWith(github.ref, 'refs/tags/')
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: stan-ls-${{ matrix.os == 'ubuntu-latest' && 'linux' || (matrix.os == 'macos-latest' && 'macos' || (matrix.os == 'windows-latest' && 'windows' || 'unknown')) }}-x64/${{ steps.version.outputs.version }}.zip
+      #     asset_name: stan-ls-${{ matrix.os == 'ubuntu-latest' && 'linux' || (matrix.os == 'macos-latest' && 'macos' || (matrix.os == 'windows-latest' && 'windows' || 'unknown')) }}-x64-${{ steps.version.outputs.version }}.zip
+      #     asset_content_type: application/zip
 
       - name: Upload executable artifact
         if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
