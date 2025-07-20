@@ -30,6 +30,7 @@ jobs:
 
       - name: Set version number
         id: version
+        shell: bash
         run: |
           if [[ "${GITHUB_REF}" =~ refs/tags/ ]]; then
             echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
