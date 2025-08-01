@@ -2,7 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { promises as fs } from "fs";
 import path from "path";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import compile from "../stanc/compiler";
+import { compile } from "../stanc/compiler";
+import { getFileContents } from "../stanc/includes";
 
 const fixturesDir = path.resolve(__dirname, "../__fixtures__");
 
@@ -18,7 +19,7 @@ describe("compile", () => {
       stanCode,
     );
 
-    const result = await compile(document, {});
+    const result = await compile(getFileContents)(document, {});
 
     expect(result.errors).toBeUndefined();
     expect(typeof result.result).toBe("string");

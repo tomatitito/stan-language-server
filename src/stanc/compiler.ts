@@ -35,11 +35,11 @@ const stanc: StancFunction = stancjs.stanc;
 
 const stanc_version = stanc("", "", ["version"]).result;
 
-async function compile(
+export const compile = (getFileContentsFn: typeof getFileContents) => async(
   document: TextDocument,
   includedFilenamesAndPaths: Record<Filename, FilePath>,
   args: string[] = [],
-): Promise<StancReturn> {
+): Promise<StancReturn> => {
   const lineLength = 78; // make this configurable
 
   const filename = fileURLToPath(document.uri);
@@ -79,4 +79,4 @@ export function getMathDistributions(): string {
   return stancjs.dump_stan_math_distributions();
 }
 
-export default compile;
+export default compile(getFileContents);
