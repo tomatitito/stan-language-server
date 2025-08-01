@@ -1,27 +1,25 @@
-import { promises as fs } from "fs";
 import { fileURLToPath } from "url";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import {
+import getIncludes, {
   isFilePathError,
-  getFileContents,
   type FileContent,
   type Filename,
-  type FilePath,
+  type FilePathError,
 } from "./includes";
 
-type StancReturnSuccess = {
+type StancSuccess = {
   errors: undefined;
   result: string;
   warnings?: string[];
 };
 
-type StancReturnFailure = {
+type StancFailure = {
   errors: string[];
   result: undefined;
   warnings?: string[];
 };
 
-type StancReturn = StancReturnSuccess | StancReturnFailure;
+type StancReturn = StancSuccess | StancFailure;
 
 type StancFunction = (
   filename: string,
@@ -35,41 +33,49 @@ const stanc: StancFunction = stancjs.stanc;
 
 const stanc_version = stanc("", "", ["version"]).result;
 
-export const compile = (getFileContentsFn: typeof getFileContents) => async(
-  document: TextDocument,
-  includedFilenamesAndPaths: Record<Filename, FilePath>,
-  args: string[] = [],
-): Promise<StancReturn> => {
-  const lineLength = 78; // make this configurable
+type GetIncludesFunction = (
+  fileContent: FileContent,
+) => Promise<Record<Filename, FileContent | FilePathError>>;
 
-  const filename = fileURLToPath(document.uri);
-  const code = document.getText();
+export const compile =
+  (getIncludesFn: GetIncludesFunction) =>
+  async (document: TextDocument, args: string[] = []): Promise<StancReturn> => {
+    const lineLength = 78; // make this configurable
 
-  const filePathErrors = Object.values(includedFilenamesAndPaths).filter(
-    isFilePathError,
-  );
-  if (filePathErrors.length > 0) {
-    return {
-      errors: filePathErrors,
-      result: undefined,
-    };
-  }
+    const filename = fileURLToPath(document.uri);
+    const code = document.getText();
 
-  const includedFilenamesAndFileContents = await getFileContents(includedFilenamesAndPaths)
-  
-  const stanc_args = [
-    "auto-format",
-    `filename-in-msg=${filename}`,
-    `max-line-length=${lineLength}`,
-    "canonicalze=deprecations",
-    "allow-undefined",
-    ...args,
-  ];
-  // logger.appendLine(
-  //   `Running stanc on ${filename} with args: ${stanc_args.join(", ")}, and includes: ${Object.keys(includes).join(", ")}`,
-  // );
-  return stanc(filename, code, stanc_args, includedFilenamesAndFileContents);
-}
+    const includedFilenamesAndFileContents = await getIncludesFn(code);
+
+    const filePathErrors = Object.values(
+      includedFilenamesAndFileContents,
+    ).filter(isFilePathError);
+    if (filePathErrors.length > 0) {
+      return {
+        errors: filePathErrors.map((err) => err.msg),
+        result: undefined,
+      };
+    }
+
+    // At this point, all includes are successful, safe to cast
+    const successfulIncludes = includedFilenamesAndFileContents as Record<
+      Filename,
+      FileContent
+    >;
+
+    const stanc_args = [
+      "auto-format",
+      `filename-in-msg=${filename}`,
+      `max-line-length=${lineLength}`,
+      "canonicalze=deprecations",
+      "allow-undefined",
+      ...args,
+    ];
+    // logger.appendLine(
+    //   `Running stanc on ${filename} with args: ${stanc_args.join(", ")}, and includes: ${Object.keys(includes).join(", ")}`,
+    // );
+    return stanc(filename, code, stanc_args, successfulIncludes);
+  };
 
 export function getMathSignatures(): string {
   return stancjs.dump_stan_math_signatures();
@@ -79,4 +85,4 @@ export function getMathDistributions(): string {
   return stancjs.dump_stan_math_distributions();
 }
 
-export default compile(getFileContents);
+export default compile(getIncludes);

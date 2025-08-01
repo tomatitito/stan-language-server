@@ -1,9 +1,8 @@
 import { promises as fs } from "fs";
 
 export type Filename = string;
-export type FilePath = string;
 export type FileContent = string;
-type FilePathError = { msg: string };
+export type FilePathError = { msg: string };
 
 export function getFilenames(fileContent: string): Filename[] {
   const includePattern = /#include\s*[<"]?([^>"\s]*)[>"]?/g;
@@ -32,15 +31,3 @@ export const getIncludes = (readFileFn: (filename: string) => Promise<string>) =
 }
 
 export default getIncludes((filename: string) => fs.readFile(filename, "utf-8"));
-
-export async function getFileContents(
-  files: Record<Filename, FilePath>,
-): Promise<Record<Filename, FileContent>> {
-  const entries = await Promise.all(
-    Object.entries(files).map(async ([filename, path]) => {
-      const content = await fs.readFile(path, "utf-8");
-      return [filename, content] as [Filename, FileContent];
-    }),
-  );
-  return Object.fromEntries(entries);
-}
