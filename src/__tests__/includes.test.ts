@@ -1,7 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import { promises as fs } from "fs";
 import * as path from "path";
-import { getIncludes } from "../stanc/includes";
+import { getIncludes, type FileContent } from "../stanc/includes";
 
 const fixturesDir = path.resolve(__dirname, "../__fixtures__");
 
@@ -33,9 +33,29 @@ describe("getIncludes", () => {
     expect(result).toEqual(expected);
   });
 
-  it.skip("ignores malformed include lines", async () => {
-    const doc = `#include\n#include <>\n#include "foo.stan"`;
-    const result = await getIncludes(identity)(doc);
+  it("handles mixed valid and invalid include directives", async () => {
+    const doc = `#include nonexistent_file.stan\n#include "${fixturesDir}/foo.stan"`;
+    const mockReadFile = async (filename: string) => {
+      if (filename === `${fixturesDir}/foo.stan`) {
+        return "valid file content" as FileContent;
+      } else if (filename === "nonexistent_file.stan") {
+        throw new Error("File not found");
+      } else {
+        throw new Error(`Unexpected filename: ${filename}`);
+      }
+    };
+    const result = await getIncludes(mockReadFile)(doc);
+    expect(result).toEqual({
+      [`${fixturesDir}/foo.stan`]: "valid file content",
+    });
+  });
+
+  it("returns empty object for completely invalid include directives", async () => {
+    const doc = `#include\n#include <"file2.stan">\n#include hadsjfi`;
+    const mockReadFile = async(_: string) => {
+      throw new Error("invalid file")
+    }
+    const result = await getIncludes(mockReadFile)(doc);
     expect(result).toEqual({});
   });
 
