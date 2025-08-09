@@ -11,7 +11,7 @@ bun install
 To run the language server:
 
 ```bash
-bun run server.ts
+bun run src/server.ts
 ```
 
 Building a binary executable:
