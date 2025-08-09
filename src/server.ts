@@ -43,7 +43,7 @@ documents.onDidChangeContent((change) => {
 });
 
 connection.onCompletion((params) => {
-  return provideDistributionCompletions(params, documents);
+  return provideDistributionCompletions(params, documents, connection);
 });
 
 documents.listen(connection);
