@@ -1,17 +1,15 @@
 import TrieSearch from "trie-search";
-import { getMathDistributions } from "../../../stanc/compiler";
 import {
-    CompletionItemKind,
+  CompletionItemKind,
   type CompletionItem,
   type CompletionParams,
-  // type TextDocument,
+  type Connection,
   type TextDocuments,
 } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-
-type Distribution = {
-  name: string;
-};
+import { getMathDistributions } from "../../../stanc/compiler";
+import { type Distribution } from "../../../types/completion";
+import { getSearchableItems } from "../util";
 
 const mathDistributions = getMathDistributions();
 const distLines = mathDistributions
@@ -36,20 +34,10 @@ const getDistributions =
     return distributions;
   };
 
-const getSearchableDistributions = (distributions: Distribution[]) => {
-  const builtInDistributions: TrieSearch<Distribution> = new TrieSearch(
-    "name",
-    {
-      splitOnRegEx: /[\s_]/g,
-    },
-  );
-  builtInDistributions.addAll(distributions);
-  return builtInDistributions;
-};
-
 export const provideDistributionCompletions = (
   params: CompletionParams,
   documents: TextDocuments<TextDocument>,
+  connection: Connection,
 ): CompletionItem[] => {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
@@ -65,20 +53,29 @@ export const provideDistributionCompletions = (
   const lineText = text.substring(lineStart, offset);
 
   const distributions = getDistributions(getMathDistributionsAsStrings)();
-  const searchableDistributions = getSearchableDistributions(distributions); // provide as parameter?
+  const searchableDistributions = getSearchableItems(distributions, {
+    splitOnRegEx: /[\s_]/g,
+    min: 0,
+  });
 
-  const match = lineText.match(/~\s*([\w_]*)$/);
+  const match = lineText.match(/.*~\s*([\w_]*)$/);
+  connection.console.info(`Regex match: ${match}`);
   if (match) {
     const distName = match[1] || "";
-    const completionProposals = searchableDistributions.search(distName);
-    return completionProposals.map(d => {
+    let completionProposals;
+    if (distName === "") {
+      completionProposals = distributions;
+    } else {
+      completionProposals = searchableDistributions.search(distName);
+    }
+    return completionProposals.map((d) => {
       return {
         label: d.name,
         kind: CompletionItemKind.Function,
       };
     });
   }
-  return []
+  return [];
 };
 
 export const hurz = distLines
