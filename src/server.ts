@@ -6,7 +6,7 @@ import {
   type InitializeResult,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { provideDistributionCompletions } from "./language/completion/providers/distributions";
+import provideDistributionCompletions from "./language/completion/providers/distributions";
 
 const connection = createConnection(process.stdin, process.stdout);
 
@@ -43,7 +43,7 @@ documents.onDidChangeContent((change) => {
 });
 
 connection.onCompletion((params) => {
-  return provideDistributionCompletions(params, documents, connection);
+  return provideDistributionCompletions(params, documents);
 });
 
 documents.listen(connection);
