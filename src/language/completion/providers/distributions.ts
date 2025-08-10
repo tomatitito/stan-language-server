@@ -1,9 +1,7 @@
-import TrieSearch from "trie-search";
 import {
   CompletionItemKind,
   type CompletionItem,
   type CompletionParams,
-  type Connection,
   type TextDocuments,
 } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -11,23 +9,19 @@ import { getMathDistributions } from "../../../stanc/compiler";
 import { type Distribution } from "../../../types/completion";
 import { getSearchableItems } from "../util";
 
-// TODO: move into compiler module?
-const getMathDistributionsAsStrings = (): string[] => {
+const prepareDistributions = (): string[] => {
   return getMathDistributions()
     .split("\n")
     .map((line) => line.split(":")[0]?.trim() ?? "");
 };
 
-const getDistributions =
-  (getMathDistributionsFn: () => string[]) => (): Distribution[] => {
-    const distributions = getMathDistributionsFn()
-      .map((line) => line.split(":")[0]?.trim() ?? "")
-      .filter((name) => name !== "")
-      .map((name) => {
-        return { name };
-      });
-    return distributions;
-  };
+const getDistributions= (): Distribution[] => {
+  return prepareDistributions()
+    .filter((name) => name !== "")
+    .map((name) => {
+      return { name };
+    });
+};
 
 export const provideDistributionCompletions =
   (getdistributionsFn: () => Distribution[]) =>
@@ -73,6 +67,4 @@ export const provideDistributionCompletions =
     return [];
   };
 
-export default provideDistributionCompletions(
-  getDistributions(getMathDistributionsAsStrings),
-);
+export default provideDistributionCompletions(getDistributions);
