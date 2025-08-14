@@ -3,3 +3,4 @@ export interface Searchable {
 }
 
 export interface Distribution extends Searchable {}
+export interface StanFunction extends Searchable {}
