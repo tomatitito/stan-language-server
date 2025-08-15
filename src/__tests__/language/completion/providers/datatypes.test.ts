@@ -4,7 +4,7 @@ import {
   type CompletionParams,
 } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { provideKeywordCompletions } from "../../../../language/completion/providers/keywords";
+import { provideDatatypeCompletions } from "../../../../language/completion/providers/datatypes";
 
 const createMockDocument = (
   content: string,
@@ -28,14 +28,14 @@ const createMockDocuments = (document: TextDocument) => ({
   get: (uri: string) => (uri === document.uri ? document : undefined),
 });
 
-describe("Keyword Completion Provider", () => {
-  const getMockKeywords = () => [
+describe("Datatype Completion Provider", () => {
+  const getMockDatatypes = () => [
     { name: "foo" },
     { name: "bar" },
     { name: "baz" },
   ];
 
-  const provider = provideKeywordCompletions(getMockKeywords);
+  const provider = provideDatatypeCompletions(getMockDatatypes);
   it("should provide completion items", async () => {
     const document = createMockDocument("foo ;");
     const documents = createMockDocuments(document);
