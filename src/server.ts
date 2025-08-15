@@ -8,6 +8,7 @@ import {
 import { TextDocument } from "vscode-languageserver-textdocument";
 import provideDistributionCompletions from "./language/completion/providers/distributions";
 import provideFunctionCompletions from "./language/completion/providers/functions";
+import provideKeywordCompletions from "./language/completion/providers/keywords";
 
 const connection = createConnection(process.stdin, process.stdout);
 
@@ -46,7 +47,8 @@ documents.onDidChangeContent((change) => {
 connection.onCompletion((params) => {
   const distributions = provideDistributionCompletions(params, documents);
   const functions = provideFunctionCompletions(params, documents);
-  const candidates = [...distributions, ...functions];
+  const keywords = provideKeywordCompletions(params, documents);
+  const candidates = [...distributions, ...functions, ...keywords];
   return candidates;
 });
 
