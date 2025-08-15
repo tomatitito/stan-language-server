@@ -7,6 +7,7 @@ import {
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import provideDistributionCompletions from "./language/completion/providers/distributions";
+import provideFunctionCompletions from "./language/completion/providers/functions";
 
 const connection = createConnection(process.stdin, process.stdout);
 
@@ -43,7 +44,10 @@ documents.onDidChangeContent((change) => {
 });
 
 connection.onCompletion((params) => {
-  return provideDistributionCompletions(params, documents);
+  const distributions = provideDistributionCompletions(params, documents);
+  const functions = provideFunctionCompletions(params, documents);
+  const candidates = [...distributions, ...functions];
+  return candidates;
 });
 
 documents.listen(connection);
