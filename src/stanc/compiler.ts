@@ -71,6 +71,9 @@ export const compile =
       "allow-undefined",
       ...args,
     ];
+    if (document.languageId === "stanfunctions") {
+      stanc_args.push("functions-only");
+    }
     // logger.appendLine(
     //   `Running stanc on ${filename} with args: ${stanc_args.join(", ")}, and includes: ${Object.keys(includes).join(", ")}`,
     // );
