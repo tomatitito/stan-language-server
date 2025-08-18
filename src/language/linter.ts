@@ -1,0 +1,61 @@
+// taken from vscode-stan-extension
+
+import { Range } from "vscode-languageserver/node";
+
+function rangeFromMessage(message: string): Range | undefined {
+  if (!message) return undefined;
+  // format is "in 'filename', line (#), column (#) to (line #,)? column (#)"
+  const start = message.matchAll(/'.*', line (\d+), column (\d+)( to)?/g);
+  // there will be multiple in the case of #included files
+  const lastMatch = Array.from(start).pop();
+  if (!lastMatch || !lastMatch[1] || !lastMatch[2]) {
+    return undefined;
+  }
+  const startLine = parseInt(lastMatch[1]) - 1;
+  const startColumn = parseInt(lastMatch[2]);
+
+  let endLine = startLine;
+  let endColumn = startColumn;
+
+  if (lastMatch[3]) {
+    // " to" was matched
+    const end = message.match(/to (line (\d+), )?column (\d+)/);
+    if (end && end[3]) {
+      if (end[1] && end[2]) {
+        endLine = parseInt(end[2]) - 1;
+      }
+      endColumn = parseInt(end[3]);
+    }
+  }
+
+  return Range.create(startLine, startColumn, endLine, endColumn);
+}
+
+function getWarningMessage(message: string) {
+  let warning = message.replace(/Warning.*column \d+: /s, "");
+  warning = warning.replace(/\s+/gs, " ");
+  warning = warning.trim();
+  warning = message.includes("included from")
+    ? "Warning in included file:\n" + warning
+    : warning;
+  return warning;
+}
+
+function getErrorMessage(message: string) {
+  let error = message;
+  // cut off code snippet for display
+  if (message.includes("------\n")) {
+    error = error.split("------\n")[2] ?? error;
+  }
+  error = error.trim();
+  error = message.includes("included from")
+    ? "Error in included file:\n" + error
+    : error;
+  error = error.includes("given information about")
+    ? error +
+      "\nTry opening the included file and making the Stan language server aware of it."
+    : error;
+  return error;
+}
+
+export { rangeFromMessage, getWarningMessage, getErrorMessage };
