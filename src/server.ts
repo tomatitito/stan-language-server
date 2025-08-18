@@ -4,6 +4,8 @@ import {
   type InitializeParams,
   TextDocumentSyncKind,
   type InitializeResult,
+  Diagnostic,
+  DiagnosticSeverity,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import provideDistributionCompletions from "./language/completion/providers/distributions";
@@ -22,6 +24,11 @@ import { compile } from "./stanc/compiler";
 import { getIncludes } from "./stanc/includes";
 import { URI, Utils as URIUtils } from "vscode-uri";
 import { promises as fs } from "fs";
+import {
+  getErrorMessage,
+  getWarningMessage,
+  rangeFromMessage,
+} from "./language/linter";
 
 const connection = createConnection(process.stdin, process.stdout);
 
@@ -65,6 +72,12 @@ documents.onDidChangeContent((change) => {
     type: 3, // Info
     message: `Document ${change.document.uri} has changed.`,
   });
+  validateTextDocument(change.document);
+});
+
+connection.onDidChangeConfiguration((change) => {
+  // Revalidate all open text documents
+  documents.all().forEach(validateTextDocument);
 });
 
 connection.onCompletion((params) => {
@@ -166,6 +179,45 @@ connection.onHover((params) => {
 
   return null;
 });
+
+async function validateTextDocument(textDocument: TextDocument): Promise<void> {
+  const includes = getIncludeHelperForFile(URI.parse(textDocument.uri));
+  const result = await compile(includes)(textDocument);
+
+  let diagnostics: Diagnostic[] = [];
+
+  if (result.errors) {
+    for (const error of result.errors) {
+      const range = rangeFromMessage(error.toString());
+      if (range === undefined) continue;
+      const message = getErrorMessage(error);
+      let diagnostic: Diagnostic = {
+        severity: DiagnosticSeverity.Error,
+        range,
+        message,
+        source: "stan-language-server",
+      };
+
+      diagnostics.push(diagnostic);
+    }
+  }
+  if (result.warnings) {
+    for (const warning of result.warnings) {
+      const range = rangeFromMessage(warning.toString());
+      if (range === undefined) continue;
+      const message = getWarningMessage(warning);
+      let diagnostic: Diagnostic = {
+        severity: DiagnosticSeverity.Warning,
+        range,
+        message,
+        source: "stan-language-server",
+      };
+      diagnostics.push(diagnostic);
+    }
+  }
+
+  connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+}
 
 documents.listen(connection);
 
