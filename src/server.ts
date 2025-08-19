@@ -144,13 +144,26 @@ connection.onDocumentFormatting(async (params) => {
 
 connection.onHover((params) => {
   const document = documents.get(params.textDocument.uri);
-  if (document) {
-    const distributionHover = tryDistributionHover(document, params.position);
+
+  if (!document) {
+    return null;
+  }
+
+  const text = document.getText();
+
+  let offset = document.offsetAt(params.position); // include the character at the cursor position
+
+  const next_paren = text.substring(offset).match(/^\w+\s*\(/);
+  if (next_paren) {
+    const endOfWord = offset + next_paren[0].length - 1;
+
+    const distributionHover = tryDistributionHover(document, endOfWord);
     if (distributionHover) return distributionHover;
 
-    const functionHover = tryFunctionHover(document, params.position);
+    const functionHover = tryFunctionHover(document, endOfWord);
     if (functionHover) return functionHover;
   }
+
   return null;
 });
 

@@ -23,23 +23,21 @@ export const setupDistributionMap = () => {
 
 export const tryDistributionHover = (
   document: TextDocument,
-  position: Position
-): Hover | undefined => {
+  endOfWord: number
+): Hover | null => {
   const text = document.getText();
 
-  let offset = document.offsetAt(position) + 1; // include the character at the cursor position
-
-  const next_break = text.substring(offset).search(/[\s;\(\),\[\]]/);
-  if (next_break !== -1) offset += next_break;
-
   // try to find distribution before
-  const dist = text.substring(0, offset).match(/~\s*([\w_]+)$/);
+  const dist = text
+    .substring(0, endOfWord)
+    .trimEnd()
+    .match(/~\s*(\w+)$/d);
   if (dist && dist[1]) {
     const functionName = distributionToFunctionMap.get(dist[1]);
     if (functionName) {
       const contents = getFunctionDocumentation(functionName);
       if (!contents) {
-        return undefined;
+        return null;
       }
 
       let range = undefined;
@@ -56,5 +54,6 @@ export const tryDistributionHover = (
       };
     }
   }
-  return undefined;
+
+  return null;
 };
