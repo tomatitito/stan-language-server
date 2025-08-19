@@ -10,6 +10,14 @@ import provideDistributionCompletions from "./language/completion/providers/dist
 import provideFunctionCompletions from "./language/completion/providers/functions";
 import provideKeywordCompletions from "./language/completion/providers/keywords";
 import provideDatatypeCompletions from "./language/completion/providers/datatypes";
+import {
+  setupSignatureMap,
+  tryFunctionHover,
+} from "./language/hover/functions";
+import {
+  setupDistributionMap,
+  tryDistributionHover,
+} from "./language/hover/distributions";
 import { compile } from "./stanc/compiler";
 import { getIncludes } from "./stanc/includes";
 import { URI, Utils as URIUtils } from "vscode-uri";
@@ -23,6 +31,8 @@ const documents = new TextDocuments(TextDocument);
 connection.onInitialize((params: InitializeParams): InitializeResult => {
   connection.console.info("Initializing Stan language server...");
 
+  setupSignatureMap();
+  setupDistributionMap();
   return {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
@@ -36,6 +46,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
           supported: true,
         },
       },
+      hoverProvider: true,
       // Add more capabilities as needed
     },
   };
@@ -129,6 +140,18 @@ connection.onDocumentFormatting(async (params) => {
     }
   }
   return [];
+});
+
+connection.onHover((params) => {
+  const document = documents.get(params.textDocument.uri);
+  if (document) {
+    const distributionHover = tryDistributionHover(document, params.position);
+    if (distributionHover) return distributionHover;
+
+    const functionHover = tryFunctionHover(document, params.position);
+    if (functionHover) return functionHover;
+  }
+  return null;
 });
 
 documents.listen(connection);
