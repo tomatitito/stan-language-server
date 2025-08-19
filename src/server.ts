@@ -60,7 +60,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 });
 
 connection.onInitialized(() => {
-  connection.console.info("Stan language server is initialized! 4");
+  connection.console.info("Stan language server is initialized!");
 });
 
 connection.onExit(() => {
