@@ -67,19 +67,6 @@ connection.onExit(() => {
   connection.console.info("Stan language server is exiting...");
 });
 
-documents.onDidChangeContent((change) => {
-  connection.sendNotification("window/showMessage", {
-    type: 3, // Info
-    message: `Document ${change.document.uri} has changed.`,
-  });
-  validateTextDocument(change.document);
-});
-
-connection.onDidChangeConfiguration((change) => {
-  // Revalidate all open text documents
-  documents.all().forEach(validateTextDocument);
-});
-
 connection.onCompletion((params) => {
   const distributions = provideDistributionCompletions(params, documents);
   const functions = provideFunctionCompletions(params, documents);
@@ -218,6 +205,14 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
   connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
+
+documents.onDidChangeContent((change) => {
+  validateTextDocument(change.document);
+});
+
+connection.onDidChangeConfiguration((change) => {
+  documents.all().forEach(validateTextDocument);
+});
 
 documents.listen(connection);
 
