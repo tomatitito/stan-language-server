@@ -60,7 +60,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 });
 
 connection.onInitialized(() => {
-  connection.console.info("Stan language server is initialized!");
+  connection.console.info("Stan language server is initialized! 4");
 });
 
 connection.onExit(() => {
@@ -192,6 +192,21 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
     for (const warning of result.warnings) {
       const range = rangeFromMessage(warning.toString());
       if (range === undefined) continue;
+      // warnings have a single location, so we extend to the current word
+      if (
+        range.start.line === range.end.line &&
+        range.start.character === range.end.character
+      ) {
+        const offset = textDocument.offsetAt(range.start);
+        let endPos = textDocument.getText().indexOf(" ", offset);
+        if (endPos !== -1) {
+          range.end = textDocument.positionAt(endPos);
+        }
+        endPos = textDocument.getText().indexOf("\n", offset);
+        if (endPos !== -1) {
+          range.end = textDocument.positionAt(endPos);
+        }
+      }
       const message = getWarningMessage(warning);
       let diagnostic: Diagnostic = {
         severity: DiagnosticSeverity.Warning,

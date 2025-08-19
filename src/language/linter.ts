@@ -11,6 +11,7 @@ function rangeFromMessage(message: string): Range | undefined {
   if (!lastMatch || !lastMatch[1] || !lastMatch[2]) {
     return undefined;
   }
+  // stanc outputs 1-based lines but 0-based columns, go figure
   const startLine = parseInt(lastMatch[1]) - 1;
   const startColumn = parseInt(lastMatch[2]);
 
