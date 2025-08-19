@@ -1,4 +1,8 @@
-import type { Hover, MarkupContent } from "vscode-languageserver";
+import type {
+  Hover,
+  MarkupContent,
+  RemoteConsole,
+} from "vscode-languageserver";
 import { getMathSignatures } from "../../stanc/compiler";
 import type {
   TextDocument,
@@ -59,35 +63,30 @@ export const getFunctionDocumentation = (
 
 export const tryFunctionHover = (
   document: TextDocument,
-  position: Position
-): Hover | undefined => {
+  endOfWord: number
+): Hover | null => {
   const text = document.getText();
 
-  let offset = document.offsetAt(position) + 1; // include the character at the cursor position
+  const func = text.substring(0, endOfWord + 1).match(/\w+\s*\($/d);
+  if (func) {
+    const funcName = func[0].replace("(", "").trim();
+    const contents = getFunctionDocumentation(funcName);
+    if (!contents) {
+      return null;
+    }
 
-  const next_paren = text.indexOf("(", offset);
-  if (next_paren !== -1) {
-    const func = text.substring(0, next_paren + 1).match(/[\w_]+\s*\($/);
-    if (func) {
-      const funcName = func[0].replace("(", "").trim();
-      const contents = getFunctionDocumentation(funcName);
-      if (!contents) {
-        return undefined;
-      }
-
-      let range = undefined;
-      if (func.index !== undefined) {
-        range = {
-          start: document.positionAt(func.index),
-          end: document.positionAt(func.index + funcName.length),
-        };
-      }
-
-      return {
-        contents,
-        range,
+    let range = undefined;
+    if (func.index !== undefined) {
+      range = {
+        start: document.positionAt(func.index),
+        end: document.positionAt(func.index + funcName.length),
       };
     }
+
+    return {
+      contents,
+      range,
+    };
   }
-  return undefined;
+  return null;
 };
