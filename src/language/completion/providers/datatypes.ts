@@ -1,11 +1,6 @@
 // Pure datatypes provider - returns Datatype[] using existing types
-import type { Datatype } from "../../../types/completion";
-import { getSearchableItems } from "../util";
-
-export interface Position {
-  line: number;
-  character: number;
-}
+import type { Datatype, Position } from "../../../types/completion";
+import { getSearchableItems, getTextUpToCursor } from "../util";
 
 export const DATATYPES = [
   // Basic types
@@ -44,10 +39,7 @@ export const provideDatatypeCompletions = (
   text: string,
   position: Position,
 ): Datatype[] => {
-  // Calculate line start position
-  const lines = text.split('\n');
-  const currentLine = lines[position.line] || '';
-  const textUpToCursor = currentLine.substring(0, position.character);
+  const textUpToCursor = getTextUpToCursor(text, position);
 
   const datatypes = getDatatypes();
   const searchableDatatypes = getSearchableItems(datatypes, {

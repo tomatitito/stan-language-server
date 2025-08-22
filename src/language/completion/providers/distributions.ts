@@ -1,21 +1,13 @@
 // Pure distributions provider - returns Distribution[] using existing types
-import type { Distribution } from "../../../types/completion";
-import { getSearchableItems } from "../util";
-
-export interface Position {
-  line: number;
-  character: number;
-}
+import type { Distribution, Position } from "../../../types/completion";
+import { getSearchableItems, getTextUpToCursor } from "../util";
 
 export const provideDistributionCompletions = (
   text: string,
   position: Position,
   distributions: string[],
 ): Distribution[] => {
-  // Calculate line start position
-  const lines = text.split('\n');
-  const currentLine = lines[position.line] || '';
-  const textUpToCursor = currentLine.substring(0, position.character);
+  const textUpToCursor = getTextUpToCursor(text, position);
 
   const distributionItems: Distribution[] = distributions
     .filter((name) => name !== "")

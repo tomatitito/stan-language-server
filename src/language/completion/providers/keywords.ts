@@ -1,11 +1,6 @@
 // Pure keywords provider - returns Keyword[] using existing types
-import type { Keyword } from "../../../types/completion";
-import { getSearchableItems } from "../util";
-
-export interface Position {
-  line: number;
-  character: number;
-}
+import type { Keyword, Position } from "../../../types/completion";
+import { getSearchableItems, getTextUpToCursor } from "../util";
 
 const ALL_KEYWORDS = [
   // Control flow
@@ -67,10 +62,7 @@ export const provideKeywordCompletions = (
   text: string,
   position: Position,
 ): Keyword[] => {
-  // Calculate line start position
-  const lines = text.split('\n');
-  const currentLine = lines[position.line] || '';
-  const textUpToCursor = currentLine.substring(0, position.character);
+  const textUpToCursor = getTextUpToCursor(text, position);
 
   const keywords = getKeywords();
   const searchableKeywords = getSearchableItems(keywords, {

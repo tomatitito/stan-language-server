@@ -32,6 +32,14 @@ Core type definitions for the completion system.
 
 **Purpose**: Defines the fundamental types used throughout the completion system to ensure consistency and type safety.
 
+**Position Interface**:
+```typescript
+export interface Position {
+  line: number;
+  character: number;
+}
+```
+
 **Base Interface**:
 ```typescript
 export interface Searchable {

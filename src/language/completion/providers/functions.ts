@@ -1,21 +1,13 @@
 // Pure functions provider - returns StanFunction[] using existing types
-import type { StanFunction } from "../../../types/completion";
-import { getSearchableItems } from "../util";
-
-export interface Position {
-  line: number;
-  character: number;
-}
+import type { StanFunction, Position } from "../../../types/completion";
+import { getSearchableItems, getTextUpToCursor } from "../util";
 
 export const provideFunctionCompletions = (
   text: string,
   position: Position,
   functionSignatures: string[],
 ): StanFunction[] => {
-  // Calculate line start position
-  const lines = text.split('\n');
-  const currentLine = lines[position.line] || '';
-  const textUpToCursor = currentLine.substring(0, position.character);
+  const textUpToCursor = getTextUpToCursor(text, position);
 
   // Extract function names from signatures
   const functionNames = functionSignatures

@@ -10,7 +10,6 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 // Import pure providers
 import { 
   provideKeywordCompletions,
-  type Position,
 } from "../language/completion/providers/keywords";
 import { 
   provideDistributionCompletions,
@@ -27,6 +26,7 @@ import {
 
 // Import existing types
 import type { 
+  Position,
   Keyword, 
   Distribution, 
   Datatype, 

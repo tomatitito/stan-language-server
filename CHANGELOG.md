@@ -18,7 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New completion handler system in `src/handlers/`
   - `src/handlers/completion.ts`: Converts provider results to LSP `CompletionItem[]`
   - `src/handlers/index.ts`: Barrel export for all handlers
-- Position interface extracted to provider modules for consistency
+- Centralized `Position` interface in `src/types/completion.ts`
+- Common completion utilities in `src/language/completion/util.ts`
+  - `getTextUpToCursor()`: Shared text processing utility
+  - `getSearchableItems()`: TrieSearch wrapper for fuzzy completion matching
+- Comprehensive test suite for completion utilities (`src/__tests__/language/completion/util.test.ts`)
 
 ### Refactored
 - `src/language/completion/providers/keywords.ts`: Now returns `Keyword[]`
@@ -26,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `src/language/completion/providers/functions.ts`: Now returns `StanFunction[]`
 - `src/language/completion/providers/datatypes.ts`: Now returns `Datatype[]`
 - `src/language/completion/providers/constraints.ts`: Now returns `Constraint[]`
+- All completion providers now use centralized `Position` interface and shared utilities
+- Eliminated duplicate `Position` interface definitions across provider files
+- Replaced duplicate text processing logic with shared `getTextUpToCursor()` utility
 - Updated all completion provider tests to use new pure function interface
 - Removed custom `BasicCompletionItem` types in favor of existing type system
 
@@ -34,7 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced testability with pure functions that don't depend on LSP infrastructure
 - Better separation between language logic and protocol implementation
 - More maintainable codebase with clear dependency boundaries
+- Reduced code duplication through shared utility functions
+- Centralized interface definitions for consistency across modules
 
 ### Fixed
-- All tests updated and passing (35 tests across 7 files)
+- All tests updated and passing (52 tests across 8 files)
 - Maintained backward compatibility at the LSP protocol level

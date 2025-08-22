@@ -88,6 +88,21 @@ Tests for #include file resolution utilities.
 - Error scenario handling
 - Filename extraction accuracy
 
+#### `language/completion/util.test.ts`
+Tests for shared completion utility functions.
+
+**Coverage Areas**:
+- Text processing utilities (`getTextUpToCursor`)
+- Fuzzy search functionality (`getSearchableItems`)
+- Edge cases and error handling
+- Integration with TrieSearch library
+
+**Key Test Categories**:
+- Text extraction from cursor position
+- Multi-line text handling
+- Search functionality and matching
+- Boundary conditions and invalid inputs
+
 ### Language Feature Tests
 
 #### `language/completion/providers/`
@@ -190,6 +205,7 @@ Test fixtures are designed to be:
 
 ### Unit Test Coverage
 - All completion providers: 100% function coverage
+- Completion utilities: Full coverage of shared functions
 - Compiler integration: All public functions tested
 - Include resolution: All code paths covered
 - Error scenarios: All error conditions tested

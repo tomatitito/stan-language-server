@@ -23,10 +23,7 @@ Providers are pure functions that take text context and return arrays of domain-
 All providers follow a consistent interface pattern:
 
 ```typescript
-export interface Position {
-  line: number;
-  character: number;
-}
+import type { Position } from "../../../types/completion";
 
 export const provide[Category]Completions = (
   text: string,
@@ -142,11 +139,14 @@ Provides Stan language keyword completions.
 ## Common Patterns
 
 ### Text Processing
-All providers follow the same text processing pattern:
-1. Split text into lines
-2. Extract current line and text up to cursor
-3. Apply regex pattern matching for context detection
-4. Return appropriate completions based on context
+All providers use the shared utility for consistent text processing:
+```typescript
+import { getTextUpToCursor } from "../util";
+
+const textUpToCursor = getTextUpToCursor(text, position);
+```
+
+Then apply regex pattern matching for context detection and return appropriate completions.
 
 ### Fuzzy Search Integration
 All providers use the shared `getSearchableItems` utility:
@@ -159,12 +159,9 @@ const completionProposals = searchableItems.search(userInput);
 ```
 
 ### Position Interface
-All providers define a consistent Position interface:
+All providers import the centralized Position interface:
 ```typescript
-export interface Position {
-  line: number;
-  character: number;
-}
+import type { Position } from "../../../types/completion";
 ```
 
 ## Design Principles

@@ -1,11 +1,6 @@
 // Pure constraints provider - returns Constraint[] using existing types
-import type { Constraint } from "../../../types/completion";
-import { getSearchableItems } from "../util";
-
-export interface Position {
-  line: number;
-  character: number;
-}
+import type { Constraint, Position } from "../../../types/completion";
+import { getSearchableItems, getTextUpToCursor } from "../util";
 
 export const CONSTRAINTS = [
   "lower",
@@ -35,10 +30,7 @@ export const provideConstraintCompletions = (
   text: string,
   position: Position,
 ): Constraint[] => {
-  // Calculate line start position
-  const lines = text.split('\n');
-  const currentLine = lines[position.line] || '';
-  const textUpToCursor = currentLine.substring(0, position.character);
+  const textUpToCursor = getTextUpToCursor(text, position);
 
   const constraints = getConstraints();
   const searchableConstraints = getSearchableItems(constraints, {

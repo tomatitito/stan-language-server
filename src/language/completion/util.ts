@@ -1,5 +1,5 @@
 import TrieSearch, { type TrieSearchOptions } from "trie-search";
-import type { Searchable } from "../../types/completion";
+import type { Searchable, Position } from "../../types/completion";
 
 export const getSearchableItems = <T extends Searchable>(
   xs: T[],
@@ -8,4 +8,10 @@ export const getSearchableItems = <T extends Searchable>(
   let searchableItem: TrieSearch<T> = new TrieSearch("name", options);
   searchableItem.addAll(xs);
   return searchableItem;
+};
+
+export const getTextUpToCursor = (text: string, position: Position): string => {
+  const lines = text.split('\n');
+  const currentLine = lines[position.line] || '';
+  return currentLine.substring(0, position.character);
 };

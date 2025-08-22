@@ -67,13 +67,18 @@ Shared utilities for all completion providers.
 
 **Key Functions**:
 - `getSearchableItems<T>(xs, options)`: Creates TrieSearch for efficient completion matching
+- `getTextUpToCursor(text, position)`: Extracts text from cursor position to start of line
 
 **Dependencies**:
 - `trie-search`: High-performance prefix search
-- `../../types/completion`: Searchable interface
+- `../../types/completion`: Searchable and Position interfaces
 
 **Usage Pattern**:
 ```typescript
+// Text processing
+const textUpToCursor = getTextUpToCursor(text, position);
+
+// Fuzzy search
 const searchableItems = getSearchableItems(domainItems, {
   splitOnRegEx: /[\s_]/g,
   min: 0,
