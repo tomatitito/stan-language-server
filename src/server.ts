@@ -8,10 +8,7 @@ import {
   DiagnosticSeverity,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import provideDistributionCompletions from "./language/completion/providers/distributions";
-import provideFunctionCompletions from "./language/completion/providers/functions";
-import provideKeywordCompletions from "./language/completion/providers/keywords";
-import provideDatatypeCompletions from "./language/completion/providers/datatypes";
+import { handleCompletion } from "./handlers/completion";
 import {
   setupSignatureMap,
   tryFunctionHover,
@@ -68,17 +65,7 @@ connection.onExit(() => {
 });
 
 connection.onCompletion((params) => {
-  const distributions = provideDistributionCompletions(params, documents);
-  const functions = provideFunctionCompletions(params, documents);
-  const keywords = provideKeywordCompletions(params, documents);
-  const datatypes = provideDatatypeCompletions(params, documents);
-  const candidates = [
-    ...distributions,
-    ...functions,
-    ...keywords,
-    ...datatypes,
-  ];
-  return candidates;
+  return handleCompletion(params, documents);
 });
 
 const getIncludeHelperForFile = (currentFilePath: URI) => {

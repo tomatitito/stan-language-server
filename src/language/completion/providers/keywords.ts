@@ -1,12 +1,12 @@
-import {
-  type CompletionParams,
-  TextDocuments,
-  CompletionItem,
-  CompletionItemKind,
-} from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
+// Pure keywords provider - returns Keyword[] using existing types
 import type { Keyword } from "../../../types/completion";
 import { getSearchableItems } from "../util";
+
+export interface Position {
+  line: number;
+  character: number;
+}
+
 const ALL_KEYWORDS = [
   // Control flow
   "for",
@@ -63,43 +63,28 @@ const getKeywords = (): Keyword[] => {
   }));
 };
 
-export const provideKeywordCompletions =
-  (getKeywordsFn: () => Keyword[]) =>
-  (
-    params: CompletionParams,
-    documents: TextDocuments<TextDocument>,
-  ): CompletionItem[] => {
-    const document = documents.get(params.textDocument.uri);
-    if (!document) {
-      return [];
-    }
+export const provideKeywordCompletions = (
+  text: string,
+  position: Position,
+): Keyword[] => {
+  // Calculate line start position
+  const lines = text.split('\n');
+  const currentLine = lines[position.line] || '';
+  const textUpToCursor = currentLine.substring(0, position.character);
 
-    const position = params.position;
-    const text = document.getText();
-    const offset = document.offsetAt(position);
+  const keywords = getKeywords();
+  const searchableKeywords = getSearchableItems(keywords, {
+    splitOnRegEx: /[\s_]/g,
+    min: 0,
+  });
 
-    // Look backwards to find the pattern ~distribution_name
-    const lineStart = document.offsetAt({ line: position.line, character: 0 });
-    const lineText = text.substring(lineStart, offset);
-
-    const functions = getKeywordsFn(); //getDistributions(getMathDistributionsAsStrings)();
-    const searchableFunctions = getSearchableItems(functions, {
-      splitOnRegEx: /[\s_]/g,
-      min: 0,
-    });
-
-    const match = lineText.match(/(?:^|\s)([\w_]+)$/);
-    if (match) {
-      const fnName = match[1] || "";
-      const completionProposals = searchableFunctions.search(fnName);
-      return completionProposals.map((d) => {
-        return {
-          label: d.name,
-          kind: CompletionItemKind.Function,
-        };
-      });
-    }
-    return [];
-  };
-
-export default provideKeywordCompletions(getKeywords);
+  // Look for word pattern at the end of current text
+  const match = textUpToCursor.match(/(?:^|\s)([\w_]+)$/);
+  if (match) {
+    const keywordName = match[1] || "";
+    const completionProposals = searchableKeywords.search(keywordName);
+    return completionProposals;
+  }
+  
+  return [];
+};

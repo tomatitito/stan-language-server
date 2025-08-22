@@ -1,67 +1,45 @@
-import {
-  CompletionItemKind,
-  TextDocuments,
-  type CompletionItem,
-  type CompletionParams,
-} from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { getMathSignatures } from "../../../stanc/compiler";
+// Pure functions provider - returns StanFunction[] using existing types
 import type { StanFunction } from "../../../types/completion";
 import { getSearchableItems } from "../util";
 
-export const getFunctions = (): StanFunction[] => {
-  const signatures = getMathSignatures()
-    .split("\n")
-    .map((line) => line.split("(", 1)[0]?.trim() ?? "");
+export interface Position {
+  line: number;
+  character: number;
+}
 
-  const deduplicatedSignatures = [...new Set(signatures)].map((name) => {
-    return { name };
+export const provideFunctionCompletions = (
+  text: string,
+  position: Position,
+  functionSignatures: string[],
+): StanFunction[] => {
+  // Calculate line start position
+  const lines = text.split('\n');
+  const currentLine = lines[position.line] || '';
+  const textUpToCursor = currentLine.substring(0, position.character);
+
+  // Extract function names from signatures
+  const functionNames = functionSignatures
+    .map((line) => line.split("(", 1)[0]?.trim() ?? "")
+    .filter((name) => name !== "");
+
+  // Add additional built-in statements
+  const additionalStatements = ["print", "reject", "fatal_error", "target"];
+  const allFunctionNames = [...new Set([...functionNames, ...additionalStatements])];
+
+  const functionItems: StanFunction[] = allFunctionNames.map((name) => ({ name }));
+  
+  const searchableFunctions = getSearchableItems(functionItems, {
+    splitOnRegEx: /[\s_]/g,
+    min: 0,
   });
-  const additionalStatements = ["print", "reject", "fatal_error", "target"].map(
-    (name) => {
-      return { name };
-    },
-  );
-  return [...deduplicatedSignatures, ...additionalStatements];
+
+  // Look for word pattern at the end of current text
+  const match = textUpToCursor.match(/(?:^|\s)([\w_]+)$/);
+  if (match) {
+    const functionName = match[1] || "";
+    const completionProposals = searchableFunctions.search(functionName);
+    return completionProposals;
+  }
+  
+  return [];
 };
-
-export const provideFunctionCompletions =
-  (getFunctionsFn: () => StanFunction[]) =>
-  (
-    params: CompletionParams,
-    documents: TextDocuments<TextDocument>,
-  ): CompletionItem[] => {
-    const document = documents.get(params.textDocument.uri);
-    if (!document) {
-      return [];
-    }
-
-    const position = params.position;
-    const text = document.getText();
-    const offset = document.offsetAt(position);
-
-    // Look backwards to find the pattern ~distribution_name
-    const lineStart = document.offsetAt({ line: position.line, character: 0 });
-    const lineText = text.substring(lineStart, offset);
-
-    const functions = getFunctionsFn(); //getDistributions(getMathDistributionsAsStrings)();
-    const searchableFunctions = getSearchableItems(functions, {
-      splitOnRegEx: /[\s_]/g,
-      min: 0,
-    });
-
-    const match = lineText.match(/(?:^|\s)([\w_]+)$/);
-    if (match) {
-      const fnName = match[1] || "";
-      const completionProposals = searchableFunctions.search(fnName);
-      return completionProposals.map((d) => {
-        return {
-          label: d.name,
-          kind: CompletionItemKind.Function,
-        };
-      });
-    }
-    return [];
-  };
-
-export default provideFunctionCompletions(getFunctions);

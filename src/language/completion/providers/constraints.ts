@@ -1,8 +1,11 @@
-import { type CompletionParams, TextDocuments, CompletionItem, CompletionItemKind } from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
-
+// Pure constraints provider - returns Constraint[] using existing types
 import type { Constraint } from "../../../types/completion";
 import { getSearchableItems } from "../util";
+
+export interface Position {
+  line: number;
+  character: number;
+}
 
 export const CONSTRAINTS = [
   "lower",
@@ -28,43 +31,28 @@ const getConstraints = (): Constraint[] => {
   }));
 };
 
-export const provideConstraintCompletions =
-  (getConstraintsFn: () => Constraint[]) =>
-  (
-    params: CompletionParams,
-    documents: TextDocuments<TextDocument>,
-  ): CompletionItem[] => {
-    const document = documents.get(params.textDocument.uri);
-    if (!document) {
-      return [];
-    }
+export const provideConstraintCompletions = (
+  text: string,
+  position: Position,
+): Constraint[] => {
+  // Calculate line start position
+  const lines = text.split('\n');
+  const currentLine = lines[position.line] || '';
+  const textUpToCursor = currentLine.substring(0, position.character);
 
-    const position = params.position;
-    const text = document.getText();
-    const offset = document.offsetAt(position);
+  const constraints = getConstraints();
+  const searchableConstraints = getSearchableItems(constraints, {
+    splitOnRegEx: /[\s_]/g,
+    min: 0,
+  });
 
-    // Look backwards to find the pattern ~distribution_name
-    const lineStart = document.offsetAt({ line: position.line, character: 0 });
-    const lineText = text.substring(lineStart, offset);
-
-    const constraints = getConstraintsFn(); //getDistributions(getMathDistributionsAsStrings)();
-    const searchableFunctions = getSearchableItems(constraints, {
-      splitOnRegEx: /[\s_]/g,
-      min: 0,
-    });
-
-    const match = lineText.match(/(?:^|\s)([\w_]+)$/);
-    if (match) {
-      const fnName = match[1] || "";
-      const completionProposals = searchableFunctions.search(fnName);
-      return completionProposals.map((d) => {
-        return {
-          label: d.name,
-          kind: CompletionItemKind.Function,
-        };
-      });
-    }
-    return [];
-  };
-
-export default provideConstraintCompletions(getConstraints);
+  // Look for word pattern at the end of current text
+  const match = textUpToCursor.match(/(?:^|\s)([\w_]+)$/);
+  if (match) {
+    const constraintName = match[1] || "";
+    const completionProposals = searchableConstraints.search(constraintName);
+    return completionProposals;
+  }
+  
+  return [];
+};

@@ -1,13 +1,11 @@
-import {
-  type CompletionParams,
-  TextDocuments,
-  CompletionItem,
-  CompletionItemKind,
-} from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
-
-import type { Datatype, Keyword } from "../../../types/completion";
+// Pure datatypes provider - returns Datatype[] using existing types
+import type { Datatype } from "../../../types/completion";
 import { getSearchableItems } from "../util";
+
+export interface Position {
+  line: number;
+  character: number;
+}
 
 export const DATATYPES = [
   // Basic types
@@ -42,43 +40,28 @@ const getDatatypes = (): Datatype[] => {
   }));
 };
 
-export const provideDatatypeCompletions =
-  (getDatatypesFn: () => Datatype[]) =>
-  (
-    params: CompletionParams,
-    documents: TextDocuments<TextDocument>,
-  ): CompletionItem[] => {
-    const document = documents.get(params.textDocument.uri);
-    if (!document) {
-      return [];
-    }
+export const provideDatatypeCompletions = (
+  text: string,
+  position: Position,
+): Datatype[] => {
+  // Calculate line start position
+  const lines = text.split('\n');
+  const currentLine = lines[position.line] || '';
+  const textUpToCursor = currentLine.substring(0, position.character);
 
-    const position = params.position;
-    const text = document.getText();
-    const offset = document.offsetAt(position);
+  const datatypes = getDatatypes();
+  const searchableDatatypes = getSearchableItems(datatypes, {
+    splitOnRegEx: /[\s_]/g,
+    min: 0,
+  });
 
-    // Look backwards to find the pattern ~distribution_name
-    const lineStart = document.offsetAt({ line: position.line, character: 0 });
-    const lineText = text.substring(lineStart, offset);
-
-    const datatypes = getDatatypesFn(); //getDistributions(getMathDistributionsAsStrings)();
-    const searchableFunctions = getSearchableItems(datatypes, {
-      splitOnRegEx: /[\s_]/g,
-      min: 0,
-    });
-
-    const match = lineText.match(/(?:^|\s)([\w_]+)$/);
-    if (match) {
-      const fnName = match[1] || "";
-      const completionProposals = searchableFunctions.search(fnName);
-      return completionProposals.map((d) => {
-        return {
-          label: d.name,
-          kind: CompletionItemKind.Function,
-        };
-      });
-    }
-    return [];
-  };
-
-export default provideDatatypeCompletions(getDatatypes);
+  // Look for word pattern at the end of current text
+  const match = textUpToCursor.match(/(?:^|\s)([\w_]+)$/);
+  if (match) {
+    const typeName = match[1] || "";
+    const completionProposals = searchableDatatypes.search(typeName);
+    return completionProposals;
+  }
+  
+  return [];
+};
