@@ -22,15 +22,17 @@ Types serve as the foundation for the entire application, providing common inter
 
 ```
 types/
-└── completion.ts    # Completion system type definitions
+├── common.ts        # Shared types (Position)
+├── completion.ts    # Completion system type definitions
+└── diagnostics.ts   # Diagnostic system type definitions
 ```
 
 ## Files
 
-### `completion.ts`
-Core type definitions for the completion system.
+### `common.ts`
+Shared type definitions used across multiple modules.
 
-**Purpose**: Defines the fundamental types used throughout the completion system to ensure consistency and type safety.
+**Purpose**: Defines common types that are reused throughout the application to ensure consistency.
 
 **Position Interface**:
 ```typescript
@@ -39,6 +41,16 @@ export interface Position {
   character: number;
 }
 ```
+
+**Usage**: The Position type is used by both completion and diagnostic systems, providing a consistent representation of cursor/location positions.
+
+### `completion.ts`
+Core type definitions for the completion system.
+
+**Purpose**: Defines the fundamental types used throughout the completion system to ensure consistency and type safety.
+
+**Re-exported Types**:
+- Imports and re-exports `Position` from `common.ts` for backward compatibility
 
 **Base Interface**:
 ```typescript
@@ -78,6 +90,57 @@ Searchable
 const distributions: Distribution[] = provideDistributionCompletions(...);
 const functions: StanFunction[] = provideFunctionCompletions(...);
 const keywords: Keyword[] = provideKeywordCompletions(...);
+```
+
+### `diagnostics.ts`
+Core type definitions for the diagnostic system.
+
+**Purpose**: Defines domain types for diagnostic functionality independent of LSP protocol types.
+
+**Re-exported Types**:
+- Imports and re-exports `Position` from `common.ts`
+
+**Range Interface**:
+```typescript
+export interface Range {
+  start: Position;
+  end: Position;
+}
+```
+
+**Severity Enumeration**:
+```typescript
+export enum DiagnosticSeverity {
+  Error = 1,
+  Warning = 2,
+  Information = 3,
+  Hint = 4,
+}
+```
+
+**Domain Diagnostic Type**:
+```typescript
+export interface StanDiagnostic {
+  range: Range;
+  severity: DiagnosticSeverity;
+  message: string;
+  source?: string;
+}
+```
+
+**Design Rationale**:
+- **Domain Independence**: No LSP protocol dependencies, uses pure domain types
+- **Clean Interfaces**: Minimal, focused type definitions for diagnostic data
+- **Type Safety**: Structured approach to diagnostic information
+- **Reusability**: Can be used independently of LSP protocol
+
+**Usage Pattern**:
+```typescript
+// Provider returns domain diagnostics
+const diagnostics: StanDiagnostic[] = provideDiagnostics(compilerResult);
+
+// Handler converts to LSP format
+const lspDiagnostics: LSPDiagnostic[] = diagnostics.map(convertToLSP);
 ```
 
 ## Design Principles
