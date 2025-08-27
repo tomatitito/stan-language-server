@@ -61,8 +61,7 @@ export const tryFunctionHover = (
 ): Hover | null => {
   const text = document.getText();
 
-  const func = text.substring(beginningOfWord, endOfWord).trim();
-  const funcName = func.replace("(", "").trim();
+  const funcName = text.substring(beginningOfWord, endOfWord).trim();
   const contents = getFunctionDocumentation(funcName);
   if (!contents) return null;
 
