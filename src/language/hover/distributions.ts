@@ -1,4 +1,6 @@
 import { getMathDistributions } from "../../stanc/compiler";
+import { getFunctionDocumentation } from "./functions";
+import type { TextDocument } from "vscode-languageserver-textdocument";
 import { isWhitespace } from "./util";
 
 
