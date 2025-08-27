@@ -8,13 +8,18 @@ import {
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { handleCompletion, handleDiagnostics } from "./handlers";
 import {
+  setupDistributionMap,
+  tryDistributionHover,
+} from "./language/hover/distributions";
+import {
   setupSignatureMap,
   tryFunctionHover,
 } from "./language/hover/functions";
 import {
-  setupDistributionMap,
-  tryDistributionHover,
-} from "./language/hover/distributions";
+  isWordChar,
+  previousWordBoundary,
+  wordUntilNextParenthesis,
+} from "./language/hover/util";
 import { compile } from "./stanc/compiler";
 import { getIncludes } from "./stanc/includes";
 import { URI, Utils as URIUtils } from "vscode-uri";
@@ -144,16 +149,21 @@ connection.onHover((params) => {
 
   let offset = document.offsetAt(params.position); // include the character at the cursor position
 
-  const next_paren = text.substring(offset).match(/^\w+\s*\(/);
-  if (next_paren) {
-    const endOfWord = offset + next_paren[0].length - 1;
+  if (!isWordChar(text[offset]!)) return null;
 
-    const distributionHover = tryDistributionHover(document, endOfWord);
-    if (distributionHover) return distributionHover;
+  const nextParen = wordUntilNextParenthesis(text, offset);
+  if (nextParen === -1) return null;
+  const beginningOfWord = previousWordBoundary(text, offset);
 
-    const functionHover = tryFunctionHover(document, endOfWord);
-    if (functionHover) return functionHover;
-  }
+  const distributionHover = tryDistributionHover(
+    document,
+    beginningOfWord,
+    nextParen
+  );
+  if (distributionHover) return distributionHover;
+
+  const functionHover = tryFunctionHover(document, beginningOfWord, nextParen);
+  if (functionHover) return functionHover;
 
   return null;
 });

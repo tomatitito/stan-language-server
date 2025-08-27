@@ -1,13 +1,6 @@
-import type {
-  Hover,
-  MarkupContent,
-  RemoteConsole,
-} from "vscode-languageserver";
+import type { Hover, MarkupContent } from "vscode-languageserver";
 import { getMathSignatures } from "../../stanc/compiler";
-import type {
-  TextDocument,
-  Position,
-} from "vscode-languageserver-textdocument";
+import type { TextDocument } from "vscode-languageserver-textdocument";
 
 const functionSignatureMap: Map<string, MarkupContent> = new Map();
 
@@ -63,30 +56,23 @@ export const getFunctionDocumentation = (
 
 export const tryFunctionHover = (
   document: TextDocument,
+  beginningOfWord: number,
   endOfWord: number
 ): Hover | null => {
   const text = document.getText();
 
-  const func = text.substring(0, endOfWord + 1).match(/\w+\s*\($/d);
-  if (func) {
-    const funcName = func[0].replace("(", "").trim();
-    const contents = getFunctionDocumentation(funcName);
-    if (!contents) {
-      return null;
-    }
+  const func = text.substring(beginningOfWord, endOfWord).trim();
+  const funcName = func.replace("(", "").trim();
+  const contents = getFunctionDocumentation(funcName);
+  if (!contents) return null;
 
-    let range = undefined;
-    if (func.index !== undefined) {
-      range = {
-        start: document.positionAt(func.index),
-        end: document.positionAt(func.index + funcName.length),
-      };
-    }
+  const range = {
+    start: document.positionAt(beginningOfWord),
+    end: document.positionAt(endOfWord),
+  };
 
-    return {
-      contents,
-      range,
-    };
-  }
-  return null;
+  return {
+    contents,
+    range,
+  };
 };
