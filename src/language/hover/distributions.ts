@@ -33,6 +33,20 @@ const tildeBefore = (text: string, pos: number) => {
   return false;
 };
 
+const tildeBefore = (text: string, pos: number) => {
+  for (let i = pos - 1; i >= 0; i--) {
+    const char = text[i]!;
+    if (char === "~") {
+      return true;
+    } else if (isWhitespace(char)) {
+      continue;
+    } else {
+      return false;
+    }
+  }
+  return false;
+};
+
 export const tryDistributionHover = (
   text: string,
   beginningOfWord: number,

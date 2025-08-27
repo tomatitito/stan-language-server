@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+import type { Hover, MarkupContent } from "vscode-languageserver";
+import { getMathSignatures } from "../../stanc/compiler";
+>>>>>>> 688f810 (Speed up hover using direct loops over regex)
 import type { TextDocument } from "vscode-languageserver-textdocument";
 
 
