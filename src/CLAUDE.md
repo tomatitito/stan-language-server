@@ -42,11 +42,11 @@ Main Language Server Protocol implementation that:
 - `handlers/`
 
 **Key Functions**:
-- `onInitialize()`: Sets up server capabilities
+- `onInitialize()`: Sets up server capabilities including diagnosticProvider
 - `onCompletion()`: Delegates to completion handler
+- `onRequest('textDocument/diagnostic')`: Delegates to diagnostic handler (LSP-compliant)
 - `onHover()`: Provides hover information
 - `onDocumentFormatting()`: Handles Stan code formatting
-- `validateTextDocument()`: Runs diagnostics using Stan compiler
 
 ## Directory Details
 

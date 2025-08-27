@@ -47,3 +47,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - All tests updated and passing (52 tests across 8 files)
 - Maintained backward compatibility at the LSP protocol level
+
+## [Latest - Diagnostic Refactoring]
+
+### Changed
+- **BREAKING**: Refactored diagnostic architecture to implement LSP-compliant diagnostics
+  - Removed automatic validation on document content changes (performance improvement)
+  - Implemented proper `textDocument/diagnostic` request handler following LSP specification
+  - Moved diagnostic logic from `server.ts` to dedicated handlers and providers
+  - Language diagnostic functions now return domain types (`StanDiagnostic[]`) instead of LSP types
+  - Eliminated LSP dependencies from language layer diagnostic code
+
+### Added
+- New diagnostic system architecture following completion handler pattern:
+  - `src/types/common.ts`: Shared `Position` interface used by both completion and diagnostics
+  - `src/types/diagnostics.ts`: Domain types (`Range`, `DiagnosticSeverity`, `StanDiagnostic`)
+  - `src/language/diagnostics/provider.ts`: Pure diagnostic provider returning domain types
+  - `src/language/diagnostics/linter.ts`: Message processing utilities (moved from root)
+  - `src/language/diagnostics/index.ts`: Barrel exports for diagnostic functionality
+  - `src/handlers/diagnostics.ts`: LSP protocol conversion layer for diagnostics
+- Server capabilities now include `diagnosticProvider` for LSP compliance
+- Comprehensive diagnostic test suite:
+  - `src/__tests__/handlers/diagnostics.test.ts`: Handler integration and LSP conversion tests
+  - `src/__tests__/language/diagnostics/linter.test.ts`: Message processing utility tests (moved)
+
+### Refactored
+- Moved `src/language/linter.ts` to `src/language/diagnostics/linter.ts` for better organization
+- Updated `src/language/linter.ts` to use domain `Range` type instead of LSP `Range`
+- Removed unused `text` parameter from `provideDiagnostics()` function
+- Updated `src/types/completion.ts` to import shared `Position` from `common.ts`
+- Reorganized test structure to mirror source directory layout
+- Combined diagnostic type imports for cleaner code
+
+### Technical Improvements
+- **Performance**: Diagnostics no longer run on every keystroke, only when explicitly requested
+- **LSP Compliance**: Proper `textDocument/diagnostic` request handling instead of automatic publishing
+- **Resource Efficiency**: Significantly reduced CPU usage during active editing
+- **Clean Architecture**: Complete separation between diagnostic domain logic and LSP protocol
+- **Better UX**: No interruption during editing, diagnostics appear when client requests them
+- **Maintainability**: All diagnostic code logically grouped in single module
+
+### Fixed
+- All tests updated and passing (77 tests across 10 files, +17 new diagnostic tests)
+- TypeScript compilation with strict mode compliance
+- Maintained full diagnostic functionality while improving architecture
+- Export of `StancReturn` type from compiler module

@@ -1,7 +1,6 @@
-export interface Position {
-  line: number;
-  character: number;
-}
+import type { Position } from "./common";
+
+export type { Position };
 
 export interface Searchable {
   name: string;

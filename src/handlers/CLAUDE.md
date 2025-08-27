@@ -49,6 +49,36 @@ Manages completion requests by coordinating multiple completion providers.
 4. Convert domain results to LSP CompletionItems
 5. Return combined results
 
+### `diagnostics.ts`
+Manages diagnostic requests by converting compiler results to LSP diagnostics.
+
+**Purpose**: Converts LSP DocumentDiagnosticParams to domain types, calls diagnostic provider, and converts results to Diagnostic[].
+
+**Key Functions**:
+- `handleDiagnostics(params, documents)`: Main diagnostic handler (async)
+- `stanDiagnosticToLspDiagnostic()`: Converts domain diagnostic to LSP format
+- `domainRangeToLspRange()`: Converts domain Range to LSP Range
+- `domainSeverityToLspSeverity()`: Converts domain severity to LSP severity
+- `getIncludeHelperForFile()`: Sets up include file resolution
+
+**Dependencies**:
+- `vscode-languageserver` (for LSP types)
+- `../language/diagnostics` (for pure diagnostic provider)
+- `../stanc/compiler` (for compilation)
+- `../stanc/includes` (for include file resolution)
+- `../types/diagnostics` (for domain types)
+
+**Input**: LSP DocumentDiagnosticParams + TextDocuments
+**Output**: Promise<Diagnostic[]>
+
+**Process**:
+1. Extract document from LSP params
+2. Set up include file helper for current document
+3. Compile Stan code using compiler with includes
+4. Call pure diagnostic provider with compiler results
+5. Convert domain diagnostics to LSP Diagnostic format
+6. Return LSP-compliant diagnostic array
+
 ### `index.ts`
 Barrel export file for all handlers.
 
@@ -56,6 +86,7 @@ Barrel export file for all handlers.
 
 **Exports**: 
 - `handleCompletion` from `./completion`
+- `handleDiagnostics` from `./diagnostics`
 
 **Benefits**:
 - Clean import statements: `import { handleCompletion } from "./handlers"`
@@ -66,8 +97,8 @@ Barrel export file for all handlers.
 **Future Exports** (when implemented):
 ```typescript
 export { handleCompletion } from "./completion";
+export { handleDiagnostics } from "./diagnostics";  // ✅ Implemented
 export { handleHover } from "./hover";
-export { handleDiagnostics } from "./diagnostics";
 export { handleFormatting } from "./formatting";
 ```
 
@@ -100,7 +131,6 @@ connection.onCompletion((params) => {
 
 As the language server grows, new handlers will be added:
 - `hover.ts`: Convert hover requests to language hover providers
-- `diagnostics.ts`: Convert diagnostic requests to language linting
 - `formatting.ts`: Handle formatting requests
 - `codeActions.ts`: Manage code action requests
 
