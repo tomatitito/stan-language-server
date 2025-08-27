@@ -25,14 +25,19 @@ Tests are organized to match the source directory structure, making it easy to l
 __tests__/
 ├── compiler.test.ts                # Stan compiler integration tests
 ├── includes.test.ts                # Include file resolution tests
+├── handlers/                       # Handler layer tests
+│   └── diagnostics.test.ts        # Diagnostic handler tests
 └── language/                       # Language feature tests
-    └── completion/                 # Completion system tests
-        └── providers/              # Individual provider tests
-            ├── constraints.test.ts # Constraint completion tests
-            ├── datatypes.test.ts  # Datatype completion tests
-            ├── distributions.test.ts # Distribution completion tests
-            ├── functions.test.ts  # Function completion tests
-            └── keywords.test.ts   # Keyword completion tests
+    ├── completion/                 # Completion system tests
+    │   ├── util.test.ts           # Completion utilities tests
+    │   └── providers/             # Individual provider tests
+    │       ├── constraints.test.ts # Constraint completion tests
+    │       ├── datatypes.test.ts  # Datatype completion tests
+    │       ├── distributions.test.ts # Distribution completion tests
+    │       ├── functions.test.ts  # Function completion tests
+    │       └── keywords.test.ts   # Keyword completion tests
+    └── diagnostics/               # Diagnostic system tests
+        └── linter.test.ts         # Linter utilities tests
 ```
 
 ## Test Organization Principles
@@ -88,6 +93,28 @@ Tests for #include file resolution utilities.
 - Error scenario handling
 - Filename extraction accuracy
 
+### Handler Tests
+
+#### `handlers/diagnostics.test.ts`
+Comprehensive tests for the diagnostic handler and provider integration.
+
+**Coverage Areas**:
+- Diagnostic provider integration with compiler results
+- LSP protocol conversion (domain types → LSP types)
+- Range and position handling 
+- Message extraction and cleaning
+- Severity conversion between domain and LSP enums
+- Error handling and edge cases
+
+**Key Test Categories**:
+- Processing warnings from successful compilation
+- Processing errors from failed compilation
+- LSP conversion function accuracy
+- Malformed message handling
+- Empty result scenarios
+
+### Language Feature Tests
+
 #### `language/completion/util.test.ts`
 Tests for shared completion utility functions.
 
@@ -102,6 +129,23 @@ Tests for shared completion utility functions.
 - Multi-line text handling
 - Search functionality and matching
 - Boundary conditions and invalid inputs
+
+#### `language/diagnostics/linter.test.ts`
+Tests for diagnostic message processing utilities.
+
+**Coverage Areas**:
+- Position detection from Stan compiler messages
+- Range extraction for single and multi-line errors
+- Message cleaning and formatting
+- Warning and error message processing
+- Edge cases with malformed messages
+
+**Key Test Categories**:
+- Position parsing from compiler output format
+- Multi-character error range handling
+- Message cleanup and formatting
+- Include file error processing
+- Empty/invalid message handling
 
 ### Language Feature Tests
 

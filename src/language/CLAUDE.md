@@ -8,7 +8,7 @@ The language module is responsible for:
 - Pure language analysis functions with no external dependencies
 - Domain-specific logic for Stan language features
 - Reusable components that can be used independently of LSP
-- Core functionality for completion, hover, and linting
+- Core functionality for completion, hover, and diagnostics
 
 ## Architecture Role
 
@@ -25,18 +25,47 @@ language/
 ├── completion/          # Completion analysis functions
 │   ├── providers/       # Individual completion providers
 │   └── util.ts         # Shared completion utilities
+├── diagnostics/         # Diagnostic analysis functions
+│   ├── provider.ts      # Main diagnostic provider
+│   ├── linter.ts        # Message processing utilities
+│   └── index.ts         # Barrel exports
 ├── hover/              # Hover information providers
 │   ├── distributions.ts # Distribution hover support
 │   └── functions.ts    # Function hover support
-└── linter.ts           # Stan code linting utilities
 ```
 
 ## Files
 
-### `linter.ts`
-Utilities for processing Stan compiler output into structured diagnostic information.
+### `diagnostics/`
+Pure diagnostic analysis functions that process Stan compiler output into structured domain types.
 
-**Purpose**: Converts Stan compiler error/warning messages into LSP-compatible diagnostic ranges and messages.
+#### `diagnostics/provider.ts`
+Main diagnostic provider that converts compiler results to domain diagnostics.
+
+**Purpose**: Converts Stan compiler results into structured domain diagnostic types.
+
+**Key Functions**:
+- `provideDiagnostics(compilerResult)`: Main provider function that processes compiler results
+
+**Dependencies**:
+- `../../types/diagnostics`: Domain types (StanDiagnostic, DiagnosticSeverity)
+- `../../stanc/compiler`: Compiler result types (StancReturn)
+- `./linter`: Message processing utilities
+
+**Input**: StancReturn (compiler results with errors/warnings)
+**Output**: StanDiagnostic[] (pure domain diagnostics)
+
+**Process**:
+1. Check if compilation was successful or failed
+2. Process warnings from successful compilation
+3. Process errors from failed compilation  
+4. Extract ranges and clean messages using linter utilities
+5. Return array of domain diagnostic objects
+
+#### `diagnostics/linter.ts`
+Utilities for processing Stan compiler messages into structured diagnostic information.
+
+**Purpose**: Converts Stan compiler error/warning messages into domain Range and message formats.
 
 **Key Functions**:
 - `rangeFromMessage(message)`: Extracts line/column ranges from Stan compiler messages
@@ -44,15 +73,15 @@ Utilities for processing Stan compiler output into structured diagnostic informa
 - `getErrorMessage(message)`: Formats error messages for display
 
 **Dependencies**:
-- `vscode-languageserver/node` (for Range type only)
+- `../../types/diagnostics`: Domain types (Range, Position)
 
 **Input**: Stan compiler error/warning strings
-**Output**: Formatted messages and position ranges
+**Output**: Domain Range objects and formatted messages
 
 **Process**:
 1. Parse compiler message format: "in 'filename', line (#), column (#) to (line #,)? column (#)"
 2. Extract 1-based line numbers and 0-based column numbers
-3. Convert to LSP Range format
+3. Convert to domain Range format
 4. Clean and format messages for user display
 5. Handle special cases like included files
 
@@ -61,6 +90,7 @@ Utilities for processing Stan compiler output into structured diagnostic informa
 - Supports range extraction for multi-character errors
 - Processes included file error reporting
 - Cleans up compiler output for better UX
+- No LSP dependencies - uses pure domain types
 
 ### `completion/util.ts`
 Shared utilities for completion functionality.
@@ -94,7 +124,7 @@ Functions operate on domain-specific types (`Distribution[]`, `StanFunction[]`, 
 Language modules have no knowledge of LSP protocol specifics, making them reusable and testable.
 
 ### 4. Single Responsibility
-Each module focuses on a specific language feature (completion, hover, linting).
+Each module focuses on a specific language feature (completion, hover, diagnostics).
 
 ### 5. Functional Composition
 Small, composable functions that can be combined to build complex features.
@@ -103,7 +133,6 @@ Small, composable functions that can be combined to build complex features.
 
 The language directory maintains minimal external dependencies:
 - `trie-search`: For efficient completion matching
-- `vscode-languageserver` types: Only for shared types like Range
 - Internal types: Domain types from `../types/`
 
 ## Usage Pattern

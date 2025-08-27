@@ -19,7 +19,7 @@ type StancFailure = {
   warnings?: string[];
 };
 
-type StancReturn = StancSuccess | StancFailure;
+export type StancReturn = StancSuccess | StancFailure;
 
 type StancFunction = (
   filename: string,
