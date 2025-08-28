@@ -1,10 +1,8 @@
 import type { Hover } from "vscode-languageserver";
 import { getMathDistributions } from "../../stanc/compiler";
 import { getFunctionDocumentation } from "./functions";
-import type {
-  TextDocument,
-  Position,
-} from "vscode-languageserver-textdocument";
+import type { TextDocument } from "vscode-languageserver-textdocument";
+import { isWhitespace } from "./util";
 
 const distributionToFunctionMap: Map<string, string> = new Map();
 
@@ -21,39 +19,43 @@ export const setupDistributionMap = () => {
   }
 };
 
+const tildeBefore = (text: string, pos: number) => {
+  for (let i = pos - 1; i >= 0; i--) {
+    const char = text[i]!;
+    if (char === "~") {
+      return true;
+    } else if (isWhitespace(char)) {
+      continue;
+    } else {
+      return false;
+    }
+  }
+  return false;
+};
+
 export const tryDistributionHover = (
   document: TextDocument,
+  beginningOfWord: number,
   endOfWord: number
 ): Hover | null => {
   const text = document.getText();
 
-  // try to find distribution before
-  const dist = text
-    .substring(0, endOfWord)
-    .trimEnd()
-    .match(/~\s*(\w+)$/d);
-  if (dist && dist[1]) {
-    const functionName = distributionToFunctionMap.get(dist[1]);
-    if (functionName) {
-      const contents = getFunctionDocumentation(functionName);
-      if (!contents) {
-        return null;
-      }
+  if (!tildeBefore(text, beginningOfWord)) return null;
 
-      let range = undefined;
-      if (dist.index !== undefined) {
-        range = {
-          start: document.positionAt(dist.index),
-          end: document.positionAt(dist.index + dist[0].length),
-        };
-      }
+  const dist = text.substring(beginningOfWord, endOfWord).trim();
+  const functionName = distributionToFunctionMap.get(dist);
+  if (!functionName) return null;
 
-      return {
-        contents,
-        range,
-      };
-    }
-  }
+  const contents = getFunctionDocumentation(functionName);
+  if (!contents) return null;
 
-  return null;
+  const range = {
+    start: document.positionAt(beginningOfWord),
+    end: document.positionAt(endOfWord),
+  };
+
+  return {
+    contents,
+    range,
+  };
 };
