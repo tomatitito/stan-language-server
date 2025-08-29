@@ -28,6 +28,7 @@ type StancFunction = (
   includes?: Record<string, string>,
 ) => StancReturn;
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const stancjs = require("./stanc.js");
 const stanc: StancFunction = stancjs.stanc;
 
