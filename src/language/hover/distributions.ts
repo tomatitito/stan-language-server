@@ -1,12 +1,9 @@
-import type { Hover } from "vscode-languageserver";
 import { getMathDistributions } from "../../stanc/compiler";
-import { getFunctionDocumentation } from "./functions";
-import type { TextDocument } from "vscode-languageserver-textdocument";
 import { isWhitespace } from "./util";
 
-const distributionToFunctionMap: Map<string, string> = new Map();
 
-export const setupDistributionMap = () => {
+const setupDistributionMap = () => {
+  const distributionToFunctionMap: Map<string, string> = new Map();
   const mathDistributions = getMathDistributions();
   const distLines = mathDistributions.split("\n");
   for (const line of distLines) {
@@ -17,6 +14,7 @@ export const setupDistributionMap = () => {
     const extension = extensions.split(",", 1)[0]?.trim();
     distributionToFunctionMap.set(name, `${name}_${extension}`);
   }
+  return distributionToFunctionMap
 };
 
 const tildeBefore = (text: string, pos: number) => {
@@ -34,28 +32,15 @@ const tildeBefore = (text: string, pos: number) => {
 };
 
 export const tryDistributionHover = (
-  document: TextDocument,
+  text: string,
   beginningOfWord: number,
-  endOfWord: number
-): Hover | null => {
-  const text = document.getText();
-
+  endOfWord: number,
+): string | null => {
   if (!tildeBefore(text, beginningOfWord)) return null;
+  const distributionToFunctionMap = setupDistributionMap();
 
   const dist = text.substring(beginningOfWord, endOfWord).trim();
   const functionName = distributionToFunctionMap.get(dist);
   if (!functionName) return null;
-
-  const contents = getFunctionDocumentation(functionName);
-  if (!contents) return null;
-
-  const range = {
-    start: document.positionAt(beginningOfWord),
-    end: document.positionAt(endOfWord),
-  };
-
-  return {
-    contents,
-    range,
-  };
+  return functionName;
 };

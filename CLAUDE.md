@@ -27,6 +27,7 @@ A language server for the Stan probabilistic programming language written in Typ
 
 2. **Handlers (`src/handlers/`)**: LSP protocol conversion layer
    - `completion.ts`: Converts language provider results to LSP CompletionItems
+   - `hover.ts`: Converts language provider results to LSP Hover responses
    - `index.ts`: Barrel export for all handlers
    - Manages the interface between LSP protocol and pure language functions
 
@@ -34,7 +35,11 @@ A language server for the Stan probabilistic programming language written in Typ
    - `completion/`: Pure completion providers returning domain types
      - `providers/`: Returns Keyword[], Distribution[], StanFunction[], Datatype[], Constraint[]
      - `util.ts`: Shared utilities for searchable items
-   - `hover/`: Hover information providers
+   - `hover/`: Pure hover providers returning function/distribution names
+     - `provider.ts`: Main hover provider that delegates to specific providers
+     - `functions.ts`: Extracts function names from function call contexts
+     - `distributions.ts`: Extracts distribution function names from sampling contexts
+     - `util.ts`: Shared utilities for text parsing and word boundaries
    - `linter.ts`: Diagnostic and error analysis
    - No LSP dependencies - pure domain logic
 
@@ -59,6 +64,7 @@ A language server for the Stan probabilistic programming language written in Typ
 - Tests cover:
   - Compiler integration and include resolution
   - Pure completion providers (keywords, distributions, functions, datatypes, constraints)
+  - Pure hover providers (functions, distributions)
   - Handler integration with LSP protocol
   - All tests verify the new architecture maintains functionality
 
@@ -80,12 +86,17 @@ The project implements a clean separation of concerns architecture:
 - `src/server.ts`: Main LSP server entry point
 - `src/handlers/`: LSP protocol conversion layer
   - `completion.ts`: Converts domain types to CompletionItems
+  - `hover.ts`: Converts function/distribution names to Hover responses with documentation
   - `index.ts`: Barrel export for handlers
 - `src/language/`: Pure language analysis functions
   - `completion/`: Completion providers returning domain types
     - `providers/`: Individual provider files (keywords, distributions, functions, datatypes, constraints)
     - `util.ts`: Shared utilities for searchable items
-  - `hover/`: Hover information providers
+  - `hover/`: Pure hover providers that extract function/distribution names
+    - `provider.ts`: Main provider that coordinates function and distribution hover
+    - `functions.ts`: Function name extraction from call contexts
+    - `distributions.ts`: Distribution function mapping from sampling contexts
+    - `util.ts`: Text parsing utilities
   - `linter.ts`: Diagnostic analysis
 - `src/stanc/`: Stan compiler integration
   - `compiler.ts`: TypeScript wrapper for Stan compiler
@@ -116,7 +127,9 @@ The project implements a clean separation of concerns architecture:
 - `src/language/`: Core language feature implementations (IMPLEMENTED)
   - `completion/`: Completion providers and utilities (IMPLEMENTED)
     - Distribution, keyword, and datatype completions
-  - Future: hover, definition, references, diagnostics (PROPOSED)
+  - `hover/`: Hover providers and utilities (IMPLEMENTED)
+    - Function and distribution hover information
+  - Future: definition, references, diagnostics (PROPOSED)
 
 - `src/workspace/`: Workspace-level operations (PROPOSED)
   - Manages workspace symbols, configuration
@@ -141,7 +154,15 @@ The project implements a clean separation of concerns architecture:
 
 ## Recent Changes
 
-### Completion Architecture Refactoring (Latest)
+### Hover Architecture Refactoring (Latest)
+- ✅ Refactored hover functionality following same pattern as completion
+- ✅ Created `src/handlers/hover.ts` for LSP protocol conversion
+- ✅ Implemented pure hover providers in `src/language/hover/`
+- ✅ Separated function hover and distribution hover logic
+- ✅ Created shared utilities for text parsing and word boundary detection
+- ✅ Maintained backward compatibility at LSP protocol level
+
+### Completion Architecture Refactoring (Previous)
 - ✅ Refactored completion providers to return domain types (Keyword[], Distribution[], etc.)
 - ✅ Created handlers layer for LSP protocol conversion
 - ✅ Established clean dependency flow: server.ts → handlers → language/providers
@@ -155,3 +176,4 @@ The project implements a clean separation of concerns architecture:
 - **Reusability**: Language providers can be used in different contexts
 - **Type safety**: Leverages existing domain types instead of creating new ones
 - **Maintainability**: Clear boundaries and single responsibility principle
+- **Consistent patterns**: Hover follows same architectural patterns as completion
