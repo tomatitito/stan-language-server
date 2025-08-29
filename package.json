@@ -3,10 +3,19 @@
   "module": "src/server.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "typecheck": "tsc --noEmit",
+    "check": "bun run lint && bun run typecheck"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "24.3.0",
-    "typescript": "5.9.2"
+    "@typescript-eslint/eslint-plugin": "^6.16.0",
+    "@typescript-eslint/parser": "^6.16.0",
+    "eslint": "^8.56.0",
+    "typescript": "5.3.3"
   },
   "dependencies": {
     "trie-search": "2.2.0",

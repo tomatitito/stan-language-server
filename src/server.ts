@@ -6,20 +6,8 @@ import {
   type InitializeResult,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { handleCompletion, handleDiagnostics } from "./handlers";
-import {
-  setupDistributionMap,
-  tryDistributionHover,
-} from "./language/hover/distributions";
-import {
-  setupSignatureMap,
-  tryFunctionHover,
-} from "./language/hover/functions";
-import {
-  isWordChar,
-  previousWordBoundary,
-  wordUntilNextParenthesis,
-} from "./language/hover/util";
+import { handleCompletion, handleDiagnostics, handleHover } from "./handlers";
+
 import { compile } from "./stanc/compiler";
 import { getIncludes } from "./stanc/includes";
 import { URI, Utils as URIUtils } from "vscode-uri";
@@ -33,8 +21,6 @@ const documents = new TextDocuments(TextDocument);
 connection.onInitialize((params: InitializeParams): InitializeResult => {
   connection.console.info("Initializing Stan language server...");
 
-  setupSignatureMap();
-  setupDistributionMap();
   return {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
@@ -70,10 +56,10 @@ connection.onCompletion((params) => {
   return handleCompletion(params, documents);
 });
 
-connection.onRequest('textDocument/diagnostic', async (params) => {
+connection.onRequest("textDocument/diagnostic", async (params) => {
   return {
-    kind: 'full',
-    items: await handleDiagnostics(params, documents)
+    kind: "full",
+    items: await handleDiagnostics(params, documents),
   };
 });
 
@@ -140,39 +126,12 @@ connection.onDocumentFormatting(async (params) => {
 
 connection.onHover((params) => {
   const document = documents.get(params.textDocument.uri);
-
   if (!document) {
     return null;
   }
-
-  const text = document.getText();
-
-  let offset = document.offsetAt(params.position); // include the character at the cursor position
-
-  if (!isWordChar(text[offset]!)) return null;
-
-  const nextParen = wordUntilNextParenthesis(text, offset);
-  if (nextParen === -1) return null;
-  const beginningOfWord = previousWordBoundary(text, offset);
-
-  const distributionHover = tryDistributionHover(
-    document,
-    beginningOfWord,
-    nextParen
-  );
-  if (distributionHover) return distributionHover;
-
-  const functionHover = tryFunctionHover(document, beginningOfWord, nextParen);
-  if (functionHover) return functionHover;
-
-  return null;
+  return handleHover(document, params);
 });
 
-
-
-connection.onDidChangeConfiguration((change) => {
-  // Configuration changed - diagnostics will be re-requested by LSP client as needed
-});
 
 documents.listen(connection);
 
