@@ -7,7 +7,6 @@ import {
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { handleCompletion, handleDiagnostics, handleHover } from "./handlers";
-
 import { compile } from "./stanc/compiler";
 import { getIncludes } from "./stanc/includes";
 import { URI, Utils as URIUtils } from "vscode-uri";
@@ -131,7 +130,6 @@ connection.onHover((params) => {
   }
   return handleHover(document, params);
 });
-
 
 documents.listen(connection);
 
