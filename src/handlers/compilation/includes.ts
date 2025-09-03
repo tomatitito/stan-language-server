@@ -1,4 +1,4 @@
-import { TextDocuments, URI, WorkspaceFolder } from "vscode-languageserver";
+import { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
 import { dirname, join } from "path";
 import { fileURLToPath } from "bun";
 import type { TextDocument } from "vscode-languageserver-textdocument";

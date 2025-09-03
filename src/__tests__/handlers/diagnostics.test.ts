@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { DiagnosticSeverity as LspDiagnosticSeverity } from "vscode-languageserver";
-import { DiagnosticSeverity as DomainSeverity, type StanDiagnostic } from "../../types/diagnostics";
+import { DiagnosticSeverity as DomainSeverity } from "../../types/diagnostics";
 import { provideDiagnostics } from "../../language/diagnostics";
 
 // Test compiler results for diagnostic provider tests
@@ -270,16 +270,6 @@ This error may have occurred because:
 
   describe("LSP conversion functions", () => {
     it("should properly convert domain diagnostic to LSP diagnostic format", () => {
-      // Create a test domain diagnostic
-      const domainDiagnostic: StanDiagnostic = {
-        message: "Test error message",
-        severity: DomainSeverity.Error,
-        range: {
-          start: { line: 1, character: 5 },
-          end: { line: 2, character: 10 },
-        },
-        source: "stan-language-server",
-      };
 
       // Test the conversion by using the diagnostic provider which calls the conversion
       // Since the conversion functions are not exported, we test them indirectly
