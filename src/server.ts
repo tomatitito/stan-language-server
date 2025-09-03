@@ -54,9 +54,10 @@ connection.onCompletion((params) => {
 });
 
 connection.onRequest("textDocument/diagnostic", async (params) => {
+  const folders = (await connection.workspace.getWorkspaceFolders()) || [];
   return {
     kind: "full",
-    items: await handleDiagnostics(params, documents),
+    items: await handleDiagnostics(params, documents, folders),
   };
 });
 
