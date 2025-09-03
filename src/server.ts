@@ -15,7 +15,7 @@ const connection = createConnection(process.stdin, process.stdout);
 // Create a simple text document manager.
 const documents = new TextDocuments(TextDocument);
 
-connection.onInitialize((params: InitializeParams): InitializeResult => {
+connection.onInitialize((_params: InitializeParams): InitializeResult => {
   connection.console.info("Initializing Stan language server...");
 
   return {
