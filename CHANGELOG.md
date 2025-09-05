@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed filesystem include resolution in `handleIncludes`
+  - Corrected `readIncludedFileFromFileSystem` to use local file paths instead of URL parsing
+  - Include files can now be properly read from filesystem as fallback when not in workspace
+- Fixed test isolation issues in compilation handler tests
+  - Properly clean up spies between tests to prevent cross-test pollution
+  - Enhanced spy management with defensive programming and better type safety
+
 ### Changed
 - **BREAKING**: Refactored completion architecture to improve separation of concerns
   - Language completion providers now return existing types (`Keyword[]`, `Distribution[]`, `StanFunction[]`, `Datatype[]`, `Constraint[]`) instead of LSP-specific types
@@ -23,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `getTextUpToCursor()`: Shared text processing utility
   - `getSearchableItems()`: TrieSearch wrapper for fuzzy completion matching
 - Comprehensive test suite for completion utilities (`src/__tests__/language/completion/util.test.ts`)
+- Enhanced include handler tests in `src/__tests__/handlers/includes.test.ts`
+  - Added proper workspace vs filesystem prioritization test
+  - Added filesystem fallback test when workspace documents not found
+  - Improved test coverage for include resolution priority logic
 
 ### Refactored
 - `src/language/completion/providers/keywords.ts`: Now returns `Keyword[]`
@@ -48,7 +60,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All tests updated and passing (52 tests across 8 files)
 - Maintained backward compatibility at the LSP protocol level
 
-## [Latest - Diagnostic Refactoring]
+## [Latest - Compilation Handler Refactoring]
+
+### Changed
+- **BREAKING**: Refactored compilation architecture to improve modularity and maintainability
+  - Replaced direct `compile()` usage with `handleCompilation()` throughout codebase
+  - Moved compilation logic from scattered locations into dedicated handlers
+  - Centralized include file resolution and compilation handling
+  - Improved integration between compilation and include resolution systems
+
+### Added
+- New compilation handler system in `src/handlers/compilation/`:
+  - `src/handlers/compilation/compilation.ts`: Main compilation handler with `handleCompilation()` function
+  - `src/handlers/compilation/includes.ts`: Dedicated include file resolution handler
+  - Proper TypeScript types for Stan compiler integration (`StancReturn`, `StancSuccess`, `StancFailure`)
+- Enhanced compilation workflow:
+  - Integrated include file resolution directly into compilation process
+  - Configurable Stan compiler arguments and options
+  - Support for both `.stan` and `.stanfunctions` file types
+
+### Refactored
+- Updated `src/server.ts` to use new `handleCompilation()` function
+- Updated `src/handlers/diagnostics.ts` to use new compilation handler
+- Removed unused compilation code and cleaned up legacy references
+- Streamlined dependency flow for compilation-related functionality
+- Consolidated Stan compiler type definitions
+
+### Technical Improvements
+- **Modularity**: Compilation logic properly encapsulated in dedicated handlers
+- **Maintainability**: Clear separation between compilation, includes, and diagnostics
+- **Consistency**: All features now follow same handler-based architectural pattern
+- **Type Safety**: Better TypeScript integration with Stan compiler results
+- **Code Quality**: Eliminated duplicate compilation logic across codebase
+
+### Fixed
+- All tests updated and passing
+- Removed unused imports and dependencies
+- Clean compilation workflow without legacy code paths
+
+## [Previous - Diagnostic Refactoring]
 
 ### Changed
 - **BREAKING**: Refactored diagnostic architecture to implement LSP-compliant diagnostics

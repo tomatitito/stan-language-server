@@ -28,6 +28,10 @@ A language server for the Stan probabilistic programming language written in Typ
 2. **Handlers (`src/handlers/`)**: LSP protocol conversion layer
    - `completion.ts`: Converts language provider results to LSP CompletionItems
    - `hover.ts`: Converts language provider results to LSP Hover responses
+   - `diagnostics.ts`: Converts compiler results to LSP Diagnostic format
+   - `compilation/`: Compilation handling utilities
+     - `compilation.ts`: Handles Stan code compilation with includes
+     - `includes.ts`: Manages #include file resolution for compilation
    - `index.ts`: Barrel export for all handlers
    - Manages the interface between LSP protocol and pure language functions
 
@@ -40,7 +44,10 @@ A language server for the Stan probabilistic programming language written in Typ
      - `functions.ts`: Extracts function names from function call contexts
      - `distributions.ts`: Extracts distribution function names from sampling contexts
      - `util.ts`: Shared utilities for text parsing and word boundaries
-   - `linter.ts`: Diagnostic and error analysis
+   - `diagnostics/`: Pure diagnostic analysis functions
+     - `provider.ts`: Main diagnostic provider that processes compiler results
+     - `linter.ts`: Diagnostic message processing utilities
+     - `index.ts`: Barrel export for diagnostic functionality
    - No LSP dependencies - pure domain logic
 
 4. **Stan Compiler Integration (`src/stanc/`)**: 
@@ -50,6 +57,8 @@ A language server for the Stan probabilistic programming language written in Typ
 
 5. **Type Definitions (`src/types/`)**: 
    - `completion.ts`: Domain types for completion system (Searchable, Distribution, etc.)
+   - `diagnostics.ts`: Domain types for diagnostic system (StanDiagnostic, Severity, etc.)
+   - `common.ts`: Shared domain types (Position, Range, etc.)
 
 ### Key Types
 - `StancReturn`: Union type for compiler success/failure results
@@ -65,7 +74,8 @@ A language server for the Stan probabilistic programming language written in Typ
   - Compiler integration and include resolution
   - Pure completion providers (keywords, distributions, functions, datatypes, constraints)
   - Pure hover providers (functions, distributions)
-  - Handler integration with LSP protocol
+  - Pure diagnostic providers (linter utilities, diagnostic processing)
+  - Handler integration with LSP protocol (completion, diagnostics)
   - All tests verify the new architecture maintains functionality
 
 ## TypeScript Configuration
@@ -87,6 +97,10 @@ The project implements a clean separation of concerns architecture:
 - `src/handlers/`: LSP protocol conversion layer
   - `completion.ts`: Converts domain types to CompletionItems
   - `hover.ts`: Converts function/distribution names to Hover responses with documentation
+  - `diagnostics.ts`: Converts compiler results to LSP Diagnostic format
+  - `compilation/`: Compilation handling utilities
+    - `compilation.ts`: Handles Stan code compilation with includes
+    - `includes.ts`: Manages #include file resolution for compilation
   - `index.ts`: Barrel export for handlers
 - `src/language/`: Pure language analysis functions
   - `completion/`: Completion providers returning domain types
@@ -97,13 +111,18 @@ The project implements a clean separation of concerns architecture:
     - `functions.ts`: Function name extraction from call contexts
     - `distributions.ts`: Distribution function mapping from sampling contexts
     - `util.ts`: Text parsing utilities
-  - `linter.ts`: Diagnostic analysis
+  - `diagnostics/`: Pure diagnostic analysis functions
+    - `provider.ts`: Main diagnostic provider that processes compiler results
+    - `linter.ts`: Diagnostic message processing utilities
+    - `index.ts`: Barrel export for diagnostic functionality
 - `src/stanc/`: Stan compiler integration
   - `compiler.ts`: TypeScript wrapper for Stan compiler
   - `includes.ts`: File include resolution
   - `stanc.js`: Native Stan compiler bundle
 - `src/types/`: Domain type definitions
   - `completion.ts`: Completion system types (Searchable, Distribution, etc.)
+  - `diagnostics.ts`: Diagnostic system types (StanDiagnostic, Severity, etc.)
+  - `common.ts`: Shared domain types (Position, Range, etc.)
 - `src/__tests__/`: Test files organized by feature
 - `src/__fixtures__/`: Test fixture files
 
@@ -154,7 +173,29 @@ The project implements a clean separation of concerns architecture:
 
 ## Recent Changes
 
-### Hover Architecture Refactoring (Latest)
+### Bug Fixes and Test Improvements (Latest)
+- ✅ Fixed filesystem include resolution bug in `handleIncludes` function  
+- ✅ Enhanced test isolation with proper spy cleanup in compilation tests
+- ✅ Added comprehensive workspace vs filesystem prioritization tests
+- ✅ Improved include handler test coverage with fallback scenarios
+- ✅ All 91 tests now passing with proper isolation
+
+### Compilation Handler Refactoring (Previous)
+- ✅ Added `src/handlers/compilation/` directory for compilation utilities
+- ✅ Created `handleCompilation` function to replace direct `compile` usage
+- ✅ Moved compilation logic into dedicated handlers
+- ✅ Improved include file resolution integration
+- ✅ Cleaned up unused compilation code throughout codebase
+- ✅ Updated all references from `compile` to `handleCompilation`
+
+### Diagnostic System Implementation (Recent)
+- ✅ Added comprehensive diagnostic system with `src/language/diagnostics/`
+- ✅ Created `src/handlers/diagnostics.ts` for LSP protocol conversion
+- ✅ Implemented pure diagnostic providers and linter utilities
+- ✅ Added diagnostic handler tests covering LSP conversion
+- ✅ Integrated diagnostics with compiler results and include resolution
+
+### Hover Architecture Refactoring (Previous)
 - ✅ Refactored hover functionality following same pattern as completion
 - ✅ Created `src/handlers/hover.ts` for LSP protocol conversion
 - ✅ Implemented pure hover providers in `src/language/hover/`
@@ -162,7 +203,7 @@ The project implements a clean separation of concerns architecture:
 - ✅ Created shared utilities for text parsing and word boundary detection
 - ✅ Maintained backward compatibility at LSP protocol level
 
-### Completion Architecture Refactoring (Previous)
+### Completion Architecture Refactoring (Foundation)
 - ✅ Refactored completion providers to return domain types (Keyword[], Distribution[], etc.)
 - ✅ Created handlers layer for LSP protocol conversion
 - ✅ Established clean dependency flow: server.ts → handlers → language/providers
@@ -176,4 +217,5 @@ The project implements a clean separation of concerns architecture:
 - **Reusability**: Language providers can be used in different contexts
 - **Type safety**: Leverages existing domain types instead of creating new ones
 - **Maintainability**: Clear boundaries and single responsibility principle
-- **Consistent patterns**: Hover follows same architectural patterns as completion
+- **Consistent patterns**: All features (completion, hover, diagnostics) follow same architectural patterns
+- **Modularity**: Compilation logic is properly encapsulated in dedicated handlers
