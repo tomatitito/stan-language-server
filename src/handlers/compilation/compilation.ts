@@ -2,27 +2,8 @@ import type { TextDocument } from "vscode-languageserver-textdocument";
 import type { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
 import { handleIncludes } from "./includes";
 import { fileURLToPath } from "bun";
+import type { StancReturn } from "../../types/common";
 
-type StancSuccess = {
-  errors: undefined;
-  result: string;
-  warnings?: string[];
-};
-
-type StancFailure = {
-  errors: string[];
-  result: undefined;
-  warnings?: string[];
-};
-
-export type StancReturn = StancSuccess | StancFailure;
-
-type StancFunction = (
-  filename: string,
-  code: string,
-  options: string[],
-  includes?: Record<string, string>,
-) => StancReturn;
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const stancjs = require("../../stanc/stanc.js");
@@ -50,7 +31,7 @@ export async function handleCompilation(
     "canonicalze=deprecations",
     "allow-undefined",
   ];
-  if (document.languageId === "stanfunctions") {
+  if (filename.endsWith(".stanfunctions")) {
     stanc_args.push("functions-only");
   }
 
