@@ -1,5 +1,5 @@
 import { type StanDiagnostic, DiagnosticSeverity } from "../../types/diagnostics";
-import type { StancReturn } from "../../stanc/compiler";
+import type { StancReturn } from "../../types/common";
 import {
   rangeFromMessage,
   getWarningMessage,

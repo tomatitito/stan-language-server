@@ -6,9 +6,7 @@ import {
   type InitializeResult,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { handleCompletion, handleDiagnostics, handleHover } from "./handlers";
-
-import { handleCompilation } from "./handlers/compilation/compilation";
+import { handleCompletion, handleDiagnostics, handleHover, handleFormatting, getFormattingErrors } from "./handlers";
 
 const connection = createConnection(process.stdin, process.stdout);
 
@@ -62,34 +60,21 @@ connection.onRequest("textDocument/diagnostic", async (params) => {
 });
 
 connection.onDocumentFormatting(async (params) => {
-  const document = documents.get(params.textDocument.uri);
-  if (document) {
-    const folders = (await connection.workspace.getWorkspaceFolders()) || [];
-    const result = await handleCompilation(document, documents, folders);
-
-    if (result.result) {
-      // Stan compiler only formats entire documents
-      const range = {
-        start: { line: 0, character: 0 },
-        end: {
-          line: document.lineCount - 1,
-          character: document.getText().length,
-        },
-      };
-      return [
-        {
-          range,
-          newText: result.result,
-        },
-      ];
-    } else if (result.errors) {
+  const folders = (await connection.workspace.getWorkspaceFolders()) || [];
+  
+  try {
+    return await handleFormatting(params, documents, folders);
+  } catch (error) {
+    // Log formatting errors for debugging
+    const errors = await getFormattingErrors(params, documents, folders);
+    if (errors.length > 0) {
       connection.console.error("Formatting error:");
-      for (const line of result.errors[1]?.split("\n") || []) {
-        connection.console.error(line);
+      for (const error of errors) {
+        connection.console.error(error);
       }
     }
+    return [];
   }
-  return [];
 });
 
 connection.onHover((params) => {

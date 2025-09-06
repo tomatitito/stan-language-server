@@ -6,27 +6,7 @@ import getIncludes, {
   type Filename,
   type FilePathError,
 } from "./includes";
-
-type StancSuccess = {
-  errors: undefined;
-  result: string;
-  warnings?: string[];
-};
-
-type StancFailure = {
-  errors: string[];
-  result: undefined;
-  warnings?: string[];
-};
-
-export type StancReturn = StancSuccess | StancFailure;
-
-type StancFunction = (
-  filename: string,
-  code: string,
-  options: string[],
-  includes?: Record<string, string>,
-) => StancReturn;
+import type { StancFunction, StancReturn } from "../types/common";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const stancjs = require("./stanc.js");
@@ -72,9 +52,6 @@ export const compile =
       "allow-undefined",
       ...args,
     ];
-    if (document.languageId === "stanfunctions") {
-      stanc_args.push("functions-only");
-    }
     // logger.appendLine(
     //   `Running stanc on ${filename} with args: ${stanc_args.join(", ")}, and includes: ${Object.keys(includes).join(", ")}`,
     // );

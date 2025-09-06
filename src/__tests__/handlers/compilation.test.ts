@@ -33,7 +33,7 @@ describe("Compilation Handler", () => {
   });
 
   it("should add functions-only flag for stanfunctions", async () => {
-    const document = createDocument("file:///functions.stanfunctions", "real f(real x) { return x * 2; }", "stanfunctions");
+    const document = createDocument("file:///functions.stanfunctions", "real f(real x) { return x * 2; }", "stan");
     const result = await handleCompilation(document, mockManager, mockFolders);
 
     expect(result.errors).toBeUndefined();
