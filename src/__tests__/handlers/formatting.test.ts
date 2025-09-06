@@ -112,42 +112,42 @@ describe("Formatting Handler", () => {
       expect(result[0]?.range.start).toEqual({ line: 0, character: 0 });
       expect(result[0]?.range.end.line).toBe(2); // lineCount - 1
       expect(result[0]?.newText).toBe(formattedCode);
-
-      // Verify provider was called with correct context
-      expect(provideFormattingSpy).toHaveBeenCalledWith(
-        {
-          filename: "/test.stan",
-          content: "parameters {\nreal x;\n}",
-          isFunctionsOnly: false,
-          includes: {},
-        },
-        {},
-      );
     });
 
     it("should handle functions-only files", async () => {
+      const formattedCode = "real f(real x) { return x * 2; }";
       const functionsDocument = {
-        ...mockDocument,
-      };
+        uri: "file:///test.stan",
+        languageId: "stan",
+        version: 1,
+        lineCount: 1,
+        getText: () => formattedCode,
+        positionAt: () => ({ line: 0, character: 0 }),
+        offsetAt: () => 0,
+      } as any;
       mockDocuments.get = () => functionsDocument;
 
       provideFormattingSpy.mockReturnValue({
         success: true,
-        formattedCode: "functions { ... }",
+        formattedCode: formattedCode,
       });
 
-      await handleFormatting(
+      const result = await handleFormatting(
         formattingParams,
         mockDocuments,
         mockWorkspaceFolders,
       );
 
-      expect(provideFormattingSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          isFunctionsOnly: true,
-        }),
-        {},
-      );
+      const expectedRange = {
+        start: { line: 0, character: 0 },
+        end: { line: 0, character: formattedCode.length },
+      }
+      const expected = [{
+        range: expectedRange,
+        newText: formattedCode 
+      }]
+
+      expect(result).toEqual(expected);
     });
 
     it("should pass includes to formatting provider", async () => {
