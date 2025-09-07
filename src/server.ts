@@ -6,7 +6,13 @@ import {
   type InitializeResult,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { handleCompletion, handleDiagnostics, handleHover, handleFormatting, getFormattingErrors } from "./handlers";
+import {
+  handleCompletion,
+  handleDiagnostics,
+  handleHover,
+  handleFormatting,
+  getFormattingErrors,
+} from "./handlers";
 
 const connection = createConnection(process.stdin, process.stdout);
 
@@ -61,12 +67,12 @@ connection.onRequest("textDocument/diagnostic", async (params) => {
 
 connection.onDocumentFormatting(async (params) => {
   const folders = (await connection.workspace.getWorkspaceFolders()) || [];
-  
+
   try {
-    return await handleFormatting(params, documents, folders);
+    return await handleFormatting(params, documents, folders, connection.console);
   } catch (error) {
     // Log formatting errors for debugging
-    const errors = await getFormattingErrors(params, documents, folders);
+    const errors = await getFormattingErrors(params, documents, folders, connection.console);
     if (errors.length > 0) {
       connection.console.error("Formatting error:");
       for (const error of errors) {

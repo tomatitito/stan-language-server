@@ -1,20 +1,21 @@
 import { fileURLToPath } from "bun";
 import type {
-    DocumentFormattingParams,
-    TextDocuments,
-    TextEdit,
-    WorkspaceFolder,
+  DocumentFormattingParams,
+  RemoteConsole,
+  TextDocuments,
+  TextEdit,
+  WorkspaceFolder,
 } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import { provideFormatting } from "../language/formatting";
-import type { FormattingContext, FormattingOptions } from "../types/formatting";
+import type { FormattingContext } from "../types/formatting";
 import { handleIncludes } from "./compilation/includes";
 
 export async function handleFormatting(
   params: DocumentFormattingParams,
   documents: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
-  options: FormattingOptions = {},
+  logger: RemoteConsole,
 ): Promise<TextEdit[]> {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
@@ -24,15 +25,21 @@ export async function handleFormatting(
   const filename = fileURLToPath(document.uri);
   const content = document.getText();
 
-  const includes = await handleIncludes(document, documents, workspaceFolders);
+  const includes = await handleIncludes(
+    document,
+    documents,
+    workspaceFolders,
+    logger,
+  );
 
   const context: FormattingContext = {
     filename,
     content,
     includes,
   };
+  console.log(`Formatting context: ${JSON.stringify(context)}`);
 
-  const result = provideFormatting(context, options);
+  const result = provideFormatting(context);
 
   // Convert result to LSP TextEdit
   if (result.success && result.formattedCode) {
@@ -62,7 +69,7 @@ export async function getFormattingErrors(
   params: DocumentFormattingParams,
   documents: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
-  options: FormattingOptions = {},
+  logger: RemoteConsole,
 ): Promise<string[]> {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
@@ -71,7 +78,7 @@ export async function getFormattingErrors(
 
   const filename = fileURLToPath(document.uri);
   const content = document.getText();
-  const includes = await handleIncludes(document, documents, workspaceFolders);
+  const includes = await handleIncludes(document, documents, workspaceFolders, logger);
 
   const context: FormattingContext = {
     filename,
@@ -79,6 +86,6 @@ export async function getFormattingErrors(
     includes,
   };
 
-  const result = provideFormatting(context, options);
+  const result = provideFormatting(context);
   return result.errors || [];
 }
