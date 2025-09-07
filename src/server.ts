@@ -1,5 +1,4 @@
-import { createConnection, TextDocuments } from "vscode-languageserver/node";
-import { TextDocument } from "vscode-languageserver-textdocument";
+import { createConnection } from "vscode-languageserver/node";
 
 import setUpLanguageServer from "./lib";
 
