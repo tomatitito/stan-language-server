@@ -1,0 +1,40 @@
+# Source files
+src/
+tsconfig.json
+.eslintrc.json
+
+# Development files
+.github/
+scripts/
+__fixtures__/
+*.test.ts
+*.spec.ts
+
+# Build artifacts (except dist/)
+*.log
+*.tgz
+
+# Environment files
+.env*
+.npmrc
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git files
+.gitignore
+.gitattributes
+
+# Bun files
+bun.lock
+
+# Documentation (keep only essential)
+CLAUDE.md
+renovate.json

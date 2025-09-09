@@ -1,0 +1,71 @@
+name: Publish to npm
+
+on:
+  workflow_run:
+    workflows: ["Test"]
+    types:
+      - completed
+    branches:
+      - 'refs/tags/v*'
+
+jobs:
+  publish-npm:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+      id-token: write # For npm provenance
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
+
+      - name: Update package.json version
+        run: |
+          bun run version:set ${{ steps.version.outputs.version }}
+
+      - name: Build package
+        run: bun run build
+
+      - name: Setup npm authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Determine npm tag
+        id: npm_tag
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "Publishing as latest"
+          elif [[ "$VERSION" =~ alpha ]]; then
+            echo "tag=alpha" >> $GITHUB_OUTPUT
+            echo "Publishing as alpha"
+          elif [[ "$VERSION" =~ beta ]]; then
+            echo "tag=beta" >> $GITHUB_OUTPUT
+            echo "Publishing as beta"
+          elif [[ "$VERSION" =~ rc ]]; then
+            echo "tag=rc" >> $GITHUB_OUTPUT
+            echo "Publishing as release candidate"
+          else
+            echo "tag=next" >> $GITHUB_OUTPUT
+            echo "Publishing as next (pre-release)"
+          fi
+
+      - name: Publish to npm
+        run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }} --provenance
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
