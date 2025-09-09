@@ -14,7 +14,9 @@ A language server for the Stan probabilistic programming language written in Typ
 - Run tests: `bun test`
 
 ### Building
-- Build binary executable: `bun build src/server.ts --compile --outfile stan-language-server`
+- Build npm package: `bun run build`
+- Build binary executable: `bun run build:binary`
+- Publish to npm: `bun run publish:local` (local) or push git tag for CI
 
 ## Architecture
 

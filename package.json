@@ -1,13 +1,56 @@
 {
   "name": "stan-language-server",
+  "version": "0.1.0",
+  "description": "Language Server Protocol implementation for the Stan probabilistic programming language",
+  "main": "dist/server.js",
   "module": "src/server.ts",
   "type": "module",
-  "private": true,
+  "bin": {
+    "stan-language-server": "./dist/server.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "stan",
+    "language-server",
+    "lsp",
+    "probabilistic-programming",
+    "bayesian",
+    "statistics"
+  ],
+  "author": "Jens Kouros <jens.kouros@posteo.de>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jenskouros/stan-language-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jenskouros/stan-language-server/issues"
+  },
+  "homepage": "https://github.com/jenskouros/stan-language-server#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
+    "build": "bun build src/server.ts --outdir dist --target node --format esm",
+    "build:binary": "bun build src/server.ts --compile --outfile dist/stan-language-server",
+    "prepublishOnly": "bun run build",
+    "version:set": "bun run scripts/set-version.ts",
+    "publish:npm": "npm publish --access public --provenance",
+    "publish:local": "bun run build && npm publish --access public",
+    "publish:alpha": "bun run build && npm publish --access public --tag alpha",
+    "publish:beta": "bun run build && npm publish --access public --tag beta",
+    "publish:rc": "bun run build && npm publish --access public --tag rc",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "typecheck": "tsc --noEmit",
-    "check": "bun run lint && bun run typecheck"
+    "check": "bun run lint && bun run typecheck",
+    "test": "bun test",
+    "dev": "bun run src/server.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
