@@ -37,7 +37,6 @@ export async function handleFormatting(
     content,
     includes,
   };
-  console.log(`Formatting context: ${JSON.stringify(context)}`);
 
   const result = provideFormatting(context);
 
