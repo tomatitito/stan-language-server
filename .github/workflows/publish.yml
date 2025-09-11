@@ -7,7 +7,9 @@ on:
       - completed
 
 jobs:
-  - name: Debug workflow trigger
+  debug-publishing:
+    name: Debug workflow trigger
+    runs-on: ubuntu-latest
     run: |
       echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
       echo "Workflow run head branch: ${{ github.event.workflow_run.head_branch }}"
