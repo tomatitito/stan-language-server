@@ -2,23 +2,23 @@ name: Publish to npm
 
 on:
   workflow_run:
-    workflows: ["Test"]
+    workflows: ["Build and Release Executables"]
     types:
       - completed
-    branches:
-      - 'refs/tags/v*'
 
 jobs:
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'refs/tags/v') }}
     permissions:
       contents: read
       id-token: write # For npm provenance
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -29,7 +29,8 @@ jobs:
       - name: Extract version from tag
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          TAG_REF="${{ github.event.workflow_run.head_branch }}"
+          VERSION=${TAG_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing version: $VERSION"
 
