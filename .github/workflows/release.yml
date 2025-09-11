@@ -4,23 +4,20 @@ permissions:
   contents: write
 
 on:
-  workflow_run:
-    workflows: ["Test"]
-    types:
-      - completed
-    branches-ignore:
-      - main
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   create_release:
     name: Create Github Release
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'refs/tags/') }}
+
     steps:
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.event.workflow_run.head_branch }}
+          tag: ${{ github.ref_name }}
         run: |
           gh release create "$tag" \
             --repo="$GITHUB_REPOSITORY" \
@@ -30,7 +27,7 @@ jobs:
             
   build_artifact:
     needs: [create_release]
-    name: ${{ matrix.os }}/${{ matrix.arch }}/${{ github.event.workflow_run.head_branch }}
+    name: ${{ matrix.os }}/${{ matrix.arch }}/${{ github.ref_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -54,8 +51,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -67,17 +62,12 @@ jobs:
         id: version
         shell: bash
         run: |
-          tag_ref="${{ github.event.workflow_run.head_branch }}"
-          if [[ "${tag_ref}" =~ refs/tags/ ]]; then
-            echo "version=${tag_ref#refs/tags/}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
-          fi
+          echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
 
       - name: Build and compile executable
         run: |
           mkdir -p bin
-          bun build server.ts --compile --outfile ./bin/stan-language-server 
+          bun build src/server.ts --compile --outfile ./bin/stan-language-server 
         
       - if: "!contains(matrix.os, 'windows')"
         name: Set zip file path not on windows
