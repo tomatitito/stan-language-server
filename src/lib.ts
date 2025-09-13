@@ -9,7 +9,7 @@ import {
 import { getFormattingErrors, handleCompletion, handleDiagnostics, handleFormatting, handleHover } from "./handlers";
 
 
-const setUpLanguageServer = (connection: Connection) => {
+const startLanguageServer = (connection: Connection) => {
   connection.onInitialize((_params: InitializeParams): InitializeResult => {
     connection.console.info("Initializing Stan language server...");
 
@@ -89,4 +89,4 @@ const setUpLanguageServer = (connection: Connection) => {
   connection.listen();
 };
 
-export default setUpLanguageServer;
+export default startLanguageServer;
