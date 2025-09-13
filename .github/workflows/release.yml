@@ -8,8 +8,6 @@ on:
     workflows: ["Test"]
     types:
       - completed
-    branches-ignore:
-      - main
 
 jobs:
   create_release:
