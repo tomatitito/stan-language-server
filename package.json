@@ -26,12 +26,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jenskouros/stan-language-server.git"
+    "url": "git+https://github.com/tomatitito/stan-language-server.git"
   },
   "bugs": {
-    "url": "https://github.com/jenskouros/stan-language-server/issues"
+    "url": "https://github.com/tomatitito/stan-language-server/issues"
   },
-  "homepage": "https://github.com/jenskouros/stan-language-server#readme",
+  "homepage": "https://github.com/tomatitito/stan-language-server#readme",
   "engines": {
     "node": ">=18.0.0"
   },
