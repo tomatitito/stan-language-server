@@ -6,7 +6,7 @@
   "module": "src/server.ts",
   "type": "module",
   "bin": {
-    "stan-language-server": "./dist/server.js"
+    "stan-language-server": "dist/server.js"
   },
   "files": [
     "dist/**/*",
