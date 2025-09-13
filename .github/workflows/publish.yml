@@ -20,7 +20,7 @@ jobs:
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'refs/tags/v') }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'v') }}
     permissions:
       contents: read
       id-token: write # For npm provenance
@@ -39,8 +39,8 @@ jobs:
       - name: Extract version from tag
         id: version
         run: |
-          TAG_REF="${{ github.event.workflow_run.head_branch }}"
-          VERSION=${TAG_REF#refs/tags/v}
+          TAG_NAME="${{ github.event.workflow_run.head_branch }}"
+          VERSION=${TAG_NAME#v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing version: $VERSION"
 
