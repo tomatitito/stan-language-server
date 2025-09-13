@@ -26,7 +26,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jenskouros/stan-language-server.git"
+    "url": "git+https://github.com/jenskouros/stan-language-server.git"
   },
   "bugs": {
     "url": "https://github.com/jenskouros/stan-language-server/issues"
