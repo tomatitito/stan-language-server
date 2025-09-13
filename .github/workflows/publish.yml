@@ -7,16 +7,6 @@ on:
       - completed
 
 jobs:
-  debug-publishing:
-    name: Debug workflow trigger
-    runs-on: ubuntu-latest
-    steps:
-      - name: Debug workflow trigger
-        run: |
-          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
-          echo "Workflow run head branch: ${{ github.event.workflow_run.head_branch }}"
-          echo "Full event: ${{ toJSON(github.event.workflow_run) }}"
-
   publish-npm:
     name: Publish to npm
     runs-on: ubuntu-latest
