@@ -1,6 +1,6 @@
 import { TextDocuments, WorkspaceFolder, type RemoteConsole } from "vscode-languageserver";
 import { dirname, join } from "path";
-import { fileURLToPath } from "bun";
+import { fileURLToPath } from "url";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import {
   getFilenames,

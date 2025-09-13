@@ -1,7 +1,7 @@
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import type { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
 import { handleIncludes } from "./includes";
-import { fileURLToPath } from "bun";
+import { fileURLToPath } from "url";
 import type { StancFunction, StancReturn } from "../../types/common";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires

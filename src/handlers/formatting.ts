@@ -1,4 +1,4 @@
-import { fileURLToPath } from "bun";
+import { fileURLToPath } from "url";
 import type {
   DocumentFormattingParams,
   RemoteConsole,
