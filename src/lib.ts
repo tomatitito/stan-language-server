@@ -63,7 +63,7 @@ const startLanguageServer = (connection: Connection) => {
   
     try {
       return await handleFormatting(params, documents, folders, connection.console);
-    } catch (error) {
+    } catch (_error) {
       // Log formatting errors for debugging
       const errors = await getFormattingErrors(params, documents, folders, connection.console);
       if (errors.length > 0) {
