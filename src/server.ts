@@ -1,7 +1,7 @@
 import { createConnection } from "vscode-languageserver/node";
 
-import setUpLanguageServer from "./lib";
+import startLanguageServer from "./lib";
 
 const connection = createConnection(process.stdin, process.stdout);
 
-setUpLanguageServer(connection);
+startLanguageServer(connection);
