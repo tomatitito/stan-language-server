@@ -1,6 +1,14 @@
 # stan-language-server
 
-A language server for the Stan probabilistic programming language written in TypeScript and using Bun to build an executable binary. This is work in progress. 
+A language server for the Stan probabilistic programming language written in TypeScript and using Bun to build an executable binary.
+
+## Features
+
+- **Auto-completion**: Keywords, functions, distributions, data types, and constraints
+- **Hover information**: Documentation and type information
+- **Diagnostics**: Real-time syntax and semantic error detection
+- **Code formatting**: Using the official Stan compiler
+- **Include file support**: Full `#include` resolution and compilation
 
 To install dependencies:
 
