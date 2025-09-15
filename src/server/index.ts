@@ -6,7 +6,7 @@ import {
     type InitializeParams,
     type InitializeResult,
 } from "vscode-languageserver/node";
-import { getFormattingErrors, handleCompletion, handleDiagnostics, handleFormatting, handleHover } from "./handlers";
+import { getFormattingErrors, handleCompletion, handleDiagnostics, handleFormatting, handleHover } from "../handlers/index.ts";
 
 
 const startLanguageServer = (connection: Connection) => {

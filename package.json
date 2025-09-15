@@ -2,11 +2,14 @@
   "name": "stan-language-server",
   "version": "0.1.0",
   "description": "Language Server Protocol implementation for the Stan probabilistic programming language",
-  "main": "dist/server.js",
-  "module": "src/server.ts",
+  "main": "dist/server/index.js",
+  "module": "src/server/index.ts",
   "type": "module",
   "bin": {
-    "stan-language-server": "dist/server.js"
+    "stan-language-server": "dist/server/cli.js"
+  },
+  "exports": {
+    ".": "./dist/server/index.js"
   },
   "files": [
     "dist/**/*",
@@ -36,8 +39,8 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "bun build src/server.ts --outdir dist --target node --format esm",
-    "build:binary": "bun build src/server.ts --compile --outfile dist/stan-language-server",
+    "build": "bun build src/server/cli.ts --outdir dist/server --target node --format esm && bun build src/server/index.ts --outdir dist/server --target node --format esm",
+    "build:binary": "bun build src/server/cli.ts --compile --outfile dist/stan-language-server",
     "prepublishOnly": "bun run build",
     "version:set": "bun run scripts/set-version.ts",
     "publish:npm": "npm publish --access public --provenance",
@@ -50,7 +53,7 @@
     "typecheck": "tsc --noEmit",
     "check": "bun run lint && bun run typecheck",
     "test": "bun test",
-    "dev": "bun run src/server.ts"
+    "dev": "bun run src/server/cli.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
