@@ -66,7 +66,7 @@ describe("Formatting Integration", () => {
       allowUndefined: false,
     };
 
-    const result = provideFormatting(context, options);
+    const result = provideFormatting(context);
 
     // Should handle custom options without throwing
     expect(typeof result.success).toBe("boolean");

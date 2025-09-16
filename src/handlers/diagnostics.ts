@@ -5,6 +5,7 @@ import {
     TextDocuments,
     WorkspaceFolder,
     type DocumentDiagnosticParams,
+    type RemoteConsole,
 } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { provideDiagnostics } from "../language/diagnostics";
@@ -58,6 +59,7 @@ export async function handleDiagnostics(
   params: DocumentDiagnosticParams,
   documents: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
+  logger: RemoteConsole,
 ): Promise<Diagnostic[]> {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
@@ -68,6 +70,7 @@ export async function handleDiagnostics(
     document,
     documents,
     workspaceFolders,
+    logger
   );
   const stanDiagnostics = provideDiagnostics(compilerResult);
 
