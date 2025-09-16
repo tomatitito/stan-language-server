@@ -67,7 +67,7 @@ jobs:
       - name: Build and compile executable
         run: |
           mkdir -p bin
-          bun build src/server.ts --compile --outfile ./bin/stan-language-server 
+          bun run build:binary
         
       - if: "!contains(matrix.os, 'windows')"
         name: Set zip file path not on windows
