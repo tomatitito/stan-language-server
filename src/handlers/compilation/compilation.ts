@@ -1,5 +1,5 @@
 import type { TextDocument } from "vscode-languageserver-textdocument";
-import type { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
+import type { TextDocuments, WorkspaceFolder, RemoteConsole } from "vscode-languageserver";
 import { handleIncludes } from "./includes";
 import { fileURLToPath } from "url";
 import type { StancFunction, StancReturn } from "../../types/common";
@@ -12,6 +12,7 @@ export async function handleCompilation(
   document: TextDocument,
   documentManager: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
+  logger: RemoteConsole
 ): Promise<StancReturn> {
   const lineLength = 78; // make this configurable
 
@@ -22,6 +23,7 @@ export async function handleCompilation(
     document,
     documentManager,
     workspaceFolders,
+    logger
   );
   const stanc_args = [
     "auto-format",

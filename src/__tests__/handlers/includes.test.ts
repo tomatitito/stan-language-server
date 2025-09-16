@@ -1,6 +1,7 @@
-import { describe, expect, it, afterEach, spyOn } from "bun:test";
+import { describe, expect, it, beforeEach, spyOn, mock } from "bun:test";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
+import type { RemoteConsole } from "vscode-languageserver";
 import { handleIncludes } from "../../handlers/compilation/includes";
 import { promises } from "fs";
 
@@ -19,8 +20,12 @@ describe("Includes Handler", () => {
     { uri: "file:///workspace", name: "test-workspace" }
   ];
 
-  afterEach(() => {
-    // Bun handles test isolation automatically
+  let mockLogger: RemoteConsole;
+
+  beforeEach(() => {
+    mockLogger = {
+      warn: mock(() => {}),
+    } as any;
   });
 
   describe("handleIncludes", () => {
@@ -32,7 +37,7 @@ describe("Includes Handler", () => {
       const documentManager = createMockDocumentManager();
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(document, documentManager, workspaceFolders);
+      const result = await handleIncludes(document, documentManager, workspaceFolders, mockLogger);
 
       expect(result).toEqual({});
     });
@@ -40,7 +45,7 @@ describe("Includes Handler", () => {
     it("should resolve includes from workspace documents", async () => {
       const includeFilename = "helper.stan";
       const includeContent = "real helper_function(real x) { return x + 1; }";
-      
+
       const includeDocument = createMockDocument(
         "file:///workspace/helper.stan",
         includeContent
@@ -49,11 +54,11 @@ describe("Includes Handler", () => {
         "file:///workspace/main.stan",
         '#include "helper.stan"\nparameters { real x; } model { x ~ normal(0, 1); }'
       );
-      
+
       const documentManager = createMockDocumentManager([includeDocument]);
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders);
+      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, mockLogger);
 
       expect(result).toEqual({
         [includeFilename]: includeContent
@@ -67,20 +72,20 @@ describe("Includes Handler", () => {
         "real PI = 3.14159;",
         "real square(real x) { return x * x; }"
       ];
-      
+
       const includeDocuments = includes.map((filename, index) =>
         createMockDocument(`file:///workspace/${filename}`, contents[index]!)
       );
-      
+
       const mainDocument = createMockDocument(
         "file:///workspace/main.stan",
         includes.map(f => `#include "${f}"`).join('\n') + '\nparameters { real x; } model { x ~ normal(0, 1); }'
       );
-      
+
       const documentManager = createMockDocumentManager(includeDocuments);
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders);
+      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, mockLogger);
 
       const expected = Object.fromEntries(includes.map((filename, index) => [filename, contents[index]!]));
       expect(result).toEqual(expected);
@@ -100,7 +105,7 @@ describe("Includes Handler", () => {
         "file:///workspace/main.stan",
         '#include "config.stan"\nparameters { real x; } model { x ~ normal(0, 1); }'
       );
-      
+
       const documentManager = createMockDocumentManager([includeDocument]);
       const workspaceFolders = createMockWorkspaceFolders();
 
@@ -108,7 +113,7 @@ describe("Includes Handler", () => {
       const mockReadFile = spyOn(promises, "readFile").mockResolvedValue(filesystemContent);
 
       try {
-        const result = await handleIncludes(mainDocument, documentManager, workspaceFolders);
+        const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, mockLogger);
 
         // Should use workspace version, NOT filesystem version
         expect(result).toEqual({
@@ -130,7 +135,7 @@ describe("Includes Handler", () => {
         "file:///workspace/main.stan",
         '#include "config.stan"\nparameters { real x; } model { x ~ normal(0, 1); }'
       );
-      
+
       // Empty document manager (no workspace documents)
       const documentManager = createMockDocumentManager([]);
       const workspaceFolders = createMockWorkspaceFolders();
@@ -139,7 +144,7 @@ describe("Includes Handler", () => {
       const mockReadFile = spyOn(promises, "readFile").mockResolvedValue(filesystemContent);
 
       try {
-        const result = await handleIncludes(mainDocument, documentManager, workspaceFolders);
+        const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, mockLogger);
 
         // Should use filesystem version since workspace had nothing
         expect(result).toEqual({
@@ -156,7 +161,7 @@ describe("Includes Handler", () => {
     it("should handle current directory includes", async () => {
       const includeFilename = "local.stan";
       const includeContent = "real local_function() { return 123; }";
-      
+
       // Document in subdirectory
       const mainDocument = createMockDocument(
         "file:///workspace/subdir/main.stan",
@@ -169,11 +174,11 @@ describe("Includes Handler", () => {
         "/workspace/subdir/local.stan",
         includeContent
       );
-      
+
       const documentManager = createMockDocumentManager([includeDocument]);
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders);
+      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, mockLogger);
 
       expect(result).toEqual({
         [includeFilename]: includeContent
@@ -183,26 +188,26 @@ describe("Includes Handler", () => {
     it("should handle Promise.all correctly for concurrent include resolution", async () => {
       const includes = ["file1.stan", "file2.stan", "file3.stan"];
       const contents = ["content1", "content2", "content3"];
-      
+
       const includeDocuments = includes.map((filename, index) =>
         createMockDocument(`file:///workspace/${filename}`, contents[index]!)
       );
-      
+
       const mainDocument = createMockDocument(
         "file:///workspace/main.stan",
         includes.map(f => `#include "${f}"`).join('\n') + '\nparameters { real x; } model { x ~ normal(0, 1); }'
       );
-      
+
       const documentManager = createMockDocumentManager(includeDocuments);
       const workspaceFolders = createMockWorkspaceFolders();
 
       const startTime = Date.now();
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders);
+      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, mockLogger);
       const endTime = Date.now();
 
       // Should complete quickly (concurrent resolution)
       expect(endTime - startTime).toBeLessThan(100);
-      
+
       const expected = Object.fromEntries(includes.map((filename, index) => [filename, contents[index]!]));
       expect(result).toEqual(expected);
     });
@@ -210,7 +215,7 @@ describe("Includes Handler", () => {
     it("should return Record<Filename, FileContent> type", async () => {
       const includeFilename = "test.stan";
       const includeContent = "real test() { return 1; }";
-      
+
       const includeDocument = createMockDocument(
         "file:///workspace/test.stan",
         includeContent
@@ -219,22 +224,22 @@ describe("Includes Handler", () => {
         "file:///workspace/main.stan",
         '#include "test.stan"\nparameters { real x; } model { x ~ normal(0, 1); }'
       );
-      
+
       const documentManager = createMockDocumentManager([includeDocument]);
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders);
+      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, mockLogger);
 
       // Verify return type structure
       expect(typeof result).toBe("object");
       expect(result).not.toBeNull();
       expect(Array.isArray(result)).toBe(false);
-      
+
       // Verify keys are strings (Filename)
       Object.keys(result).forEach(key => {
         expect(typeof key).toBe("string");
       });
-      
+
       // Verify values are strings (FileContent)
       Object.values(result).forEach(value => {
         expect(typeof value).toBe("string");
@@ -248,11 +253,11 @@ describe("Includes Handler", () => {
         "file:///workspace/main.stan",
         "parameters { real x; } model { x ~ normal(0, 1); }" // No includes
       );
-      
+
       const documentManager = createMockDocumentManager();
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders);
+      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, mockLogger);
 
       expect(result).toEqual({});
     });
@@ -262,11 +267,11 @@ describe("Includes Handler", () => {
         "file:///workspace/main.stan",
         "parameters { real x; } model { x ~ normal(0, 1); }" // No includes
       );
-      
+
       const documentManager = createMockDocumentManager();
       const workspaceFolders: WorkspaceFolder[] = []; // Empty workspace folders
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders);
+      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, mockLogger);
 
       expect(result).toEqual({});
     });
@@ -276,11 +281,11 @@ describe("Includes Handler", () => {
         "file:///workspace/main.stan",
         "parameters { real x; } model { x ~ normal(0, 1); }"
       );
-      
+
       const documentManager = createMockDocumentManager();
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders);
+      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, mockLogger);
 
       expect(result).toEqual({});
     });

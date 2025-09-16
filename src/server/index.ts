@@ -54,7 +54,7 @@ const startLanguageServer = (connection: Connection) => {
     const folders = (await connection.workspace.getWorkspaceFolders()) || [];
     return {
       kind: "full",
-      items: await handleDiagnostics(params, documents, folders),
+      items: await handleDiagnostics(params, documents, folders, connection.console),
     };
   });
 
