@@ -2,4 +2,3 @@
 export * from './common';
 export * from './completion';
 export * from './diagnostics';
-export * from './formatting';

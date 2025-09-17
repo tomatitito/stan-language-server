@@ -5,14 +5,24 @@ import {
 } from "vscode-languageserver";
 import { dirname, join } from "path";
 import type { TextDocument } from "vscode-languageserver-textdocument";
-import {
-  getFilenames,
-  type Filename,
-  type FilePathError,
-  isFilePathError,
-  type FileContent,
-} from "../../stanc/includes";
 import { URI } from "vscode-uri";
+
+export type Filename = string;
+export type FileContent = string;
+export type FilePathError = { msg: string };
+
+export function getFilenames(fileContent: string): Filename[] {
+  const includePattern = /#include\s*[<"]?([^>"\s]*)[>"]?/g;
+
+  const matches = Array.from(fileContent.matchAll(includePattern));
+  const results = matches.map((match) => match[1] || "");
+
+  return results;
+}
+
+export function isFilePathError(value: unknown): value is FilePathError {
+  return typeof value === "object" && value !== null && "msg" in value;
+}
 
 export async function handleIncludes(
   document: TextDocument,
@@ -34,20 +44,20 @@ export async function handleIncludes(
             document,
             documentManager,
             workspaceFolders,
-            filename,
+            filename
           );
           return [filename, content] as [Filename, FileContent];
         } catch (err) {
           return [filename, { msg: `${(err as Error).message}` }] as [
             Filename,
-            FilePathError,
+            FilePathError
           ];
         }
-      }),
+      })
     );
 
     const validResults = allResults.filter(
-      ([_, content]) => !isFilePathError(content),
+      ([_, content]) => !isFilePathError(content)
     ) as [Filename, FileContent][];
 
     return Object.fromEntries(validResults);
@@ -61,15 +71,16 @@ const readIncludedFile = async (
   document: TextDocument,
   documentManager: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
-  filename: Filename,
+  filename: Filename
 ): Promise<FileContent | FilePathError> => {
+  // TODO: allow for configuration of include paths
   const currentDir = dirname(URI.parse(document.uri).fsPath);
 
   let includedFileContent = await readIncludedFileFromWorkspace(
     documentManager,
     workspaceFolders,
     filename,
-    currentDir,
+    currentDir
   );
 
   if (!isFilePathError(includedFileContent)) {
@@ -78,7 +89,7 @@ const readIncludedFile = async (
 
   includedFileContent = await readIncludedFileFromFileSystem(
     filename,
-    currentDir,
+    currentDir
   );
 
   if (!isFilePathError(includedFileContent)) {
@@ -92,7 +103,7 @@ const readIncludedFileFromWorkspace = (
   documentManager: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
   filename: Filename,
-  currentDir: string,
+  currentDir: string
 ): Promise<FileContent | FilePathError> => {
   const searchFolders = [
     { uri: currentDir.toString(), name: "current directory" },

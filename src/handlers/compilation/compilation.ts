@@ -5,12 +5,9 @@ import {
   type RemoteConsole,
 } from "vscode-languageserver";
 import { handleIncludes } from "./includes";
-import type { StancFunction, StancReturn } from "../../types/common";
+import { stanc } from "../../stanc/compiler";
+import type { StancReturn } from "../../types/common";
 import { URI } from "vscode-uri";
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const stancjs = require("../../stanc/stanc.js");
-const stanc: StancFunction = stancjs.stanc;
 
 export async function handleCompilation(
   document: TextDocument,
@@ -18,7 +15,7 @@ export async function handleCompilation(
   workspaceFolders: WorkspaceFolder[],
   logger: RemoteConsole
 ): Promise<StancReturn> {
-  const lineLength = 78; // make this configurable
+  const lineLength = 78; // TODO make this configurable
 
   const filename = URI.parse(document.uri).fsPath;
   const code = document.getText();

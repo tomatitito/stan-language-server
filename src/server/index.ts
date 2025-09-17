@@ -78,26 +78,18 @@ const startLanguageServer = (
   connection.onDocumentFormatting(async (params) => {
     const folders = (await connection.workspace.getWorkspaceFolders()) || [];
 
-    try {
-      return await handleFormatting(
-        params,
-        documents,
-        folders,
-        connection.console
-      );
-    } catch (_error) {
-      // Log formatting errors for debugging
-      const errors = await getFormattingErrors(
-        params,
-        documents,
-        folders,
-        connection.console
-      );
-      if (errors.length > 0) {
-        connection.console.error("Formatting error:");
-        for (const error of errors) {
-          connection.console.error(error);
-        }
+    const formattingResult = await handleFormatting(
+      params,
+      documents,
+      folders,
+      connection.console
+    );
+    if (Array.isArray(formattingResult)) {
+      return formattingResult;
+    } else {
+      connection.console.error("Formatting errors:");
+      for (const error of formattingResult.errors) {
+        connection.console.error(error);
       }
       return [];
     }
