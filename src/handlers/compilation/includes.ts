@@ -3,9 +3,9 @@ import {
   WorkspaceFolder,
   type RemoteConsole,
 } from "vscode-languageserver";
-import { dirname, join } from "path";
+import { join } from "path";
 import type { TextDocument } from "vscode-languageserver-textdocument";
-import { URI } from "vscode-uri";
+import { URI, Utils } from "vscode-uri";
 
 export type Filename = string;
 export type FileContent = string;
@@ -74,7 +74,7 @@ const readIncludedFile = async (
   filename: Filename
 ): Promise<FileContent | FilePathError> => {
   // TODO: allow for configuration of include paths
-  const currentDir = dirname(URI.parse(document.uri).fsPath);
+  const currentDir = Utils.dirname(URI.parse(document.uri));
 
   let includedFileContent = await readIncludedFileFromWorkspace(
     documentManager,
@@ -89,7 +89,7 @@ const readIncludedFile = async (
 
   includedFileContent = await readIncludedFileFromFileSystem(
     filename,
-    currentDir
+    currentDir.fsPath
   );
 
   if (!isFilePathError(includedFileContent)) {
@@ -103,16 +103,19 @@ const readIncludedFileFromWorkspace = (
   documentManager: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
   filename: Filename,
-  currentDir: string
+  currentDir: URI
 ): Promise<FileContent | FilePathError> => {
   const searchFolders = [
-    { uri: currentDir.toString(), name: "current directory" },
+    { uri: currentDir.toString(), name: "stan file directory" },
     ...workspaceFolders,
   ];
 
   const paths = searchFolders.map((folder) => folder.uri + "/" + filename);
   const documents = paths.map((path) => {
     const doc = documentManager.get(path);
+    console.log(
+      `Looking for included file at: ${path} -> ${doc ? "found" : "not found"}`
+    );
     return { path, doc };
   });
 
