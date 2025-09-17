@@ -1,11 +1,18 @@
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
-    TextDocumentSyncKind,
-    TextDocuments,
-    type Connection,
-    type InitializeParams,
-    type InitializeResult,
+  TextDocumentSyncKind,
+  TextDocuments,
+  type Connection,
+  type InitializeParams,
+  type InitializeResult,
 } from "vscode-languageserver/node";
+import {
+  getFormattingErrors,
+  handleCompletion,
+  handleDiagnostics,
+  handleFormatting,
+  handleHover,
+} from "../handlers/index.ts";
 import {
   setFileSystemReader,
   type FileSystemReader,
@@ -59,18 +66,33 @@ const startLanguageServer = (
     const folders = (await connection.workspace.getWorkspaceFolders()) || [];
     return {
       kind: "full",
-      items: await handleDiagnostics(params, documents, folders, connection.console),
+      items: await handleDiagnostics(
+        params,
+        documents,
+        folders,
+        connection.console
+      ),
     };
   });
 
   connection.onDocumentFormatting(async (params) => {
     const folders = (await connection.workspace.getWorkspaceFolders()) || [];
-  
+
     try {
-      return await handleFormatting(params, documents, folders, connection.console);
+      return await handleFormatting(
+        params,
+        documents,
+        folders,
+        connection.console
+      );
     } catch (_error) {
       // Log formatting errors for debugging
-      const errors = await getFormattingErrors(params, documents, folders, connection.console);
+      const errors = await getFormattingErrors(
+        params,
+        documents,
+        folders,
+        connection.console
+      );
       if (errors.length > 0) {
         connection.console.error("Formatting error:");
         for (const error of errors) {
