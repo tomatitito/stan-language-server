@@ -12,7 +12,6 @@ import {
   isFilePathError,
   type FileContent,
 } from "../../stanc/includes";
-import { promises } from "fs";
 import { URI } from "vscode-uri";
 
 export async function handleIncludes(
@@ -116,15 +115,22 @@ const readIncludedFileFromWorkspace = (
   return Promise.resolve(includedFile.getText());
 };
 
+export type FileSystemReader = (filename: Filename) => Promise<FileContent>;
+let fileSystemReader: FileSystemReader | undefined = undefined;
+
+export const setFileSystemReader = (reader: FileSystemReader) => {
+  fileSystemReader = reader;
+};
+
 const readIncludedFileFromFileSystem = async (
   filename: Filename,
-  currentDir: string,
+  currentDir: string
 ): Promise<FileContent | FilePathError> => {
-  const localPath = join(currentDir, filename);
-
   try {
-    return await promises.readFile(localPath, "utf-8");
-  } catch (error) {
-    return Promise.resolve({ msg: `File not found: ${filename}` });
-  }
+    if (fileSystemReader !== undefined) {
+      const localPath = join(currentDir, filename);
+      return await fileSystemReader(localPath);
+    }
+  } catch (error) {}
+  return Promise.resolve({ msg: `File not found: ${filename}` });
 };
