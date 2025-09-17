@@ -6,10 +6,15 @@ import {
     type InitializeParams,
     type InitializeResult,
 } from "vscode-languageserver/node";
-import { getFormattingErrors, handleCompletion, handleDiagnostics, handleFormatting, handleHover } from "../handlers/index.ts";
+import {
+  setFileSystemReader,
+  type FileSystemReader,
+} from "../handlers/compilation/includes.ts";
 
-
-const startLanguageServer = (connection: Connection) => {
+const startLanguageServer = (
+  connection: Connection,
+  reader?: FileSystemReader
+) => {
   connection.onInitialize((_params: InitializeParams): InitializeResult => {
     connection.console.info("Initializing Stan language server...");
 
@@ -83,6 +88,10 @@ const startLanguageServer = (connection: Connection) => {
     }
     return handleHover(document, params);
   });
+
+  if (reader) {
+    setFileSystemReader(reader);
+  }
 
   documents.listen(connection);
 
