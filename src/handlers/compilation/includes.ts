@@ -1,6 +1,9 @@
-import { TextDocuments, WorkspaceFolder, type RemoteConsole } from "vscode-languageserver";
+import {
+  TextDocuments,
+  WorkspaceFolder,
+  type RemoteConsole,
+} from "vscode-languageserver";
 import { dirname, join } from "path";
-import { fileURLToPath } from "url";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import {
   getFilenames,
@@ -10,6 +13,7 @@ import {
   type FileContent,
 } from "../../stanc/includes";
 import { promises } from "fs";
+import { URI } from "vscode-uri";
 
 export async function handleIncludes(
   document: TextDocument,
@@ -60,7 +64,8 @@ const readIncludedFile = async (
   workspaceFolders: WorkspaceFolder[],
   filename: Filename,
 ): Promise<FileContent | FilePathError> => {
-  const currentDir = dirname(fileURLToPath(document.uri));
+  const currentDir = dirname(URI.parse(document.uri).fsPath);
+
   let includedFileContent = await readIncludedFileFromWorkspace(
     documentManager,
     workspaceFolders,

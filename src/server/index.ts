@@ -28,7 +28,7 @@ const startLanguageServer = (connection: Connection) => {
         },
         hoverProvider: true,
         diagnosticProvider: {
-          interFileDependencies: false,
+          interFileDependencies: true,
           workspaceDiagnostics: false,
         },
         // Add more capabilities as needed

@@ -1,4 +1,3 @@
-import { fileURLToPath } from "url";
 import type {
   DocumentFormattingParams,
   RemoteConsole,
@@ -10,6 +9,7 @@ import type { TextDocument } from "vscode-languageserver-textdocument";
 import { provideFormatting } from "../language/formatting";
 import type { FormattingContext } from "../types/formatting";
 import { handleIncludes } from "./compilation/includes";
+import { URI } from "vscode-uri";
 
 export async function handleFormatting(
   params: DocumentFormattingParams,
@@ -22,7 +22,7 @@ export async function handleFormatting(
     return [];
   }
 
-  const filename = fileURLToPath(document.uri);
+  const filename = URI.parse(document.uri).fsPath;
   const content = document.getText();
 
   const includes = await handleIncludes(
@@ -75,7 +75,7 @@ export async function getFormattingErrors(
     return [];
   }
 
-  const filename = fileURLToPath(document.uri);
+  const filename = URI.parse(document.uri).fsPath;
   const content = document.getText();
   const includes = await handleIncludes(document, documents, workspaceFolders, logger);
 

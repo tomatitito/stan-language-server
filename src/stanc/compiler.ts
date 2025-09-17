@@ -1,4 +1,3 @@
-import { fileURLToPath } from "url";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import getIncludes, {
   isFilePathError,
@@ -7,6 +6,7 @@ import getIncludes, {
   type FilePathError,
 } from "./includes";
 import type { StancFunction, StancReturn } from "../types/common";
+import { URI } from "vscode-uri";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const stancjs = require("./stanc.js");
@@ -23,7 +23,7 @@ export const compile =
   async (document: TextDocument, args: string[] = []): Promise<StancReturn> => {
     const lineLength = 78; // make this configurable
 
-    const filename = fileURLToPath(document.uri);
+    const filename = URI.parse(document.uri).fsPath;
     const code = document.getText();
 
     const includedFilenamesAndFileContents = await getIncludesFn(code);
@@ -52,9 +52,6 @@ export const compile =
       "allow-undefined",
       ...args,
     ];
-    // logger.appendLine(
-    //   `Running stanc on ${filename} with args: ${stanc_args.join(", ")}, and includes: ${Object.keys(includes).join(", ")}`,
-    // );
     return stanc(filename, code, stanc_args, successfulIncludes);
   };
 
