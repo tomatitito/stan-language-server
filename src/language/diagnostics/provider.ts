@@ -6,6 +6,8 @@ import {
   getErrorMessage,
 } from "./linter";
 
+
+// TODO(bmw): is this file really necessary?
 export function provideDiagnostics(
   compilerResult: StancReturn,
 ): StanDiagnostic[] {
@@ -28,6 +30,7 @@ export function provideDiagnostics(
     }
   } else {
     // Failed compilation - process errors
+    // TODO: warnings can also be generated alongside errors
     if (compilerResult.errors) {
       for (const error of compilerResult.errors) {
         const range = rangeFromMessage(error);
