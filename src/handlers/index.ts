@@ -2,4 +2,4 @@
 export { handleCompletion } from "./completion";
 export { handleDiagnostics } from "./diagnostics";
 export { default as handleHover } from "./hover";
-export { handleFormatting, getFormattingErrors } from "./formatting";
+export { handleFormatting } from "./formatting";
