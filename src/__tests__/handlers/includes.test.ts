@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, spyOn, mock } from "bun:test";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
 import type { RemoteConsole } from "vscode-languageserver";
-import { handleIncludes } from "../../handlers/compilation/includes";
+import { handleIncludes, setFileSystemReader } from "../../handlers/compilation/includes";
 import { promises } from "fs";
 
 describe("Includes Handler", () => {
@@ -136,6 +136,8 @@ describe("Includes Handler", () => {
         '#include "config.stan"\nparameters { real x; } model { x ~ normal(0, 1); }'
       );
 
+      setFileSystemReader((filename: string) => promises.readFile(filename, "utf-8"));
+      
       // Empty document manager (no workspace documents)
       const documentManager = createMockDocumentManager([]);
       const workspaceFolders = createMockWorkspaceFolders();
