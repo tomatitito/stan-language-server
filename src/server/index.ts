@@ -7,7 +7,6 @@ import {
   type InitializeResult,
 } from "vscode-languageserver/node";
 import {
-  getFormattingErrors,
   handleCompletion,
   handleDiagnostics,
   handleFormatting,
