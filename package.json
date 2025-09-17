@@ -46,7 +46,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "bun build src/server/cli.ts --outdir dist/server --target node --format esm && bun build src/server/index.ts --outdir dist/server --target node --format esm && bun build src/types/index.ts --outdir dist/types --target node --format esm && tsc --emitDeclarationOnly --outDir dist",
+    "build": "bun build src/server/cli.ts --outdir dist/server --target node --format esm && bun build src/server/index.ts --outdir dist/server --target browser --format esm && tsc --emitDeclarationOnly --outDir dist",
     "build:binary": "bun build src/server/cli.ts --compile --outfile bin/stan-language-server",
     "prepublishOnly": "bun run build",
     "version:set": "bun run scripts/set-version.ts",
