@@ -137,7 +137,7 @@ describe("Includes Handler", () => {
       );
 
       setFileSystemReader((filename: string) => promises.readFile(filename, "utf-8"));
-      
+
       // Empty document manager (no workspace documents)
       const documentManager = createMockDocumentManager([]);
       const workspaceFolders = createMockWorkspaceFolders();
@@ -173,7 +173,7 @@ describe("Includes Handler", () => {
       // Include document in same subdirectory (current directory)
       // The URI needs to match the exact format used by the includes handler
       const includeDocument = createMockDocument(
-        "/workspace/subdir/local.stan",
+        "file:///workspace/subdir/local.stan",
         includeContent
       );
 
