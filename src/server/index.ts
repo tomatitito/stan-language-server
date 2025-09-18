@@ -1,5 +1,6 @@
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
+  DidChangeConfigurationNotification,
   TextDocumentSyncKind,
   TextDocuments,
   type Connection,
@@ -16,13 +17,24 @@ import {
   setFileSystemReader,
   type FileSystemReader,
 } from "../handlers/compilation/includes.ts";
+import { defaultSettings, type Settings } from "../handlers/compilation/compilation.ts";
 
 const startLanguageServer = (
   connection: Connection,
   reader?: FileSystemReader
 ) => {
-  connection.onInitialize((_params: InitializeParams): InitializeResult => {
+  let hasConfigurationCapability: boolean = false;
+
+  connection.onInitialize((params: InitializeParams): InitializeResult => {
     connection.console.info("Initializing Stan language server...");
+
+    let capabilities = params.capabilities;
+
+    // Does the client support the `workspace/configuration` request?
+    // If not, we fall back using global settings.
+    hasConfigurationCapability = !!(
+      capabilities.workspace && !!capabilities.workspace.configuration
+    );
 
     return {
       capabilities: {
@@ -48,12 +60,50 @@ const startLanguageServer = (
   });
 
   connection.onInitialized(() => {
+    if (hasConfigurationCapability) {
+      connection.client.register(
+        DidChangeConfigurationNotification.type,
+        undefined
+      );
+    }
     connection.console.info("Stan language server is initialized!");
   });
 
   connection.onExit(() => {
     connection.console.info("Stan language server is exiting...");
   });
+
+
+  let globalSettings: Settings = defaultSettings;
+
+  // Cache the settings of all open documents
+  let documentSettings: Map<string, Thenable<Settings>> = new Map();
+
+  connection.onDidChangeConfiguration((change) => {
+    if (hasConfigurationCapability) {
+      // Reset all cached document settings
+      documentSettings.clear();
+    } else {
+      globalSettings = <Settings>(
+        (change.settings["stan-language-server"] || defaultSettings)
+      );
+    }
+  });
+
+  function getDocumentSettings(resource: string): Thenable<Settings> {
+    if (!hasConfigurationCapability) {
+      return Promise.resolve(globalSettings);
+    }
+    let result = documentSettings.get(resource);
+    if (!result) {
+      result = connection.workspace.getConfiguration({
+        scopeUri: resource,
+        section: "stan-language-server",
+      });
+      documentSettings.set(resource, result);
+    }
+    return result;
+  }
 
   const documents = new TextDocuments(TextDocument);
 
@@ -63,12 +113,14 @@ const startLanguageServer = (
 
   connection.onRequest("textDocument/diagnostic", async (params) => {
     const folders = (await connection.workspace.getWorkspaceFolders()) || [];
+    const settings = await getDocumentSettings(params.textDocument.uri);
     return {
       kind: "full",
       items: await handleDiagnostics(
         params,
         documents,
         folders,
+        settings,
         connection.console
       ),
     };
@@ -76,11 +128,12 @@ const startLanguageServer = (
 
   connection.onDocumentFormatting(async (params) => {
     const folders = (await connection.workspace.getWorkspaceFolders()) || [];
-
+    const settings = await getDocumentSettings(params.textDocument.uri);
     const formattingResult = await handleFormatting(
       params,
       documents,
       folders,
+      settings,
       connection.console
     );
     if (Array.isArray(formattingResult)) {
