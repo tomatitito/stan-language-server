@@ -1,5 +1,6 @@
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
+  DiagnosticRefreshRequest,
   DidChangeConfigurationNotification,
   TextDocumentSyncKind,
   TextDocuments,
@@ -88,6 +89,8 @@ const startLanguageServer = (
         (change.settings["stan-language-server"] || defaultSettings)
       );
     }
+
+    connection.sendRequest(DiagnosticRefreshRequest.type, undefined);
   });
 
   function getDocumentSettings(resource: string): Thenable<Settings> {
