@@ -1,20 +1,20 @@
 import {
-    Diagnostic,
-    DiagnosticSeverity,
-    Range,
-    TextDocuments,
-    WorkspaceFolder,
-    type DocumentDiagnosticParams,
-    type RemoteConsole,
+  Diagnostic,
+  DiagnosticSeverity,
+  Range,
+  TextDocuments,
+  WorkspaceFolder,
+  type DocumentDiagnosticParams,
+  type RemoteConsole,
 } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { provideDiagnostics } from "../language/diagnostics";
 import type {
-    Range as DomainRange,
-    DiagnosticSeverity as DomainSeverity,
-    StanDiagnostic,
+  Range as DomainRange,
+  DiagnosticSeverity as DomainSeverity,
+  StanDiagnostic,
 } from "../types/diagnostics";
-import { handleCompilation } from "./compilation/compilation";
+import { handleCompilation, type Settings } from "./compilation/compilation";
 
 function stanDiagnosticToLspDiagnostic(stanDiag: StanDiagnostic): Diagnostic {
   return {
@@ -39,7 +39,7 @@ function domainRangeToLspRange(domainRange: DomainRange): Range {
 }
 
 function domainSeverityToLspSeverity(
-  domainSeverity: DomainSeverity,
+  domainSeverity: DomainSeverity
 ): DiagnosticSeverity {
   switch (domainSeverity) {
     case 1:
@@ -59,7 +59,8 @@ export async function handleDiagnostics(
   params: DocumentDiagnosticParams,
   documents: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
-  logger: RemoteConsole,
+  settings: Settings,
+  logger: RemoteConsole
 ): Promise<Diagnostic[]> {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
@@ -70,6 +71,7 @@ export async function handleDiagnostics(
     document,
     documents,
     workspaceFolders,
+    settings,
     logger
   );
   const stanDiagnostics = provideDiagnostics(compilerResult);

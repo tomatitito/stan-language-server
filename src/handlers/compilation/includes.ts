@@ -28,6 +28,7 @@ export async function handleIncludes(
   document: TextDocument,
   documentManager: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
+  includePaths: string[],
   logger: RemoteConsole
 ): Promise<Record<Filename, FileContent>> {
   try {
@@ -44,6 +45,7 @@ export async function handleIncludes(
             document,
             documentManager,
             workspaceFolders,
+            includePaths,
             filename
           );
           return [filename, content] as [Filename, FileContent];
@@ -71,9 +73,9 @@ const readIncludedFile = async (
   document: TextDocument,
   documentManager: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
+  includePaths: string[],
   filename: Filename
 ): Promise<FileContent | FilePathError> => {
-  // TODO: allow for configuration of include paths
   const currentDir = Utils.dirname(URI.parse(document.uri));
 
   let includedFileContent = await readIncludedFileFromWorkspace(
@@ -87,10 +89,10 @@ const readIncludedFile = async (
     return Promise.resolve(includedFileContent);
   }
 
-  includedFileContent = await readIncludedFileFromFileSystem(
-    filename,
-    currentDir.fsPath
-  );
+  includedFileContent = await readIncludedFileFromFileSystem(filename, [
+    currentDir.fsPath,
+    ...includePaths,
+  ]);
 
   if (!isFilePathError(includedFileContent)) {
     return Promise.resolve(includedFileContent);
@@ -138,13 +140,15 @@ export const setFileSystemReader = (reader: FileSystemReader) => {
 
 const readIncludedFileFromFileSystem = async (
   filename: Filename,
-  currentDir: string
+  dirs: string[]
 ): Promise<FileContent | FilePathError> => {
-  try {
-    if (fileSystemReader !== undefined) {
-      const localPath = join(currentDir, filename);
-      return await fileSystemReader(localPath);
-    }
-  } catch (error) {}
+  for (const currentDir of dirs) {
+    try {
+      if (fileSystemReader !== undefined) {
+        const localPath = join(currentDir, filename);
+        return await fileSystemReader(localPath);
+      }
+    } catch (error) {}
+  }
   return Promise.resolve({ msg: `File not found: ${filename}` });
 };

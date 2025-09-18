@@ -6,12 +6,13 @@ import type {
   WorkspaceFolder,
 } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
-import { handleCompilation } from "./compilation/compilation";
+import { handleCompilation, type Settings } from "./compilation/compilation";
 
 export async function handleFormatting(
   params: DocumentFormattingParams,
   documents: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
+  settings: Settings,
   logger: RemoteConsole
 ): Promise<TextEdit[] | { errors: string[] }> {
   const document = documents.get(params.textDocument.uri);
@@ -22,6 +23,7 @@ export async function handleFormatting(
     document,
     documents,
     workspaceFolders,
+    settings,
     logger
   );
 

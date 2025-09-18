@@ -9,14 +9,22 @@ import { stanc } from "../../stanc/compiler";
 import type { StancReturn } from "../../types/common";
 import { URI } from "vscode-uri";
 
+export interface Settings {
+  maxLineLength: number;
+  includePaths: string[];
+}
+export const defaultSettings: Settings = {
+  maxLineLength: 78,
+  includePaths: [],
+};
+
 export async function handleCompilation(
   document: TextDocument,
   documentManager: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
+  settings: Settings,
   logger: RemoteConsole
 ): Promise<StancReturn> {
-  const lineLength = 78; // TODO make this configurable
-
   const filename = URI.parse(document.uri).fsPath;
   const code = document.getText();
 
@@ -24,12 +32,13 @@ export async function handleCompilation(
     document,
     documentManager,
     workspaceFolders,
+    settings.includePaths,
     logger
   );
   const stanc_args = [
     "auto-format",
     `filename-in-msg=${filename}`,
-    `max-line-length=${lineLength}`,
+    `max-line-length=${settings.maxLineLength}`,
     "canonicalze=deprecations",
     "allow-undefined",
   ];
