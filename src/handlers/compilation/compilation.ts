@@ -13,6 +13,10 @@ export interface Settings {
   maxLineLength: number;
   includePaths: string[];
 }
+// todo?: warnPedantic: boolean;
+//    would require the callers specify a purpose, since no pedantic warnings
+//    are currently generated when the auto-format flag is used
+
 export const defaultSettings: Settings = {
   maxLineLength: 78,
   includePaths: [],
