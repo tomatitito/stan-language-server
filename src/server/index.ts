@@ -2,6 +2,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import {
   DiagnosticRefreshRequest,
   DidChangeConfigurationNotification,
+  DocumentDiagnosticRequest,
   TextDocumentSyncKind,
   TextDocuments,
   type Connection,
@@ -18,7 +19,10 @@ import {
   setFileSystemReader,
   type FileSystemReader,
 } from "../handlers/compilation/includes.ts";
-import { defaultSettings, type Settings } from "../handlers/compilation/compilation.ts";
+import {
+  defaultSettings,
+  type Settings,
+} from "../handlers/compilation/compilation.ts";
 
 const startLanguageServer = (
   connection: Connection,
@@ -74,7 +78,6 @@ const startLanguageServer = (
     connection.console.info("Stan language server is exiting...");
   });
 
-
   let globalSettings: Settings = defaultSettings;
 
   // Cache the settings of all open documents
@@ -114,7 +117,7 @@ const startLanguageServer = (
     return handleCompletion(params, documents);
   });
 
-  connection.onRequest("textDocument/diagnostic", async (params) => {
+  connection.onRequest(DocumentDiagnosticRequest.method, async (params) => {
     const folders = (await connection.workspace.getWorkspaceFolders()) || [];
     const settings = await getDocumentSettings(params.textDocument.uri);
     return {
