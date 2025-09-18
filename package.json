@@ -1,6 +1,6 @@
 {
   "name": "stan-language-server",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Language Server Protocol implementation for the Stan probabilistic programming language",
   "main": "dist/server/index.js",
   "module": "src/server/index.ts",
@@ -46,8 +46,8 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "bun build src/server/cli.ts --outdir dist/server --target node --format esm && bun build src/server/index.ts --outdir dist/server --target browser --format esm && tsc --emitDeclarationOnly --outDir dist",
-    "build:binary": "bun build src/server/cli.ts --compile --outfile bin/stan-language-server",
+    "build": "bun build src/server/index.ts --outdir dist/server --target browser --format esm && tsc --emitDeclarationOnly --outDir dist",
+    "build:binary": "bun build src/server/cli.ts --compile --minify --outfile bin/stan-language-server",
     "prepublishOnly": "bun run build",
     "version:set": "bun run scripts/set-version.ts",
     "publish:npm": "npm publish --access public --provenance",
