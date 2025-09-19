@@ -72,7 +72,7 @@ const startLanguageServer = (
       await connection.client.register(DidChangeConfigurationNotification.type);
       connection.console.info("Registered for didChangeConfiguration");
     }
-    connection.console.info("Stan language server is initialized!");
+    connection.console.info("Stan language server is initialized");
   });
 
   connection.onExit(() => {

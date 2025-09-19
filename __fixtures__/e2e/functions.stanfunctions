@@ -1,0 +1,11 @@
+real my_log_likelihood(real x, real mu, real sigma) {
+  return normal_lpdf(x | mu, sigma);
+}
+
+vector vectorized_normal(vector x, real mu, real sigma) {
+  return to_vector(normal_lpdf(x | mu, sigma));
+}
+
+real sum_of_squares(vector x) {
+  return sum(square(x));
+}
