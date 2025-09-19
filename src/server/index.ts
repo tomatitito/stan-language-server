@@ -29,6 +29,7 @@ const startLanguageServer = (
   reader?: FileSystemReader
 ) => {
   let hasConfigurationCapability: boolean = false;
+  let hasWorkspaceFolderCapability: boolean = false;
 
   connection.onInitialize((params: InitializeParams): InitializeResult => {
     connection.console.info("Initializing Stan language server...");
@@ -39,6 +40,9 @@ const startLanguageServer = (
     // If not, we fall back using global settings.
     hasConfigurationCapability = !!(
       capabilities.workspace && !!capabilities.workspace.configuration
+    );
+    hasWorkspaceFolderCapability = !!(
+      capabilities.workspace && !!capabilities.workspace.workspaceFolders
     );
 
     return {
@@ -51,7 +55,7 @@ const startLanguageServer = (
         documentFormattingProvider: true,
         workspace: {
           workspaceFolders: {
-            supported: true,
+            supported: hasWorkspaceFolderCapability,
           },
         },
         hoverProvider: true,
@@ -117,8 +121,15 @@ const startLanguageServer = (
     return handleCompletion(params, documents);
   });
 
+  const getWorkspaceFolders = async () => {
+    if (hasWorkspaceFolderCapability) {
+      return (await connection.workspace.getWorkspaceFolders()) || [];
+    }
+    return [];
+  };
+
   connection.onRequest(DocumentDiagnosticRequest.method, async (params) => {
-    const folders = (await connection.workspace.getWorkspaceFolders()) || [];
+    const folders = await getWorkspaceFolders();
     const settings = await getDocumentSettings(params.textDocument.uri);
     return {
       kind: "full",
@@ -133,7 +144,7 @@ const startLanguageServer = (
   });
 
   connection.onDocumentFormatting(async (params) => {
-    const folders = (await connection.workspace.getWorkspaceFolders()) || [];
+    const folders = await getWorkspaceFolders();
     const settings = await getDocumentSettings(params.textDocument.uri);
     const formattingResult = await handleFormatting(
       params,
