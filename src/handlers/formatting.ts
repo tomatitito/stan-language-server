@@ -1,4 +1,3 @@
-import { fileURLToPath } from "url";
 import type {
   DocumentFormattingParams,
   RemoteConsole,
@@ -7,42 +6,30 @@ import type {
   WorkspaceFolder,
 } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
-import { provideFormatting } from "../language/formatting";
-import type { FormattingContext } from "../types/formatting";
-import { handleIncludes } from "./compilation/includes";
+import { handleCompilation, type Settings } from "./compilation/compilation";
 
 export async function handleFormatting(
   params: DocumentFormattingParams,
   documents: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
-  logger: RemoteConsole,
-): Promise<TextEdit[]> {
+  settings: Settings,
+  logger: RemoteConsole
+): Promise<TextEdit[] | { errors: string[] }> {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
     return [];
   }
-
-  const filename = fileURLToPath(document.uri);
-  const content = document.getText();
-
-  const includes = await handleIncludes(
+  const result = await handleCompilation(
     document,
     documents,
     workspaceFolders,
-    logger,
+    settings,
+    logger
   );
 
-  const context: FormattingContext = {
-    filename,
-    content,
-    includes,
-  };
-
-  const result = provideFormatting(context);
-
-  // Convert result to LSP TextEdit
-  if (result.success && result.formattedCode) {
-    // Stan compiler formats entire documents
+  if (result.errors && result.errors.length > 0) {
+    return { errors: result.errors };
+  } else if (result.result) {
     const range = {
       start: { line: 0, character: 0 },
       end: {
@@ -54,37 +41,10 @@ export async function handleFormatting(
     return [
       {
         range,
-        newText: result.formattedCode,
+        newText: result.result,
       },
     ];
   }
 
-  // Return empty array if formatting failed
-  // (errors are handled by the caller if needed)
   return [];
-}
-
-export async function getFormattingErrors(
-  params: DocumentFormattingParams,
-  documents: TextDocuments<TextDocument>,
-  workspaceFolders: WorkspaceFolder[],
-  logger: RemoteConsole,
-): Promise<string[]> {
-  const document = documents.get(params.textDocument.uri);
-  if (!document) {
-    return [];
-  }
-
-  const filename = fileURLToPath(document.uri);
-  const content = document.getText();
-  const includes = await handleIncludes(document, documents, workspaceFolders, logger);
-
-  const context: FormattingContext = {
-    filename,
-    content,
-    includes,
-  };
-
-  const result = provideFormatting(context);
-  return result.errors || [];
 }

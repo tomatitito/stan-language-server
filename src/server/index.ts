@@ -1,17 +1,49 @@
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
-    TextDocumentSyncKind,
-    TextDocuments,
-    type Connection,
-    type InitializeParams,
-    type InitializeResult,
+  DiagnosticRefreshRequest,
+  DidChangeConfigurationNotification,
+  DocumentDiagnosticRequest,
+  TextDocumentSyncKind,
+  TextDocuments,
+  type Connection,
+  type InitializeParams,
+  type InitializeResult,
 } from "vscode-languageserver/node";
-import { getFormattingErrors, handleCompletion, handleDiagnostics, handleFormatting, handleHover } from "../handlers/index.ts";
+import {
+  handleCompletion,
+  handleDiagnostics,
+  handleFormatting,
+  handleHover,
+} from "../handlers/index.ts";
+import {
+  setFileSystemReader,
+  type FileSystemReader,
+} from "../handlers/compilation/includes.ts";
+import {
+  defaultSettings,
+  type Settings,
+} from "../handlers/compilation/compilation.ts";
 
+const startLanguageServer = (
+  connection: Connection,
+  reader?: FileSystemReader
+) => {
+  let hasConfigurationCapability: boolean = false;
+  let hasWorkspaceFolderCapability: boolean = false;
 
-const startLanguageServer = (connection: Connection) => {
-  connection.onInitialize((_params: InitializeParams): InitializeResult => {
+  connection.onInitialize((params: InitializeParams): InitializeResult => {
     connection.console.info("Initializing Stan language server...");
+
+    let capabilities = params.capabilities;
+
+    // Does the client support the `workspace/configuration` request?
+    // If not, we fall back using global settings.
+    hasConfigurationCapability = !!(
+      capabilities.workspace && !!capabilities.workspace.configuration
+    );
+    hasWorkspaceFolderCapability = !!(
+      capabilities.workspace && !!capabilities.workspace.workspaceFolders
+    );
 
     return {
       capabilities: {
@@ -23,12 +55,12 @@ const startLanguageServer = (connection: Connection) => {
         documentFormattingProvider: true,
         workspace: {
           workspaceFolders: {
-            supported: true,
+            supported: hasWorkspaceFolderCapability,
           },
         },
         hoverProvider: true,
         diagnosticProvider: {
-          interFileDependencies: false,
+          interFileDependencies: true,
           workspaceDiagnostics: false,
         },
         // Add more capabilities as needed
@@ -37,6 +69,12 @@ const startLanguageServer = (connection: Connection) => {
   });
 
   connection.onInitialized(() => {
+    if (hasConfigurationCapability) {
+      connection.client.register(
+        DidChangeConfigurationNotification.type,
+        undefined
+      );
+    }
     connection.console.info("Stan language server is initialized!");
   });
 
@@ -44,33 +82,83 @@ const startLanguageServer = (connection: Connection) => {
     connection.console.info("Stan language server is exiting...");
   });
 
+  let globalSettings: Settings = defaultSettings;
+
+  // Cache the settings of all open documents
+  let documentSettings: Map<string, Thenable<Settings>> = new Map();
+
+  connection.onDidChangeConfiguration((change) => {
+    if (hasConfigurationCapability) {
+      // Reset all cached document settings
+      documentSettings.clear();
+    } else {
+      globalSettings = <Settings>(
+        (change.settings["stan-language-server"] || defaultSettings)
+      );
+    }
+
+    connection.sendRequest(DiagnosticRefreshRequest.type, undefined);
+  });
+
+  function getDocumentSettings(resource: string): Thenable<Settings> {
+    if (!hasConfigurationCapability) {
+      return Promise.resolve(globalSettings);
+    }
+    let result = documentSettings.get(resource);
+    if (!result) {
+      result = connection.workspace.getConfiguration({
+        scopeUri: resource,
+        section: "stan-language-server",
+      });
+      documentSettings.set(resource, result);
+    }
+    return result;
+  }
+
   const documents = new TextDocuments(TextDocument);
 
   connection.onCompletion((params) => {
     return handleCompletion(params, documents);
   });
 
-  connection.onRequest("textDocument/diagnostic", async (params) => {
-    const folders = (await connection.workspace.getWorkspaceFolders()) || [];
+  const getWorkspaceFolders = async () => {
+    if (hasWorkspaceFolderCapability) {
+      return (await connection.workspace.getWorkspaceFolders()) || [];
+    }
+    return [];
+  };
+
+  connection.onRequest(DocumentDiagnosticRequest.method, async (params) => {
+    const folders = await getWorkspaceFolders();
+    const settings = await getDocumentSettings(params.textDocument.uri);
     return {
       kind: "full",
-      items: await handleDiagnostics(params, documents, folders, connection.console),
+      items: await handleDiagnostics(
+        params,
+        documents,
+        folders,
+        settings,
+        connection.console
+      ),
     };
   });
 
   connection.onDocumentFormatting(async (params) => {
-    const folders = (await connection.workspace.getWorkspaceFolders()) || [];
-  
-    try {
-      return await handleFormatting(params, documents, folders, connection.console);
-    } catch (_error) {
-      // Log formatting errors for debugging
-      const errors = await getFormattingErrors(params, documents, folders, connection.console);
-      if (errors.length > 0) {
-        connection.console.error("Formatting error:");
-        for (const error of errors) {
-          connection.console.error(error);
-        }
+    const folders = await getWorkspaceFolders();
+    const settings = await getDocumentSettings(params.textDocument.uri);
+    const formattingResult = await handleFormatting(
+      params,
+      documents,
+      folders,
+      settings,
+      connection.console
+    );
+    if (Array.isArray(formattingResult)) {
+      return formattingResult;
+    } else {
+      connection.console.error("Formatting errors:");
+      for (const error of formattingResult.errors) {
+        connection.console.error(error);
       }
       return [];
     }
@@ -83,6 +171,10 @@ const startLanguageServer = (connection: Connection) => {
     }
     return handleHover(document, params);
   });
+
+  if (reader) {
+    setFileSystemReader(reader);
+  }
 
   documents.listen(connection);
 

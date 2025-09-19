@@ -1,34 +1,48 @@
 import type { TextDocument } from "vscode-languageserver-textdocument";
-import type { TextDocuments, WorkspaceFolder, RemoteConsole } from "vscode-languageserver";
+import {
+  type TextDocuments,
+  type WorkspaceFolder,
+  type RemoteConsole,
+} from "vscode-languageserver";
 import { handleIncludes } from "./includes";
-import { fileURLToPath } from "url";
-import type { StancFunction, StancReturn } from "../../types/common";
+import { stanc } from "../../stanc/compiler";
+import type { StancReturn } from "../../types/common";
+import { URI } from "vscode-uri";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const stancjs = require("../../stanc/stanc.js");
-const stanc: StancFunction = stancjs.stanc;
+export interface Settings {
+  maxLineLength: number;
+  includePaths: string[];
+}
+// todo?: warnPedantic: boolean;
+//    would require the callers specify a purpose, since no pedantic warnings
+//    are currently generated when the auto-format flag is used
+
+export const defaultSettings: Settings = {
+  maxLineLength: 78,
+  includePaths: [],
+};
 
 export async function handleCompilation(
   document: TextDocument,
   documentManager: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
+  settings: Settings,
   logger: RemoteConsole
 ): Promise<StancReturn> {
-  const lineLength = 78; // make this configurable
-
-  const filename = fileURLToPath(document.uri);
+  const filename = URI.parse(document.uri).fsPath;
   const code = document.getText();
 
   const includes = await handleIncludes(
     document,
     documentManager,
     workspaceFolders,
+    settings.includePaths,
     logger
   );
   const stanc_args = [
     "auto-format",
     `filename-in-msg=${filename}`,
-    `max-line-length=${lineLength}`,
+    `max-line-length=${settings.maxLineLength}`,
     "canonicalze=deprecations",
     "allow-undefined",
   ];
