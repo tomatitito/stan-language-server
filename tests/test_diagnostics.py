@@ -18,7 +18,8 @@ async def test_basic_warning(client: LanguageClient):
     diagnostic = results.items[0]
     assert "Values will be rounded towards zero" in diagnostic.message
     assert diagnostic.severity == types.DiagnosticSeverity.Warning
-
+    assert diagnostic.range.start.line == 0
+    assert diagnostic.range.start.character == 18
 
 async def test_basic_error(client: LanguageClient):
 
@@ -34,7 +35,10 @@ async def test_basic_error(client: LanguageClient):
     diagnostic = results.items[0]
     assert "'foo' not in scope" in diagnostic.message
     assert diagnostic.severity == types.DiagnosticSeverity.Error
-
+    assert diagnostic.range.start.line == 0
+    assert diagnostic.range.start.character == 8
+    assert diagnostic.range.end.line == 0
+    assert diagnostic.range.end.character == 11
 
 async def test_stanfunctions(client: LanguageClient):
     func = """real id(real x) { return x; }"""
@@ -63,7 +67,7 @@ async def test_include(client: LanguageClient):
     #include "foo.stan"
     model { foo ~ std_normal(); }
     '''
-    with make_text_document(client, main, filename="main") as test_uri:
+    with make_text_document(client, main) as test_uri:
         results = await client.text_document_diagnostic_async(
             params=types.DocumentDiagnosticParams(
                 text_document=types.TextDocumentIdentifier(uri=test_uri),
@@ -73,6 +77,8 @@ async def test_include(client: LanguageClient):
         diagnostic = results.items[0]
         assert "Could not find include file 'foo.stan'" in diagnostic.message
         assert diagnostic.severity == types.DiagnosticSeverity.Error
+        assert diagnostic.range.start.line == 1
+        assert diagnostic.range.start.character == 4
 
         other = "parameters { real foo; }"
         with make_text_document(client, other, filename="foo"):
@@ -82,3 +88,40 @@ async def test_include(client: LanguageClient):
                 )
             )
         assert results_inc.items == []  # no errors once include file is opened
+
+
+async def test_include_error(client: LanguageClient):
+    main = '''
+    #include "foo.stan"
+    model { foo ~ std_normal(); }
+    '''
+    other = "parameters { real foo }"
+    with make_text_document(client, main) as test_uri, make_text_document(client, other, filename="foo"):
+        results = await client.text_document_diagnostic_async(
+            params=types.DocumentDiagnosticParams(
+                text_document=types.TextDocumentIdentifier(uri=test_uri),
+            )
+        )
+    diagnostic = results.items[0]
+    assert diagnostic.severity == types.DiagnosticSeverity.Error
+    assert diagnostic.message.startswith("Error in included file:")
+    assert diagnostic.range.start.line == 1
+    assert diagnostic.range.start.character == 4
+
+async def test_include_warning(client: LanguageClient):
+    main = '''
+    #include "foo.stan"
+    model { foo ~ std_normal(); }
+    '''
+    other = "parameters { real foo; } transformed parameters { real bar = 1 / 2; }"
+    with make_text_document(client, main) as test_uri, make_text_document(client, other, filename="foo"):
+        results = await client.text_document_diagnostic_async(
+            params=types.DocumentDiagnosticParams(
+                text_document=types.TextDocumentIdentifier(uri=test_uri),
+            )
+        )
+    diagnostic = results.items[0]
+    assert diagnostic.severity == types.DiagnosticSeverity.Warning
+    assert diagnostic.message.startswith("Warning in included file:")
+    assert diagnostic.range.start.line == 1
+    assert diagnostic.range.start.character == 4
