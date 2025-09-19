@@ -56,3 +56,29 @@ async def test_stanfunctions(client: LanguageClient):
             )
         )
     assert results_sf.items == []  # no errors in stanfunctions file
+
+
+async def test_include(client: LanguageClient):
+    main = '''
+    #include "foo.stan"
+    model { foo ~ std_normal(); }
+    '''
+    with make_text_document(client, main, filename="main") as test_uri:
+        results = await client.text_document_diagnostic_async(
+            params=types.DocumentDiagnosticParams(
+                text_document=types.TextDocumentIdentifier(uri=test_uri),
+            )
+        )
+        # should error because include file not found
+        diagnostic = results.items[0]
+        assert "Could not find include file 'foo.stan'" in diagnostic.message
+        assert diagnostic.severity == types.DiagnosticSeverity.Error
+
+        other = "parameters { real foo; }"
+        with make_text_document(client, other, filename="foo"):
+            results_inc = await client.text_document_diagnostic_async(
+                params=types.DocumentDiagnosticParams(
+                    text_document=types.TextDocumentIdentifier(uri=test_uri),
+                )
+            )
+        assert results_inc.items == []  # no errors once include file is opened
