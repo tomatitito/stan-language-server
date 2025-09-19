@@ -121,9 +121,7 @@ const readIncludedFileFromWorkspace = (
   const paths = searchFolders.map((folder) => folder.uri + "/" + filename);
   const documents = paths.map((path) => {
     const doc = documentManager.get(path);
-    console.log(
-      `Looking for included file at: ${path} -> ${doc ? "found" : "not found"}`
-    );
+
     return { path, doc };
   });
 
