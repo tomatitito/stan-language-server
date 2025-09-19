@@ -29,6 +29,12 @@ async def client(lsp_client: LanguageClient):
     )
     await lsp_client.initialize_session(params)
 
+    lsp_client.refresh_requests = 0
+
+    @lsp_client.feature(types.WORKSPACE_DIAGNOSTIC_REFRESH)
+    def refresh(cl: LanguageClient, params: None):
+        cl.refresh_requests += 1
+
     try:
         yield
     finally:

@@ -1,3 +1,4 @@
+import asyncio
 from lsprotocol import types
 from pytest_lsp import LanguageClient
 
@@ -21,6 +22,7 @@ async def test_basic_warning(client: LanguageClient):
     assert diagnostic.range.start.line == 0
     assert diagnostic.range.start.character == 18
 
+
 async def test_basic_error(client: LanguageClient):
 
     with make_text_document(client, "model { foo ~ std_normal(); }") as test_uri:
@@ -39,6 +41,7 @@ async def test_basic_error(client: LanguageClient):
     assert diagnostic.range.start.character == 8
     assert diagnostic.range.end.line == 0
     assert diagnostic.range.end.character == 11
+
 
 async def test_stanfunctions(client: LanguageClient):
     func = """real id(real x) { return x; }"""
@@ -63,10 +66,10 @@ async def test_stanfunctions(client: LanguageClient):
 
 
 async def test_include(client: LanguageClient):
-    main = '''
+    main = """
     #include "foo.stan"
     model { foo ~ std_normal(); }
-    '''
+    """
     with make_text_document(client, main) as test_uri:
         results = await client.text_document_diagnostic_async(
             params=types.DocumentDiagnosticParams(
@@ -91,12 +94,14 @@ async def test_include(client: LanguageClient):
 
 
 async def test_include_error(client: LanguageClient):
-    main = '''
+    main = """
     #include "foo.stan"
     model { foo ~ std_normal(); }
-    '''
+    """
     other = "parameters { real foo }"
-    with make_text_document(client, main) as test_uri, make_text_document(client, other, filename="foo"):
+    with make_text_document(client, main) as test_uri, make_text_document(
+        client, other, filename="foo"
+    ):
         results = await client.text_document_diagnostic_async(
             params=types.DocumentDiagnosticParams(
                 text_document=types.TextDocumentIdentifier(uri=test_uri),
@@ -108,13 +113,16 @@ async def test_include_error(client: LanguageClient):
     assert diagnostic.range.start.line == 1
     assert diagnostic.range.start.character == 4
 
+
 async def test_include_warning(client: LanguageClient):
-    main = '''
+    main = """
     #include "foo.stan"
     model { foo ~ std_normal(); }
-    '''
+    """
     other = "parameters { real foo; } transformed parameters { real bar = 1 / 2; }"
-    with make_text_document(client, main) as test_uri, make_text_document(client, other, filename="foo"):
+    with make_text_document(client, main) as test_uri, make_text_document(
+        client, other, filename="foo"
+    ):
         results = await client.text_document_diagnostic_async(
             params=types.DocumentDiagnosticParams(
                 text_document=types.TextDocumentIdentifier(uri=test_uri),
@@ -125,3 +133,15 @@ async def test_include_warning(client: LanguageClient):
     assert diagnostic.message.startswith("Warning in included file:")
     assert diagnostic.range.start.line == 1
     assert diagnostic.range.start.character == 4
+
+
+async def test_configuration_change(client: LanguageClient):
+
+    prev_requests = client.refresh_requests
+
+    with make_text_document(client, "model {real foo = 1 / 2;}"):
+        client.workspace_did_change_configuration(
+            types.DidChangeConfigurationParams({})
+        )
+        await asyncio.sleep(0.5)  # wait for the server to process the change
+        assert client.refresh_requests == prev_requests + 1
