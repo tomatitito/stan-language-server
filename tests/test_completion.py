@@ -52,4 +52,4 @@ async def test_keyword_completion(client: LanguageClient):
 
     assert len(results) > 0
     labels = [item.label for item in results]
-    assert labels == ['transformed']
+    assert labels == ["transformed"]

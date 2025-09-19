@@ -19,7 +19,10 @@ async def test_function_hover(client: LanguageClient, character: int):
         )
 
     assert results is not None
-    assert "Jump to Stan Functions Reference index entry for beta" in results.contents.value
+    assert (
+        "Jump to Stan Functions Reference index entry for beta"
+        in results.contents.value
+    )
 
 
 @pytest.mark.parametrize("character", [18, 24])
@@ -33,6 +36,7 @@ async def test_function_hover_outside_word(client: LanguageClient, character: in
             )
         )
     assert results is None
+
 
 DISTRIBUTION_CODE = "model { foo ~ std_normal(); }"
 
@@ -49,7 +53,10 @@ async def test_distribution_hover(client: LanguageClient, character: int):
         )
 
     assert results is not None
-    assert "Jump to Stan Functions Reference index entry for std_normal_lpdf" in results.contents.value
+    assert (
+        "Jump to Stan Functions Reference index entry for std_normal_lpdf"
+        in results.contents.value
+    )
 
 
 @pytest.mark.parametrize("character", [13, 25])
