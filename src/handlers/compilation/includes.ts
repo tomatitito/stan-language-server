@@ -137,13 +137,6 @@ const readIncludedFileFromWorkspace = (
   return Promise.resolve(includedFile.getText());
 };
 
-// export type FileSystemReader = (filename: Filename) => Promise<FileContent>;
-// let fileSystemReader: FileSystemReader | undefined = undefined;
-
-// export const setFileSystemReader = (reader: FileSystemReader) => {
-//   fileSystemReader = reader;
-// };
-
 const readIncludedFileFromFileSystem = async (
   filename: Filename,
   dirs: string[],
