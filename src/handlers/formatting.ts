@@ -7,13 +7,15 @@ import type {
 } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import { handleCompilation, type Settings } from "./compilation/compilation";
+import type { FileSystemReader } from "../types";
 
 export async function handleFormatting(
   params: DocumentFormattingParams,
   documents: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
   settings: Settings,
-  logger: RemoteConsole
+  logger: RemoteConsole,
+  reader?: FileSystemReader
 ): Promise<TextEdit[] | { errors: string[] }> {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
@@ -24,7 +26,8 @@ export async function handleFormatting(
     documents,
     workspaceFolders,
     settings,
-    logger
+    logger,
+    reader
   );
 
   if (result.errors && result.errors.length > 0) {

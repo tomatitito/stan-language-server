@@ -137,7 +137,8 @@ const startLanguageServer = (
         documents,
         folders,
         settings,
-        connection.console
+        connection.console,
+        reader
       ),
     };
   });
@@ -150,7 +151,8 @@ const startLanguageServer = (
       documents,
       folders,
       settings,
-      connection.console
+      connection.console,
+      reader
     );
     if (Array.isArray(formattingResult)) {
       return formattingResult;
