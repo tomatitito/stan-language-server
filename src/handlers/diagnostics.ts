@@ -15,6 +15,7 @@ import type {
   StanDiagnostic,
 } from "../types/diagnostics";
 import { handleCompilation, type Settings } from "./compilation/compilation";
+import type { FileSystemReader } from "../types";
 
 function stanDiagnosticToLspDiagnostic(stanDiag: StanDiagnostic): Diagnostic {
   return {
@@ -60,7 +61,8 @@ export async function handleDiagnostics(
   documents: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
   settings: Settings,
-  logger: RemoteConsole
+  logger: RemoteConsole,
+  reader?: FileSystemReader
 ): Promise<Diagnostic[]> {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
@@ -72,7 +74,8 @@ export async function handleDiagnostics(
     documents,
     workspaceFolders,
     settings,
-    logger
+    logger,
+    reader
   );
   const stanDiagnostics = provideDiagnostics(compilerResult);
 
