@@ -16,9 +16,8 @@ import {
   handleHover,
 } from "../handlers/index.ts";
 import {
-  setFileSystemReader,
   type FileSystemReader,
-} from "../handlers/compilation/includes.ts";
+} from "../types/common.ts";
 import {
   defaultSettings,
   type Settings,
@@ -171,10 +170,6 @@ const startLanguageServer = (
     }
     return handleHover(document, params);
   });
-
-  if (reader) {
-    setFileSystemReader(reader);
-  }
 
   documents.listen(connection);
 

@@ -6,7 +6,7 @@ import {
 } from "vscode-languageserver";
 import { handleIncludes } from "./includes";
 import { stanc } from "../../stanc/compiler";
-import type { StancReturn } from "../../types/common";
+import type { FileSystemReader, StancReturn } from "../../types/common";
 import { URI } from "vscode-uri";
 
 export interface Settings {
@@ -27,7 +27,8 @@ export async function handleCompilation(
   documentManager: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
   settings: Settings,
-  logger: RemoteConsole
+  logger: RemoteConsole,
+  reader?: FileSystemReader
 ): Promise<StancReturn> {
   const filename = URI.parse(document.uri).fsPath;
   const code = document.getText();
@@ -37,7 +38,8 @@ export async function handleCompilation(
     documentManager,
     workspaceFolders,
     settings.includePaths,
-    logger
+    logger,
+    reader
   );
   const stanc_args = [
     "auto-format",

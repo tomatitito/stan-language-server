@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, spyOn, mock } from "bun:test";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
 import type { RemoteConsole } from "vscode-languageserver";
-import { handleIncludes, setFileSystemReader } from "../../handlers/compilation/includes";
+import { handleIncludes } from "../../handlers/compilation/includes";
 import { promises } from "fs";
 
 describe("Includes Handler", () => {
@@ -25,7 +25,7 @@ describe("Includes Handler", () => {
 
   beforeEach(() => {
     mockLogger = {
-      warn: mock(() => {}),
+      warn: mock(() => { }),
     } as any;
   });
 
@@ -59,7 +59,7 @@ describe("Includes Handler", () => {
       const documentManager = createMockDocumentManager([includeDocument]);
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders,[], mockLogger);
+      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
 
       expect(result).toEqual({
         [includeFilename]: includeContent
@@ -86,7 +86,7 @@ describe("Includes Handler", () => {
       const documentManager = createMockDocumentManager(includeDocuments);
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders,[], mockLogger);
+      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
 
       const expected = Object.fromEntries(includes.map((filename, index) => [filename, contents[index]!]));
       expect(result).toEqual(expected);
@@ -137,7 +137,7 @@ describe("Includes Handler", () => {
         '#include "config.stan"\nparameters { real x; } model { x ~ normal(0, 1); }'
       );
 
-      setFileSystemReader((filename: string) => promises.readFile(filename, "utf-8"));
+      const reader = (filename: string) => promises.readFile(filename, "utf-8");
 
       // Empty document manager (no workspace documents)
       const documentManager = createMockDocumentManager([]);
@@ -147,7 +147,7 @@ describe("Includes Handler", () => {
       const mockReadFile = spyOn(promises, "readFile").mockResolvedValue(filesystemContent);
 
       try {
-        const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
+        const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger, reader);
 
         // Should use filesystem version since workspace had nothing
         expect(result).toEqual({
