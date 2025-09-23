@@ -1,11 +1,11 @@
 import type { HoverParams, Hover, MarkupContent } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
+import { dump_stan_math_signatures } from "stanc3";
 import {
   isWordChar,
   previousWordBoundary,
   wordUntilNextParenthesis,
 } from "../language/hover/util";
-import { getMathSignatures } from "../stanc/compiler";
 import { provideHover } from "../language/hover";
 
 const getDocumentationForFunction = (name: string): MarkupContent => {
@@ -27,7 +27,7 @@ const appendCodeblock = (content: MarkupContent | undefined, code: string) => {
 const initializeFunctionMarkupMap = (): Map<string, MarkupContent> => {
   const markupLookupMap = new Map();
 
-  const mathSignatures = getMathSignatures();
+  const mathSignatures = dump_stan_math_signatures();
   const lines = mathSignatures.split("\n");
   for (const line of lines) {
     const [name] = line.split("(", 1);
