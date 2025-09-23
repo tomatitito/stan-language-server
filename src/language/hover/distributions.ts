@@ -1,10 +1,10 @@
-import { getMathDistributions } from "../../stanc/compiler";
+import { dump_stan_math_distributions } from "stanc3";
 import { isWhitespace } from "./util";
 
 
 const setupDistributionMap = () => {
   const distributionToFunctionMap: Map<string, string> = new Map();
-  const mathDistributions = getMathDistributions();
+  const mathDistributions = dump_stan_math_distributions();
   const distLines = mathDistributions.split("\n");
   for (const line of distLines) {
     const [name, extensions] = line.split(":", 2);

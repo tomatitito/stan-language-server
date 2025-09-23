@@ -47,7 +47,7 @@
   },
   "scripts": {
     "build": "bun build src/server/index.ts --outdir dist/server --target browser --format esm && tsc --emitDeclarationOnly --outDir dist",
-    "build:binary": "bun build src/server/cli.ts --compile --minify --outfile bin/stan-language-server",
+    "build:binary": "bun build src/server/cli.ts --compile --outfile bin/stan-language-server",
     "prepublishOnly": "bun run build",
     "version:set": "bun run scripts/set-version.ts",
     "publish:npm": "npm publish --access public --provenance",
@@ -71,6 +71,7 @@
     "typescript": "5.9.2"
   },
   "dependencies": {
+    "stanc3": "^2.37.0",
     "trie-search": "2.2.0",
     "vscode-languageserver": "9.0.1",
     "vscode-languageserver-textdocument": "1.0.12",

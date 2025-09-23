@@ -33,9 +33,10 @@ import type {
   StanFunction, 
   Constraint 
 } from "../types/completion";
-
-// Import compiler functions to get data
-import { getMathDistributions, getMathSignatures } from "../stanc/compiler";
+import {
+  dump_stan_math_distributions,
+  dump_stan_math_signatures,
+} from "stanc3";
 
 // Convert existing types to LSP completion items
 function keywordToCompletionItem(keyword: Keyword): CompletionItem {
@@ -83,7 +84,7 @@ function convertPosition(position: { line: number; character: number }): Positio
 
 // Get distributions data
 function getDistributionData(): string[] {
-  return getMathDistributions()
+  return dump_stan_math_distributions()
     .split("\n")
     .map((line) => line.split(":")[0]?.trim() ?? "")
     .filter((name) => name !== "");
@@ -91,7 +92,7 @@ function getDistributionData(): string[] {
 
 // Get function signatures data
 function getFunctionData(): string[] {
-  return getMathSignatures().split("\n");
+  return dump_stan_math_signatures().split("\n");
 }
 
 export function handleCompletion(
