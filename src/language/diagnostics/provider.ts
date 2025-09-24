@@ -5,6 +5,7 @@ import {
   getWarningMessage,
   getErrorMessage,
 } from "./linter";
+import { SERVER_ID } from "../../constants";
 
 
 export function provideDiagnostics(compilerResult: StancReturn): StanDiagnostic[] {
@@ -18,7 +19,7 @@ export function provideDiagnostics(compilerResult: StancReturn): StanDiagnostic[
           range,
           severity: DiagnosticSeverity.Error,
           message: getErrorMessage(error),
-          source: "stan-language-server",
+          source: SERVER_ID,
         });
       }
     }
@@ -31,7 +32,7 @@ export function provideDiagnostics(compilerResult: StancReturn): StanDiagnostic[
           range,
           severity: DiagnosticSeverity.Warning,
           message: getWarningMessage(warning),
-          source: "stan-language-server",
+          source: SERVER_ID,
         });
       }
     }

@@ -33,15 +33,19 @@ bun build server.ts --compile --outfile stan-language-server
 
 ```json
 {
-    "clients": {
-        "stan-lsp": {
-            "enabled": true,
-            "command": ["/YOUR/PATH/TO/stan-language-server"], 
-            "selector": "source.stan | source.stanfunctions",
-            "initializationOptions": {}
-        }
+  "clients": {
+    "stan-lsp": {
+      "enabled": true,
+      "command": ["/YOUR/PATH/TO/stan-language-server"],
+      "selector": "source.stan | source.stanfunctions",
+      "initializationOptions": {},
+      "settings": {
+        "stan-language-server": { "includePaths": [], "maxLineLength": 78 }
+      }
     }
+  }
 }
+
 ```
 
 ### Emacs (eglot)
@@ -49,6 +53,6 @@ bun build server.ts --compile --outfile stan-language-server
 Assuming you are using stan-ts-mode:
 ```elisp
 (with-eval-after-load 'eglot
-    (add-to-list 'eglot-server-programs 
-        '(stan-ts-mode . ("/YOUR/PATH/TO/stan-language-server"))))
+    (add-to-list 'eglot-server-programs
+      '((stan-ts-mode) "/YOUR/PATH/TO/stan-language-server")))
 ```

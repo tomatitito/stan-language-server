@@ -15,13 +15,12 @@ import {
   handleFormatting,
   handleHover,
 } from "../handlers/index.ts";
-import {
-  type FileSystemReader,
-} from "../types/common.ts";
+import { type FileSystemReader } from "../types/common.ts";
 import {
   defaultSettings,
   type Settings,
 } from "../handlers/compilation/compilation.ts";
+import { SERVER_ID } from "../constants/index.ts";
 
 const startLanguageServer = (
   connection: Connection,
@@ -69,10 +68,7 @@ const startLanguageServer = (
 
   connection.onInitialized(() => {
     if (hasConfigurationCapability) {
-      connection.client.register(
-        DidChangeConfigurationNotification.type,
-        undefined
-      );
+      connection.client.register(DidChangeConfigurationNotification.type);
     }
     connection.console.info("Stan language server is initialized!");
   });
@@ -84,35 +80,40 @@ const startLanguageServer = (
   let globalSettings: Settings = defaultSettings;
 
   // Cache the settings of all open documents
-  let documentSettings: Map<string, Thenable<Settings>> = new Map();
+  let documentSettings: Map<string, Settings> = new Map();
 
   connection.onDidChangeConfiguration((change) => {
     if (hasConfigurationCapability) {
       // Reset all cached document settings
       documentSettings.clear();
     } else {
-      globalSettings = <Settings>(
-        (change.settings["stan-language-server"] || defaultSettings)
-      );
+      const incomingSettings = change.settings[SERVER_ID] || {};
+      globalSettings = { ...globalSettings, ...incomingSettings };
     }
 
-    connection.sendRequest(DiagnosticRefreshRequest.type, undefined);
+    connection.sendRequest(DiagnosticRefreshRequest.type);
   });
 
-  function getDocumentSettings(resource: string): Thenable<Settings> {
+  const getDocumentSettings = async (resource: string) => {
     if (!hasConfigurationCapability) {
       return Promise.resolve(globalSettings);
     }
+    // check cache
     let result = documentSettings.get(resource);
-    if (!result) {
-      result = connection.workspace.getConfiguration({
-        scopeUri: resource,
-        section: "stan-language-server",
-      });
-      documentSettings.set(resource, result);
+    if (result !== undefined) {
+      return result;
     }
-    return result;
-  }
+
+    // request from client
+    let clientSettings =
+      (await connection.workspace.getConfiguration({
+        scopeUri: resource,
+        section: SERVER_ID,
+      })) || {};
+    const docSettings: Settings = { ...defaultSettings, ...clientSettings };
+    documentSettings.set(resource, docSettings);
+    return docSettings;
+  };
 
   const documents = new TextDocuments(TextDocument);
 
