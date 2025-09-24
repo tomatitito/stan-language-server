@@ -16,13 +16,14 @@ import type {
 } from "../types/diagnostics";
 import { handleCompilation, type Settings } from "./compilation/compilation";
 import type { FileSystemReader } from "../types";
+import { SERVER_ID } from "../constants";
 
 function stanDiagnosticToLspDiagnostic(stanDiag: StanDiagnostic): Diagnostic {
   return {
     range: domainRangeToLspRange(stanDiag.range),
     severity: domainSeverityToLspSeverity(stanDiag.severity),
     message: stanDiag.message,
-    source: stanDiag.source ?? "stan-language-server",
+    source: stanDiag.source ?? SERVER_ID,
   };
 }
 

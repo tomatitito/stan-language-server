@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { DiagnosticSeverity as LspDiagnosticSeverity } from "vscode-languageserver";
 import { DiagnosticSeverity as DomainSeverity } from "../../types/diagnostics";
 import { provideDiagnostics } from "../../language/diagnostics";
+import { SERVER_ID } from "../../constants";
 
 // Test compiler results for diagnostic provider tests
 const successfulCompileWithWarnings = {
@@ -85,8 +85,10 @@ describe("Diagnostic Handler Components", () => {
 
       const diagnostic = result[0]!;
       expect(diagnostic.severity).toBe(DomainSeverity.Warning);
-      expect(diagnostic.message).toBe("Variable name 'jacobian' will be a reserved word starting in Stan 2.38.0. Please rename it!");
-      expect(diagnostic.source).toBe("stan-language-server");
+      expect(diagnostic.message).toBe(
+        "Variable name 'jacobian' will be a reserved word starting in Stan 2.38.0. Please rename it!"
+      );
+      expect(diagnostic.source).toBe(SERVER_ID);
 
       // Check range (0-indexed)
       expect(diagnostic.range.start.line).toBe(0);
@@ -103,8 +105,10 @@ describe("Diagnostic Handler Components", () => {
 
       const firstError = result[0]!;
       expect(firstError.severity).toBe(DomainSeverity.Error);
-      expect(firstError.message).toBe("(Transformed) Parameters cannot be integers.");
-      expect(firstError.source).toBe("stan-language-server");
+      expect(firstError.message).toBe(
+        "(Transformed) Parameters cannot be integers."
+      );
+      expect(firstError.source).toBe(SERVER_ID);
 
       // Check single line, multi-column range (0-indexed)
       expect(firstError.range.start.line).toBe(2);
