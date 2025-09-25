@@ -19,7 +19,7 @@ TESTING_WORKSPACE = "file:///testing/"
 
 
 @pytest_lsp.fixture(
-    config=ClientServerConfig(server_command=[os.fspath(SERVER)]),
+    config=ClientServerConfig(server_command=[os.fspath(SERVER), "--stdio"] ),
     scope="module",
 )
 async def client(lsp_client: LanguageClient):
