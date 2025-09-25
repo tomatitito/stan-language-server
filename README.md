@@ -29,6 +29,7 @@ bun build server.ts --compile --outfile stan-language-server
 ```
 
 ## Configuration
+
 ### Sublime Text 4
 
 ```json
@@ -36,13 +37,12 @@ bun build server.ts --compile --outfile stan-language-server
   "clients": {
     "stan-lsp": {
       "enabled": true,
-      "command": ["/YOUR/PATH/TO/stan-language-server"],
+      "command": ["/YOUR/PATH/TO/stan-language-server", "--stdio"],
       "selector": "source.stan | source.stanfunctions",
       "initializationOptions": {},
       "settings": {
         "stan-language-server": { "includePaths": [], "maxLineLength": 78 }
       }
-    }
   }
 }
 
@@ -51,8 +51,9 @@ bun build server.ts --compile --outfile stan-language-server
 ### Emacs (eglot)
 
 Assuming you are using stan-ts-mode:
+
 ```elisp
 (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs
-      '((stan-ts-mode) "/YOUR/PATH/TO/stan-language-server")))
+        '(stan-ts-mode . ("/YOUR/PATH/TO/stan-language-server" "--stdio"))))
 ```
