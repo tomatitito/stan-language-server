@@ -1,4 +1,5 @@
 // Pure functions provider - returns StanFunction[] using existing types
+import { manual_functions } from "../../../handlers/hover";
 import type { StanFunction, Position } from "../../../types/completion";
 import { getSearchableItems, getTextUpToCursor } from "../util";
 
@@ -14,9 +15,7 @@ export const provideFunctionCompletions = (
     .map((line) => line.split("(", 1)[0]?.trim() ?? "")
     .filter((name) => name !== "");
 
-  // Add additional built-in statements
-  const additionalStatements = ["print", "reject", "fatal_error", "target"];
-  const allFunctionNames = [...new Set([...functionNames, ...additionalStatements])];
+  const allFunctionNames = [...new Set([...functionNames, ...manual_functions])];
 
   const functionItems: StanFunction[] = allFunctionNames.map((name) => ({ name }));
   
