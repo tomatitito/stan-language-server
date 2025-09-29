@@ -3,6 +3,7 @@ import {
   DiagnosticRefreshRequest,
   DidChangeConfigurationNotification,
   DocumentDiagnosticRequest,
+  MessageType,
   TextDocumentSyncKind,
   TextDocuments,
   type Connection,
@@ -162,6 +163,10 @@ const startLanguageServer = (
       for (const error of formattingResult.errors) {
         connection.console.error(error);
       }
+      connection.sendNotification("window/showMessage", {
+        type: MessageType.Error,
+        message: `Formatting failed due to errors: ${formattingResult.errors.join(", ")}`,
+      });
       return [];
     }
   });
