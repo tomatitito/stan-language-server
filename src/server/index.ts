@@ -165,7 +165,7 @@ const startLanguageServer = (
       }
       connection.sendNotification("window/showMessage", {
         type: MessageType.Error,
-        message: `Formatting failed due to errors: ${formattingResult.errors.join(", ")}`,
+        message: "Formatting failed due to compile errors. See diagnostics for details.",
       });
       return [];
     }
