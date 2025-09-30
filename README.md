@@ -10,25 +10,8 @@ A language server for the Stan probabilistic programming language written in Typ
 - **Code formatting**: Using the official Stan compiler
 - **Include file support**: Full `#include` resolution and compilation
 
-To install dependencies:
 
-```bash
-bun install
-```
-
-To run the language server:
-
-```bash
-bun run src/server.ts
-```
-
-Building a binary executable:
-
-```bash
-bun build server.ts --compile --outfile stan-language-server
-```
-
-## Configuration
+## Editor-specific configuration
 
 ### VSCode:
 
@@ -42,7 +25,9 @@ Install the [Stan extension](https://zed.dev/extensions/stan).
 
 ### Sublime Text 4
 
-Using [LSP for Sublime Text](https://lsp.sublimetext.io/):
+Using [LSP for Sublime Text](https://lsp.sublimetext.io/),
+[download the latest release](https://github.com/tomatitito/stan-language-server/releases)
+and add the following to the settings file:
 
 ```json
 {
@@ -62,11 +47,39 @@ Using [LSP for Sublime Text](https://lsp.sublimetext.io/):
 
 ### Emacs (eglot)
 
-Assuming you are using [stan-ts-mode](github.com/WardBrian/stan-ts-mode):
+Assuming you are using [stan-ts-mode](github.com/WardBrian/stan-ts-mode),
+[download the latest release](https://github.com/tomatitito/stan-language-server/releases)
+and add the following to your `init.el`:
 
 ```elisp
 ; elgot is built in to emacs 29+, but a similar config would work for lsp-mode
 (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs
         '(stan-ts-mode . ("/YOUR/PATH/TO/stan-language-server" "--stdio"))))
+```
+
+
+## For developers
+
+To install dependencies:
+
+```bash
+bun install
+```
+
+Building a binary executable:
+
+```bash
+bun build:binary
+```
+
+To run unit tests:
+```bash
+bun test
+```
+
+To run end-to-end tests:
+```bash
+pip install pytest pytest-lsp
+bun build:binary && pytest tests/
 ```
