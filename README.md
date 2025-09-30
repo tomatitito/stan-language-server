@@ -19,6 +19,61 @@ Install the [extension](https://github.com/WardBrian/vscode-stan-extension)
 from [Marketplace](https://marketplace.visualstudio.com/items?itemName=wardbrian.vscode-stan-extension)
 or [open-vsx](https://open-vsx.org/extension/wardbrian/vscode-stan-extension).
 
+### Neovim
+
+There are many ways to install language servers in neovim. Here is one (if you have a different or better way, consider contributing it!).
+
+In your `nvim` config folder add `lua/lsp/init.lua` with:
+```lua
+local servers = {
+    stan_ls = "lsp.stan",
+}
+
+local function setup_server(name, config_module)
+    local config = require(config_module)
+
+    vim.api.nvim_create_autocmd("FileType", {
+        pattern = config.filetypes,
+        callback = function()
+            if #vim.lsp.get_clients({ bufnr = 0, name = name }) > 0 then
+                return
+            end
+
+            local root_dir = vim.fs.root(0, config.root_markers)
+            print(string.format("Starting %s for buffer %d with root: %s", name, vim.api.nvim_get_current_buf(),
+                root_dir or "none"))
+
+            vim.lsp.start({
+                name = name,
+                cmd = config.cmd,
+                root_dir = root_dir,
+                initialization_options = config.settings or {},
+                on_exit = function(code, signal)
+                    print(string.format("%s exited with code %d, signal %d", name, code, signal))
+                end,
+            })
+        end,
+    })
+end
+
+for server_name, config_path in pairs(servers) do
+    setup_server(server_name, config_path)
+end
+```
+
+Then in `lua/lsp/stan.lua` add the following:
+```lua
+return {
+    cmd = { "stan-language-server", "--stdio" },
+    filetypes = { "stan" },
+    root_markers = { ".git" },
+    settings = {
+        maxLineLength = 78,
+        includePaths = {},
+    },
+}
+```
+
 ### Zed
 
 Install the [Stan extension](https://zed.dev/extensions/stan).
