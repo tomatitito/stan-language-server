@@ -21,9 +21,9 @@ or [open-vsx](https://open-vsx.org/extension/wardbrian/vscode-stan-extension).
 
 ### Neovim
 
-There are many ways to install language servers in neovim. Here is one (if you have a different or better way, consider contributing it!).
+There are many ways to install language servers in neovim. Here is one (if you have a different or better way, consider contributing it!):
 
-In your `nvim` config folder add `lua/lsp/init.lua` with:
+Download the latest language server executable from [GitHub](https://github.com/tomatitito/stan-language-server/tags) and put it somewhere in your PATH. Then in your `nvim` config folder add `lua/lsp/init.lua` with:
 ```lua
 local servers = {
     stan_ls = "lsp.stan",
