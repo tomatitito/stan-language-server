@@ -1,7 +1,6 @@
 import { dump_stan_math_distributions } from "stanc3";
 import { isWhitespace } from "./util";
 
-
 const setupDistributionMap = () => {
   const distributionToFunctionMap: Map<string, string> = new Map();
   const mathDistributions = dump_stan_math_distributions();
@@ -14,8 +13,10 @@ const setupDistributionMap = () => {
     const extension = extensions.split(",", 1)[0]?.trim();
     distributionToFunctionMap.set(name, `${name}_${extension}`);
   }
-  return distributionToFunctionMap
+  return distributionToFunctionMap;
 };
+
+const DISTRIBUTION_FUNCTION_MAP = setupDistributionMap();
 
 const tildeBefore = (text: string, pos: number) => {
   for (let i = pos - 1; i >= 0; i--) {
@@ -34,13 +35,12 @@ const tildeBefore = (text: string, pos: number) => {
 export const tryDistributionHover = (
   text: string,
   beginningOfWord: number,
-  endOfWord: number,
+  endOfWord: number
 ): string | null => {
   if (!tildeBefore(text, beginningOfWord)) return null;
-  const distributionToFunctionMap = setupDistributionMap();
 
   const dist = text.substring(beginningOfWord, endOfWord).trim();
-  const functionName = distributionToFunctionMap.get(dist);
+  const functionName = DISTRIBUTION_FUNCTION_MAP.get(dist);
   if (!functionName) return null;
   return functionName;
 };

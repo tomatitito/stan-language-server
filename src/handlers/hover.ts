@@ -78,11 +78,13 @@ const initializeFunctionMarkupMap = (): Map<string, MarkupContent> => {
   return markupLookupMap;
 };
 
+const FUNCTION_MARKUP_LOOKUP = initializeFunctionMarkupMap();
+
 function markupContentToHover(
   content: MarkupContent,
   document: TextDocument,
   beginningOfWord: number,
-  endOfWord: number,
+  endOfWord: number
 ): Hover {
   return {
     contents: content,
@@ -93,55 +95,37 @@ function markupContentToHover(
   };
 }
 
-type MarkupLookupMap = Map<string, MarkupContent>;
+async function handleHover(
+  document: TextDocument,
+  params: HoverParams
+): Promise<Hover | null> {
+  const text = document.getText();
+  const offset = document.offsetAt(params.position);
 
-type GetMarkupLookupMapFn = () => MarkupLookupMap;
-
-export const handleHover =
-  (getMarkupLookupFn: GetMarkupLookupMapFn) =>
-  async (
-    document: TextDocument,
-    params: HoverParams,
-  ): Promise<Hover | null> => {
-    const functionMarkupLookup = getMarkupLookupFn();
-    const currentLine = document
-      .getText({
-        start: { line: params.position.line, character: 0 },
-        end: { line: params.position.line + 1, character: 0 },
-      })
-      .trim();
-
-    if (!currentLine || !currentLine.includes("(")) {
-      return null; // Not a function call
-    }
-
-    const text = document.getText();
-    const offset = document.offsetAt(params.position);
-
-    if (!isWordChar(text[offset]!)) {
-      return null;
-    }
-
-    const nextParen = wordUntilNextParenthesis(text, offset);
-    if (nextParen === -1) {
-      return null;
-    }
-    const beginningOfWord = previousWordBoundary(text, offset);
-    
-    const hoverName = provideHover(text, beginningOfWord, nextParen);
-    if (hoverName) {
-      const hoverContent = functionMarkupLookup.get(hoverName);
-      if (hoverContent !== undefined) {
-        return markupContentToHover(
-          hoverContent,
-          document,
-          beginningOfWord,
-          nextParen,
-        );
-      }
-    }
-
+  if (!isWordChar(text[offset]!)) {
     return null;
-  };
+  }
 
-export default handleHover(initializeFunctionMarkupMap);
+  const nextParen = wordUntilNextParenthesis(text, offset);
+  if (nextParen === -1) {
+    return null;
+  }
+  const beginningOfWord = previousWordBoundary(text, offset);
+
+  const hoverName = provideHover(text, beginningOfWord, nextParen);
+  if (hoverName) {
+    const hoverContent = FUNCTION_MARKUP_LOOKUP.get(hoverName);
+    if (hoverContent !== undefined) {
+      return markupContentToHover(
+        hoverContent,
+        document,
+        beginningOfWord,
+        nextParen
+      );
+    }
+  }
+
+  return null;
+}
+
+export default handleHover;
