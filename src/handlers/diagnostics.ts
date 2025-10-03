@@ -1,60 +1,52 @@
 import {
   Diagnostic,
   DiagnosticSeverity,
-  Range,
   TextDocuments,
   WorkspaceFolder,
   type DocumentDiagnosticParams,
   type RemoteConsole,
 } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { provideDiagnostics } from "../language/diagnostics";
-import type {
-  Range as DomainRange,
-  DiagnosticSeverity as DomainSeverity,
-  StanDiagnostic,
-} from "../types/diagnostics";
 import { handleCompilation, type Settings } from "./compilation/compilation";
 import type { FileSystemReader } from "../types";
 import { SERVER_ID } from "../constants";
+import type { StancReturn } from "stanc3";
+import {
+  getErrorMessage,
+  getWarningMessage,
+  rangeFromMessage,
+} from "../language/diagnostics/linter";
 
-function stanDiagnosticToLspDiagnostic(stanDiag: StanDiagnostic): Diagnostic {
-  return {
-    range: domainRangeToLspRange(stanDiag.range),
-    severity: domainSeverityToLspSeverity(stanDiag.severity),
-    message: stanDiag.message,
-    source: stanDiag.source ?? SERVER_ID,
-  };
-}
+export function provideDiagnostics(compilerResult: StancReturn): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
 
-function domainRangeToLspRange(domainRange: DomainRange): Range {
-  return {
-    start: {
-      line: domainRange.start.line,
-      character: domainRange.start.character,
-    },
-    end: {
-      line: domainRange.end.line,
-      character: domainRange.end.character,
-    },
-  };
-}
-
-function domainSeverityToLspSeverity(
-  domainSeverity: DomainSeverity
-): DiagnosticSeverity {
-  switch (domainSeverity) {
-    case 1:
-      return DiagnosticSeverity.Error;
-    case 2:
-      return DiagnosticSeverity.Warning;
-    case 3:
-      return DiagnosticSeverity.Information;
-    case 4:
-      return DiagnosticSeverity.Hint;
-    default:
-      return DiagnosticSeverity.Error;
+  if (compilerResult.errors) {
+    for (const error of compilerResult.errors) {
+      const range = rangeFromMessage(error);
+      if (range) {
+        diagnostics.push({
+          range,
+          severity: DiagnosticSeverity.Error,
+          message: getErrorMessage(error),
+          source: SERVER_ID,
+        });
+      }
+    }
   }
+  if (compilerResult.warnings) {
+    for (const warning of compilerResult.warnings) {
+      const range = rangeFromMessage(warning);
+      if (range) {
+        diagnostics.push({
+          range,
+          severity: DiagnosticSeverity.Warning,
+          message: getWarningMessage(warning),
+          source: SERVER_ID,
+        });
+      }
+    }
+  }
+  return diagnostics;
 }
 
 export async function handleDiagnostics(
@@ -80,5 +72,5 @@ export async function handleDiagnostics(
   );
   const stanDiagnostics = provideDiagnostics(compilerResult);
 
-  return stanDiagnostics.map(stanDiagnosticToLspDiagnostic);
+  return stanDiagnostics;
 }
