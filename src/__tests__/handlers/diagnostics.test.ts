@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { DiagnosticSeverity as DomainSeverity } from "../../types/diagnostics";
-import { provideDiagnostics } from "../../language/diagnostics";
+import { provideDiagnostics } from "../../handlers/diagnostics";
 import { SERVER_ID } from "../../constants";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 // Test compiler results for diagnostic provider tests
 const successfulCompileWithWarnings = {
@@ -84,7 +84,7 @@ describe("Diagnostic Handler Components", () => {
       expect(result).toHaveLength(1);
 
       const diagnostic = result[0]!;
-      expect(diagnostic.severity).toBe(DomainSeverity.Warning);
+      expect(diagnostic.severity).toBe(DiagnosticSeverity.Warning);
       expect(diagnostic.message).toBe(
         "Variable name 'jacobian' will be a reserved word starting in Stan 2.38.0. Please rename it!"
       );
@@ -104,7 +104,7 @@ describe("Diagnostic Handler Components", () => {
       expect(result).toHaveLength(2);
 
       const firstError = result[0]!;
-      expect(firstError.severity).toBe(DomainSeverity.Error);
+      expect(firstError.severity).toBe(DiagnosticSeverity.Error);
       expect(firstError.message).toBe(
         "(Transformed) Parameters cannot be integers."
       );
@@ -117,7 +117,7 @@ describe("Diagnostic Handler Components", () => {
       expect(firstError.range.end.character).toBe(10);
 
       const secondError = result[1]!;
-      expect(secondError.severity).toBe(DomainSeverity.Error);
+      expect(secondError.severity).toBe(DiagnosticSeverity.Error);
       expect(secondError.message).toContain("Ill-typed arguments supplied to assignment operator");
 
       // Check multi-line range (0-indexed)
