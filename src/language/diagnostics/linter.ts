@@ -1,6 +1,6 @@
 // taken from vscode-stan-extension
 
-import type { Range, Position } from "../../types/diagnostics";
+import type { Range } from "vscode-languageserver";
 
 function rangeFromMessage(message: string): Range | undefined {
   if (!message) return undefined;
@@ -31,7 +31,7 @@ function rangeFromMessage(message: string): Range | undefined {
 
   return {
     start: { line: startLine, character: startColumn },
-    end: { line: endLine, character: endColumn }
+    end: { line: endLine, character: endColumn },
   };
 }
 

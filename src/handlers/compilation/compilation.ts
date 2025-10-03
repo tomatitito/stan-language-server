@@ -5,9 +5,9 @@ import {
   type RemoteConsole,
 } from "vscode-languageserver";
 import { handleIncludes } from "./includes";
-import type { FileSystemReader, StancReturn } from "../../types/common";
+import type { FileSystemReader } from "../../types/common";
 import { URI } from "vscode-uri";
-import { stanc } from "stanc3";
+import { stanc, type StancReturn } from "stanc3";
 
 export interface Settings {
   maxLineLength: number;

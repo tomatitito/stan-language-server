@@ -52,6 +52,7 @@ const startLanguageServer = (
           resolveProvider: false,
         },
         documentFormattingProvider: true,
+        documentRangeFormattingProvider: false,
         workspace: {
           workspaceFolders: {
             supported: hasWorkspaceFolderCapability,

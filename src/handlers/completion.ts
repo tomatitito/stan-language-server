@@ -74,14 +74,6 @@ function constraintToCompletionItem(constraint: Constraint): CompletionItem {
   };
 }
 
-// Convert LSP position to provider position
-function convertPosition(position: { line: number; character: number }): Position {
-  return {
-    line: position.line,
-    character: position.character,
-  };
-}
-
 // Get distributions data
 const DISTRIBUTION_DATA = dump_stan_math_distributions()
   .split("\n")
@@ -101,7 +93,7 @@ export function handleCompletion(
   }
 
   const text = document.getText();
-  const position = convertPosition(params.position);
+  const position = params.position;
 
   // Get completion items from all providers
   const keywords = provideKeywordCompletions(text, position);
