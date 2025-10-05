@@ -3,7 +3,7 @@
 import type { StancReturn } from "stanc3";
 import type { Range } from "vscode-languageserver";
 
-function rangeFromMessage(message: string): Range | undefined {
+function getRangeFromMessage(message: string): Range | undefined {
   if (!message) return undefined;
   // format is "in 'filename', line (#), column (#) to (line #,)? column (#)"
   const start = message.matchAll(/'.*', line (\d+), column (\d+)( to)?/g);
@@ -64,11 +64,11 @@ function getErrorMessage(message: string) {
 }
 
 function provideErrorMessageAndRange(message: string) {
-  return { range: rangeFromMessage(message), message: getErrorMessage(message) };
+  return { range: getRangeFromMessage(message), message: getErrorMessage(message) };
 }
 
 function provideWarningMessageAndRange(message: string) {
-  return { range: rangeFromMessage(message), message: getWarningMessage(message) };
+  return { range: getRangeFromMessage(message), message: getWarningMessage(message) };
 }
 
 export function provideDiagnostics(compilerResult: StancReturn) {
