@@ -1,5 +1,6 @@
 // taken from vscode-stan-extension
 
+import type { StancReturn } from "stanc3";
 import type { Range } from "vscode-languageserver";
 
 function rangeFromMessage(message: string): Range | undefined {
@@ -57,9 +58,41 @@ function getErrorMessage(message: string) {
     : error;
   error = error.includes("given information about")
     ? error +
-      "\nTry opening the included file and making the Stan language server aware of it."
+    "\nTry opening the included file and making the Stan language server aware of it."
     : error;
   return error;
 }
 
-export { rangeFromMessage, getWarningMessage, getErrorMessage };
+function provideErrorMessageAndRange(message: string) {
+  return { range: rangeFromMessage(message), message: getErrorMessage(message) };
+}
+
+function provideWarningMessageAndRange(message: string) {
+  return { range: rangeFromMessage(message), message: getWarningMessage(message) };
+}
+
+export function provideDiagnostics(compilerResult: StancReturn) {
+  const errorDiagnostics = compilerResult
+    .errors?.map(msg => {
+      return provideErrorMessageAndRange(msg);
+    }).filter((item): item is { range: Range, message: string } => (item.range !== undefined)).map(({ range, message }) => {
+      return {
+        range,
+        severity: "error",
+        message,
+      }
+    }) ?? [];
+
+  const warningDiagnostics = compilerResult
+    .warnings?.map(msg => {
+      return provideWarningMessageAndRange(msg);
+    }).filter((item): item is { range: Range, message: string } => (item.range !== undefined)).map(({ range, message }) => {
+      return {
+        range,
+        severity: "warning",
+        message,
+      }
+    }) ?? [];
+
+  return [...errorDiagnostics, ...warningDiagnostics];
+}
