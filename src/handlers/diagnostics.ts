@@ -11,7 +11,7 @@ import type { FileSystemReader } from "../types";
 import { SERVER_ID } from "../constants";
 import {
   provideDiagnostics
-} from "../language/diagnostics/linter";
+} from "../language/diagnostics/provider";
 
 export async function handleDiagnostics(
   params: DocumentDiagnosticParams,
