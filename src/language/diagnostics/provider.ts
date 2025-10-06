@@ -4,9 +4,10 @@ import type { StancReturn } from "stanc3";
 import type { Range } from "vscode-languageserver";
 
 function getRangeFromMessage(message: string): Range | undefined {
-  if (!message) return undefined;
+  const msg = String(message);
+  if (!msg) return undefined;
   // format is "in 'filename', line (#), column (#) to (line #,)? column (#)"
-  const start = message.matchAll(/'.*', line (\d+), column (\d+)( to)?/g);
+  const start = msg.matchAll(/'.*', line (\d+), column (\d+)( to)?/g);
   // there will be multiple in the case of #included files
   const lastMatch = Array.from(start).pop();
   if (!lastMatch || !lastMatch[1] || !lastMatch[2]) {
@@ -21,7 +22,7 @@ function getRangeFromMessage(message: string): Range | undefined {
 
   if (lastMatch[3]) {
     // " to" was matched
-    const end = message.match(/to (line (\d+), )?column (\d+)/);
+    const end = msg.match(/to (line (\d+), )?column (\d+)/);
     if (end && end[3]) {
       if (end[1] && end[2]) {
         endLine = parseInt(end[2]) - 1;
@@ -37,23 +38,25 @@ function getRangeFromMessage(message: string): Range | undefined {
 }
 
 function getWarningMessage(message: string) {
-  let warning = message.replace(/Warning.*column \d+: /s, "");
+  const msg = String(message);
+  let warning = msg.replace(/Warning.*column \d+: /s, "");
   warning = warning.replace(/\s+/gs, " ");
   warning = warning.trim();
-  warning = message.includes("included from")
+  warning = msg.includes("included from")
     ? "Warning in included file:\n" + warning
     : warning;
   return warning;
 }
 
 function getErrorMessage(message: string) {
-  let error = message;
+  const msg = String(message);
+  let error = msg;
   // cut off code snippet for display
-  if (message.includes("------\n")) {
+  if (msg.includes("------\n")) {
     error = error.split("------\n")[2] ?? error;
   }
   error = error.trim();
-  error = message.includes("included from")
+  error = msg.includes("included from")
     ? "Error in included file:\n" + error
     : error;
   error = error.includes("given information about")
@@ -75,7 +78,7 @@ export function provideDiagnostics(compilerResult: StancReturn) {
   const errorDiagnostics = compilerResult
     .errors?.map(msg => {
       return provideErrorMessageAndRange(msg);
-    }).filter((item): item is { range: Range, message: string } => (item.range !== undefined)).map(({ range, message }) => {
+    }).filter((item): item is { range: Range, message: string } => (item.range !== undefined && item.message !== undefined)).map(({ range, message }) => {
       return {
         range,
         severity: "error",
