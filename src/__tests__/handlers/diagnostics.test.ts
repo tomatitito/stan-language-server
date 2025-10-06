@@ -3,8 +3,8 @@ import { DiagnosticSeverity, TextDocuments, type RemoteConsole } from "vscode-la
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { SERVER_ID } from "../../constants";
 import * as compilationModule from "../../handlers/compilation/compilation";
+import { handleDiagnostics } from "../../handlers/diagnostics";
 import * as diagnosticsModule from "../../language/diagnostics/provider";
-import handleDiagnostics from "../../handlers/diagnostics";
 
 // const { handleDiagnostics } = diagnosticsModule;
 

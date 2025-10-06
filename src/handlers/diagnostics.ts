@@ -13,7 +13,7 @@ import {
   provideDiagnostics
 } from "../language/diagnostics/provider";
 
-export default async function handleDiagnostics(
+export async function handleDiagnostics(
   params: DocumentDiagnosticParams,
   documents: TextDocuments<TextDocument>,
   workspaceFolders: WorkspaceFolder[],
