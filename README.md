@@ -102,7 +102,7 @@ and add the following to the settings file:
 
 ### Emacs (eglot)
 
-Assuming you are using [stan-ts-mode](github.com/WardBrian/stan-ts-mode),
+Assuming you are using [stan-ts-mode](https://github.com/WardBrian/stan-ts-mode),
 [download the latest release](https://github.com/tomatitito/stan-language-server/releases)
 and add the following to your `init.el`:
 
