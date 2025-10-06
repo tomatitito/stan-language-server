@@ -37,6 +37,27 @@ async def test_function_hover_outside_word(client: LanguageClient, character: in
         )
     assert results is None
 
+async def test_function_hover_whitespace_insensitive(client: LanguageClient):
+
+    code = """model {
+real foo =
+beta
+(1,2);
+}"""
+    with make_text_document(client, code) as test_uri:
+        results = await client.text_document_hover_async(
+            params=types.HoverParams(
+                position=types.Position(line=2, character=2),
+                text_document=types.TextDocumentIdentifier(uri=test_uri),
+            )
+        )
+
+    assert results is not None
+    assert (
+        "Jump to Stan Functions Reference index entry for beta"
+        in results.contents.value
+    )
+
 
 DISTRIBUTION_CODE = "model { foo ~ std_normal(); }"
 

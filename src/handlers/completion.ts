@@ -75,17 +75,13 @@ function constraintToCompletionItem(constraint: Constraint): CompletionItem {
 }
 
 // Get distributions data
-function getDistributionData(): string[] {
-  return dump_stan_math_distributions()
-    .split("\n")
-    .map((line) => line.split(":")[0]?.trim() ?? "")
-    .filter((name) => name !== "");
-}
+const DISTRIBUTION_DATA = dump_stan_math_distributions()
+  .split("\n")
+  .map((line) => line.split(":")[0]?.trim() ?? "")
+  .filter((name) => name !== "");
 
 // Get function signatures data
-function getFunctionData(): string[] {
-  return dump_stan_math_signatures().split("\n");
-}
+const FUNCTION_DATA = dump_stan_math_signatures().split("\n");
 
 export function handleCompletion(
   params: CompletionParams,
@@ -101,9 +97,9 @@ export function handleCompletion(
 
   // Get completion items from all providers
   const keywords = provideKeywordCompletions(text, position);
-  const distributions = provideDistributionCompletions(text, position, getDistributionData());
+  const distributions = provideDistributionCompletions(text, position, DISTRIBUTION_DATA);
   const datatypes = provideDatatypeCompletions(text, position);
-  const functions = provideFunctionCompletions(text, position, getFunctionData());
+  const functions = provideFunctionCompletions(text, position, FUNCTION_DATA);
   const constraints = provideConstraintCompletions(text, position);
 
   // Convert all items to LSP format and combine
