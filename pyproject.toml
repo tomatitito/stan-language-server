@@ -1,0 +1,18 @@
+[project]
+name = "stan-language-server-tests"
+version = "0.1.0"
+description = "Test dependencies for Stan Language Server"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.uv]
+dev-dependencies = [
+  "pytest>=8.4.2",
+  "pytest-lsp>=0.4.3",
+  "pytest-asyncio>=0.21.0",
+  "lsprotocol>=2023.0.0",
+]
+
