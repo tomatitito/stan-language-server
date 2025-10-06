@@ -64,11 +64,11 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "24.5.2",
+    "@types/node": "24.7.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",
-    "typescript": "5.9.2"
+    "typescript": "5.9.3"
   },
   "dependencies": {
     "stanc3": "^2.37.0",
