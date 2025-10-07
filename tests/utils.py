@@ -19,10 +19,16 @@ TESTING_WORKSPACE = "file:///testing/"
 
 
 @pytest_lsp.fixture(
-    config=ClientServerConfig(server_command=[os.fspath(SERVER), "--stdio"] ),
+    config=ClientServerConfig(server_command=[os.fspath(SERVER), "--stdio"]),
     scope="module",
 )
 async def client(lsp_client: LanguageClient):
+    # Add handler for client/registerCapability
+    @lsp_client.feature("client/registerCapability")
+    def on_register_capability(params: types.RegistrationParams):
+        # Just acknowledge the registration
+        return None
+
     params = types.InitializeParams(
         capabilities=types.ClientCapabilities(),
         workspace_folders=[types.WorkspaceFolder(TESTING_WORKSPACE, "Test Workspace")],
@@ -35,8 +41,13 @@ async def client(lsp_client: LanguageClient):
     def refresh(cl: LanguageClient, params: None):
         cl.refresh_requests += 1
 
+    @lsp_client.feature("workspace/didChangeConfiguration")
+    def on_did_change_configuration(params: types.DidChangeConfigurationParams):
+        # Just acknowledge the notification
+        return None
+
     try:
-        yield
+        yield lsp_client
     finally:
         await lsp_client.shutdown_session()
 

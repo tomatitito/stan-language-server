@@ -38,3 +38,12 @@ stan-language-server
 
 # tests
 *.pyc
+
+# Python virtual environment
+.venv
+venv
+
+# uv
+.python-version
+uv.lock
+pyproject.toml

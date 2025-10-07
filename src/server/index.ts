@@ -29,20 +29,19 @@ const startLanguageServer = (
 ) => {
   let hasConfigurationCapability: boolean = false;
   let hasWorkspaceFolderCapability: boolean = false;
+  let hasDynamicConfigurationRequestCapability: boolean = false;
 
   connection.onInitialize((params: InitializeParams): InitializeResult => {
     connection.console.info("Initializing Stan language server...");
 
     let capabilities = params.capabilities;
 
-    // Does the client support the `workspace/configuration` request?
-    // If not, we fall back using global settings.
-    hasConfigurationCapability = !!(
-      capabilities.workspace && !!capabilities.workspace.configuration
+    hasConfigurationCapability = Boolean(capabilities.workspace?.configuration);
+    hasDynamicConfigurationRequestCapability = Boolean(
+      capabilities.workspace?.configuration &&
+      capabilities.workspace?.didChangeConfiguration?.dynamicRegistration
     );
-    hasWorkspaceFolderCapability = !!(
-      capabilities.workspace && !!capabilities.workspace.workspaceFolders
-    );
+    hasWorkspaceFolderCapability = Boolean(capabilities.workspace?.workspaceFolders);
 
     return {
       capabilities: {
@@ -68,9 +67,10 @@ const startLanguageServer = (
     };
   });
 
-  connection.onInitialized(() => {
-    if (hasConfigurationCapability) {
-      connection.client.register(DidChangeConfigurationNotification.type);
+  connection.onInitialized(async () => {
+    if (hasDynamicConfigurationRequestCapability) {
+      await connection.client.register(DidChangeConfigurationNotification.type);
+      connection.console.info("Registered for didChangeConfiguration");
     }
     connection.console.info("Stan language server is initialized!");
   });
@@ -85,7 +85,7 @@ const startLanguageServer = (
   let documentSettings: Map<string, Settings> = new Map();
 
   connection.onDidChangeConfiguration((change) => {
-    if (hasConfigurationCapability) {
+    if (hasDynamicConfigurationRequestCapability) {
       // Reset all cached document settings
       documentSettings.clear();
     } else {
