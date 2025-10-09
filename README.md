@@ -116,6 +116,8 @@ and add the following to your `init.el`:
 
 ## For developers
 
+Development uses [bun](https://bun.sh/)
+
 To install dependencies:
 
 ```bash
