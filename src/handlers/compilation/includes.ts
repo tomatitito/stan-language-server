@@ -31,7 +31,8 @@ export async function handleIncludes(
   workspaceFolders: WorkspaceFolder[],
   includePaths: string[],
   logger: RemoteConsole,
-  reader?: FileSystemReader
+  reader?: FileSystemReader,
+  alreadyIncluded: Set<Filename> = new Set()
 ): Promise<Record<Filename, FileContent>> {
   try {
     const includeFilenames = getFilenames(document.getText());
@@ -42,6 +43,12 @@ export async function handleIncludes(
 
     const allResults = await Promise.all(
       includeFilenames.map(async (filename) => {
+        if (alreadyIncluded.has(filename)) {
+          return [filename, { msg: `File already included: ${filename}` }] as [
+            Filename,
+            FilePathError
+          ];
+        }
         try {
           const content = await readIncludedFile(
             document,
@@ -68,6 +75,10 @@ export async function handleIncludes(
       ([_, content]) => !isFilePathError(content)
     ) as [Filename, TextDocument][];
 
+    const currentlyIncluded = new Set(
+      validResults.map(([filename, _]) => filename)
+    ).union(alreadyIncluded);
+
     const recursiveIncludes = await Promise.all(
       validResults.map(
         async ([_, content]) =>
@@ -77,7 +88,8 @@ export async function handleIncludes(
             workspaceFolders,
             includePaths,
             logger,
-            reader
+            reader,
+            currentlyIncluded
           )
       )
     );
