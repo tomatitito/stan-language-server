@@ -93,14 +93,13 @@ async def test_include(client: LanguageClient):
             )
         assert results_inc.items == []  # no errors once include file is opened
 
-@pytest.mark.xfail(reason="Nested includes currently not found")
 async def test_nested_includes(client: LanguageClient):
     main = """
+    parameters { real foo; }
     #include "foo.stan"
-    model { foo ~ std_normal(); }
     """
-    second = "#include <bar.stan>"
-    third = "parameters { real foo; }"
+    second = "#include <bar.stan>\n"
+    third = "model { foo ~ std_normal(); }"
     with (
         make_text_document(client, main) as test_uri,
         make_text_document(client, second, filename="foo"),
