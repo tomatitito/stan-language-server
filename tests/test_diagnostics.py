@@ -1,5 +1,4 @@
 import asyncio
-import pytest
 from lsprotocol import types
 from pytest_lsp import LanguageClient
 
@@ -105,13 +104,30 @@ async def test_nested_includes(client: LanguageClient):
         make_text_document(client, second, filename="foo"),
         make_text_document(client, third, filename="bar"),
     ):
-        results_inc = await client.text_document_diagnostic_async(
+        results = await client.text_document_diagnostic_async(
             params=types.DocumentDiagnosticParams(
                 text_document=types.TextDocumentIdentifier(uri=test_uri),
             )
         )
-        assert results_inc.items == []  # no errors once include file is opened
+        assert results.items == []  # no errors once include file is opened
 
+async def test_nested_includes_loop(client: LanguageClient):
+    main = '#include "foo.stan"\n'
+    second = "#include <bar.stan>\n"
+    third = "#include <baz.stan>\n"
+    with (
+        make_text_document(client, main, filename="baz") as test_uri,
+        make_text_document(client, second, filename="foo"),
+        make_text_document(client, third, filename="bar"),
+    ):
+        results = await client.text_document_diagnostic_async(
+            params=types.DocumentDiagnosticParams(
+                text_document=types.TextDocumentIdentifier(uri=test_uri),
+            )
+        )
+        diagnostic = results.items[0]
+        assert "recursively included itself" in diagnostic.message
+        assert diagnostic.severity == types.DiagnosticSeverity.Error
 
 async def test_include_error(client: LanguageClient):
     main = """
