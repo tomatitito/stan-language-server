@@ -1,4 +1,5 @@
 import asyncio
+import pytest
 from lsprotocol import types
 from pytest_lsp import LanguageClient
 
@@ -90,6 +91,26 @@ async def test_include(client: LanguageClient):
                     text_document=types.TextDocumentIdentifier(uri=test_uri),
                 )
             )
+        assert results_inc.items == []  # no errors once include file is opened
+
+@pytest.mark.xfail(reason="Nested includes currently not found")
+async def test_nested_includes(client: LanguageClient):
+    main = """
+    #include "foo.stan"
+    model { foo ~ std_normal(); }
+    """
+    second = "#include <bar.stan>"
+    third = "parameters { real foo; }"
+    with (
+        make_text_document(client, main) as test_uri,
+        make_text_document(client, second, filename="foo"),
+        make_text_document(client, third, filename="bar"),
+    ):
+        results_inc = await client.text_document_diagnostic_async(
+            params=types.DocumentDiagnosticParams(
+                text_document=types.TextDocumentIdentifier(uri=test_uri),
+            )
+        )
         assert results_inc.items == []  # no errors once include file is opened
 
 
