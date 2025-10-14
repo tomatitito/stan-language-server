@@ -44,10 +44,7 @@ export async function handleIncludes(
     const allResults = await Promise.all(
       includeFilenames.map(async (filename) => {
         if (alreadyIncluded.has(filename)) {
-          return [filename, { msg: `File already included: ${filename}` }] as [
-            Filename,
-            FilePathError
-          ];
+          return [filename, { msg: `File already included: ${filename}` }];
         }
         try {
           const content = await readIncludedFile(
@@ -58,15 +55,9 @@ export async function handleIncludes(
             filename,
             reader
           );
-          return [filename, content] as [
-            Filename,
-            TextDocument | FilePathError
-          ];
+          return [filename, content];
         } catch (err) {
-          return [filename, { msg: `${(err as Error).message}` }] as [
-            Filename,
-            FilePathError
-          ];
+          return [filename, { msg: `${(err as Error).message}` }];
         }
       })
     );
