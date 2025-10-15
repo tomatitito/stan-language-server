@@ -113,7 +113,7 @@ async def test_nested_includes(client: LanguageClient):
 
 async def test_nested_includes_loop(client: LanguageClient):
     main = '#include "foo.stan"\n'
-    second = "#include <bar.stan>\n"
+    second = "#include bar.stan\n"
     third = "#include <baz.stan>\n"
     with (
         make_text_document(client, main, filename="baz") as test_uri,
