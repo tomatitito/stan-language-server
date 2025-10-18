@@ -1,1 +1,0 @@
-model {real foo = 1 / 2;}
