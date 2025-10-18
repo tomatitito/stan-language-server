@@ -1,1 +1,0 @@
-model { foo ~ std_normal(); }

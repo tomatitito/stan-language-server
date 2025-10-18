@@ -1,21 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { LSPTestClient } from "./lsp-client";
-import path from "path";
-import { promises as fs } from "fs";
-import { DiagnosticSeverity, type Diagnostic, type DocumentDiagnosticReport } from "vscode-languageserver";
-
-const fixturesDir = path.resolve(__dirname, "../../__fixtures__/");
-const workspaceUri = `file://${fixturesDir}`;
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 describe("Diagnostics", () => {
   let client: LSPTestClient;
 
   beforeEach(async () => {
     client = new LSPTestClient();
-    await fs.access(fixturesDir).catch(async () => {
-      await fs.mkdir(fixturesDir, { recursive: true });
-    });
-
     await client.start();
   });
 
@@ -29,10 +20,9 @@ describe("Diagnostics", () => {
     await client.stop();
   });
 
-
   it("should provide a warning", async () => {
-    const uri = `${workspaceUri}/diagnostics.warning.stan`;
-    const content = await fs.readFile(path.join(fixturesDir, "diagnostics.warning.stan"), "utf-8");
+    const content = "model {real foo = 1 / 2;}";
+    const uri = "file:///test/warning.stan";
     await client.didOpen(uri, "stan", content);
 
     const result = await client.diagnostics(uri);
@@ -47,11 +37,12 @@ describe("Diagnostics", () => {
       expect(result.items.map(item => item.range.start.character)).toContain(18);
     }
 
-  })
+    await client.didClose(uri);
+  });
 
   it("should report an error", async () => {
-    const uri = `${workspaceUri}/diagnostics.error.stan`;
-    const content = await fs.readFile(path.join(fixturesDir, "diagnostics.error.stan"), "utf-8");
+    const content = "model { foo ~ std_normal(); }";
+    const uri = "file:///test/error.stan";
     await client.didOpen(uri, "stan", content);
 
     const result = await client.diagnostics(uri);
@@ -65,12 +56,14 @@ describe("Diagnostics", () => {
       expect(result.items.map(item => item.range.start.line)).toContain(0);
       expect(result.items.map(item => item.range.start.character)).toContain(8);
     }
-  })
+
+    await client.didClose(uri);
+  });
 
   it("should not report diagnostics with a valid stanfunctions file", async () => {
-    const uri = `${workspaceUri}/valid.stanfunctions`;
-    const content = await fs.readFile(path.join(fixturesDir, "valid.stanfunctions"), "utf-8");
-    await client.didOpen(uri, "stan", content);
+    const content = "real id(real x) { return x; }";
+    const uri = "file:///test/valid.stanfunctions";
+    await client.didOpen(uri, "stanfunctions", content);
 
     const result = await client.diagnostics(uri);
 
@@ -78,12 +71,14 @@ describe("Diagnostics", () => {
     if (result.kind === "full") {
       expect(result.items.length).toEqual(0);
     }
+
+    await client.didClose(uri);
   });
 
   it("should report an error when included file is not found", async () => {
-    const uri = `${workspaceUri}/diagnostics.include.failing.stan`;
-    const content = await fs.readFile(path.join(fixturesDir, "diagnostics.include.failing.stan"), "utf-8");
-
+    const content = `#include "foo.stan"
+model { foo ~ std_normal(); }`;
+    const uri = "file:///test/include-failing.stan";
     await client.didOpen(uri, "stan", content);
 
     const result = await client.diagnostics(uri);
@@ -97,27 +92,38 @@ describe("Diagnostics", () => {
       expect(result.items.map(item => item.range.start.line)).toContain(0);
       expect(result.items.map(item => item.range.start.character)).toContain(0);
     }
-  })
+
+    await client.didClose(uri);
+  });
 
   it("should not report diagnostics when included file is found", async () => {
-    const uri = `${workspaceUri}/diagnostics.include.stan`;
-    const content = await fs.readFile(path.join(fixturesDir, "diagnostics.include.stan"), "utf-8");
+    const mainContent = `#include "included.stan"
+model { foo ~ std_normal(); }`;
+    const includedContent = "parameters { real foo; }";
 
-    await client.didOpen(uri, "stan", content);
+    // Open the included file first
+    const includedUri = "file:///test/included.stan";
+    await client.didOpen(includedUri, "stan", includedContent);
 
-    const result = await client.diagnostics(uri);
+    // Then open the main file
+    const mainUri = "file:///test/main.stan";
+    await client.didOpen(mainUri, "stan", mainContent);
+
+    const result = await client.diagnostics(mainUri);
 
     expect(result).toBeDefined();
 
     if (result.kind === "full") {
       expect(result.items.length).toEqual(0);
     }
-  })
+
+    await client.didClose(mainUri);
+    await client.didClose(includedUri);
+  });
 
   it("should pick up a configuration change", async () => {
-    const uri = `${workspaceUri}/diagnostics.error.stan`;
-    const content = await fs.readFile(path.join(fixturesDir, "diagnostics.error.stan"), "utf-8");
-
+    const content = "model { foo ~ std_normal(); }";
+    const uri = "file:///test/config-change.stan";
     await client.didOpen(uri, "stan", content);
 
     let result = await client.diagnostics(uri);
@@ -142,6 +148,7 @@ describe("Diagnostics", () => {
     if (result.kind === "full") {
       expect(result.items.length).toBeGreaterThan(0);
     }
-  })
 
-})
+    await client.didClose(uri);
+  });
+});
