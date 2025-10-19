@@ -11,10 +11,6 @@ describe("Formatting", () => {
 
   beforeEach(async () => {
     client = new LSPTestClient();
-    await fs.access(fixturesDir).catch(async () => {
-      await fs.mkdir(fixturesDir, { recursive: true });
-    });
-
     await client.start();
   });
 

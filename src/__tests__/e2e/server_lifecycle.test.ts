@@ -4,17 +4,8 @@ import path from "path";
 import { promises as fs } from "fs";
 import { type InitializeResult, TextDocumentSyncKind } from "vscode-languageserver-protocol";
 
-const fixturesDir = path.resolve(__dirname, "../../__fixtures__/");
-const workspaceUri = `file://${fixturesDir}`;
-
 describe("Server Lifecycle", () => {
   let client: LSPTestClient;
-
-  beforeEach(async () => {
-    await fs.access(fixturesDir).catch(async () => {
-      await fs.mkdir(fixturesDir, { recursive: true });
-    });
-  });
 
   afterEach(async () => {
     try {
@@ -31,7 +22,7 @@ describe("Server Lifecycle", () => {
       client = new LSPTestClient();
       await client.start();
 
-      const result: InitializeResult = await client.initialize(workspaceUri);
+      const result: InitializeResult = await client.initialize("file://stan-project");
 
       expect(result.capabilities).toBeDefined();
       expect(result.capabilities.textDocumentSync).toEqual(TextDocumentSyncKind.Incremental);
@@ -49,7 +40,7 @@ describe("Server Lifecycle", () => {
       client = new LSPTestClient();
       await client.start();
 
-      await client.initialize(workspaceUri);
+      await client.initialize("file://stan-project");
       await client.initialized();
 
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -63,7 +54,7 @@ describe("Server Lifecycle", () => {
       client = new LSPTestClient();
       await client.start();
 
-      await client.initialize(workspaceUri, true);
+      await client.initialize("file://stan-project", true);
       await client.initialized();
 
       await client.waitForRegistration();
@@ -85,7 +76,7 @@ describe("Server Lifecycle", () => {
       client = new LSPTestClient();
       await client.start();
 
-      await client.initialize(workspaceUri, false);
+      await client.initialize("file://stan-project", false);
       await client.initialized();
 
       // Try to wait for registration - it should timeout since server won't send one
@@ -96,10 +87,8 @@ describe("Server Lifecycle", () => {
         registrationTimedOut = true;
       }
 
-      // Verify no registration was sent (hence the timeout)
       expect(registrationTimedOut).toBe(true);
 
-      // Double-check by looking at messages
       const registerCapabilityMessages = client.serverMessages.filter(
         msg => msg.method === "client/registerCapability"
       );
@@ -119,23 +108,20 @@ describe("Server Lifecycle", () => {
       client = new LSPTestClient();
       await client.start();
 
-      await client.initialize(workspaceUri);
+      await client.initialize("file://stan-project");
       await client.initialized();
 
-      const uri = `${workspaceUri}/close-test.stan`;
+      const uri = `file://stan-project/close-test.stan`;
       const content = "model { real x = beta(1, 2); }";
 
-      // Open the document
       await client.didOpen(uri, "stan", content);
 
       // Verify document is open by requesting hover (should work)
       let hoverResult = await client.hover(uri, 0, 17); // hover over "beta"
       expect(hoverResult).not.toBeNull();
 
-      // Close the document
       await client.didClose(uri);
 
-      // Verify document is closed - hover should return null since document is no longer tracked
       hoverResult = await client.hover(uri, 0, 17);
       expect(hoverResult).toBeNull();
     });
