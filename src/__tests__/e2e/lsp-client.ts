@@ -40,12 +40,12 @@ export class LSPTestClient {
     reject: (error: any) => void;
   }>();
   private buffer = "";
-
-  serverMessages: LSPMessage[] = [];
-  numRefreshRequest: number = 0;
   private currentSettings: any = {};
   private workspaceUri: string | null = null;
   private registrationResolve: (() => void) | null = null;
+  
+  serverMessages: LSPMessage[] = [];
+  numRefreshRequest: number = 0;
 
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -72,7 +72,7 @@ export class LSPTestClient {
       });
 
       this.server.on("exit", (code) => {
-        console.log(`Server exited with code ${code}`);
+        // console.log(`Server exited with code ${code}`);
       });
 
       // Give server time to start
@@ -174,7 +174,6 @@ export class LSPTestClient {
   }
 
   private handleWorkspaceFoldersRequest(message: LSPMessage): void {
-    // Server is requesting workspace folders
     const result = this.workspaceUri ? [
       {
         uri: this.workspaceUri,
@@ -197,7 +196,7 @@ export class LSPTestClient {
       result: null,
     });
 
-    // Resolve any waiting promise
+    // Resolve any waiting promise, solely for testing purposes
     if (this.registrationResolve) {
       this.registrationResolve();
       this.registrationResolve = null;
@@ -226,7 +225,6 @@ export class LSPTestClient {
         params,
       });
 
-      // Timeout after 3 seconds for tests
       setTimeout(() => {
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
@@ -243,8 +241,6 @@ export class LSPTestClient {
       params,
     });
   }
-
-  // LSP Methods
 
   async initialize(workspaceUri?: string, dynamicRegistration: boolean = true): Promise<InitializeResult> {
     // Store workspace URI so we can respond to workspace/workspaceFolders requests

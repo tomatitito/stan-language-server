@@ -3,8 +3,6 @@ import { LSPTestClient } from "./lsp-client";
 import path from "path";
 import { promises as fs } from "fs";
 
-const fixturesDir = path.resolve(__dirname, "../../__fixtures__/");
-const workspaceUri = `file://${fixturesDir}`;
 
 const FUNCTION_CODE = "model { real foo = beta(1,2); }";
 const DISTRIBUTION_CODE = "model { foo ~ std_normal(); }";
@@ -14,10 +12,6 @@ describe("Hover", () => {
 
   beforeEach(async () => {
     client = new LSPTestClient();
-    await fs.access(fixturesDir).catch(async () => {
-      await fs.mkdir(fixturesDir, { recursive: true });
-    });
-
     await client.start();
   });
 
@@ -33,7 +27,7 @@ describe("Hover", () => {
 
   describe("Function hover", () => {
     test.each([19, 20, 21, 22])("should show hover at character %p", async (character) => {
-      const uri = `${workspaceUri}/hover-function.stan`;
+      const uri = `file:///hover-function.stan`;
       await client.didOpen(uri, "stan", FUNCTION_CODE);
 
       const result = await client.hover(uri, 0, character);
@@ -46,7 +40,7 @@ describe("Hover", () => {
     });
 
     test.each([18, 24])("should not show hover outside word at character %p", async (character) => {
-      const uri = `${workspaceUri}/hover-function.stan`;
+      const uri = `file:///hover-function.stan`;
       await client.didOpen(uri, "stan", FUNCTION_CODE);
 
       const result = await client.hover(uri, 0, character);
@@ -60,7 +54,7 @@ real foo =
 beta
 (1,2);
 }`;
-      const uri = `${workspaceUri}/hover-function-whitespace.stan`;
+      const uri = `file:///hover-function-whitespace.stan`;
       await client.didOpen(uri, "stan", code);
 
       const result = await client.hover(uri, 2, 2);
@@ -77,7 +71,7 @@ beta
     test.each([14, 15, 16, 17, 18, 19, 20, 21, 22, 23])(
       "should show hover at character %p",
       async (character) => {
-        const uri = `${workspaceUri}/hover-distribution.stan`;
+        const uri = `file:///hover-distribution.stan`;
         await client.didOpen(uri, "stan", DISTRIBUTION_CODE);
 
         const result = await client.hover(uri, 0, character);
@@ -91,7 +85,7 @@ beta
     );
 
     test.each([13, 25])("should not show hover outside word at character %p", async (character) => {
-      const uri = `${workspaceUri}/hover-distribution.stan`;
+      const uri = `file:///hover-distribution.stan`;
       await client.didOpen(uri, "stan", DISTRIBUTION_CODE);
 
       const result = await client.hover(uri, 0, character);

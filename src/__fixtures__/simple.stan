@@ -3,5 +3,4 @@ parameters {
 }
 model {
   target += -0.5 * y;
-  
 }
