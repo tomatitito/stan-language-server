@@ -1,8 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
+import { TextDocumentSyncKind, type InitializeResult } from "vscode-languageserver-protocol";
 import { LSPTestClient } from "./lsp-client";
-import path from "path";
-import { promises as fs } from "fs";
-import { type InitializeResult, TextDocumentSyncKind } from "vscode-languageserver-protocol";
 
 describe("Server Lifecycle", () => {
   let client: LSPTestClient;

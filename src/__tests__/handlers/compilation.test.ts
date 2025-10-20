@@ -1,7 +1,7 @@
-import { describe, expect, it, spyOn, beforeEach, afterEach, mock } from "bun:test";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
+import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import type { RemoteConsole } from "vscode-languageserver";
+import { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
+import { TextDocument } from "vscode-languageserver-textdocument";
 import { defaultSettings, handleCompilation } from "../../handlers/compilation/compilation";
 import * as includesModule from "../../handlers/compilation/includes";
 

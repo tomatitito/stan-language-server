@@ -1,7 +1,5 @@
-import { describe, beforeEach, afterEach, expect, it, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, test } from "bun:test";
 import { LSPTestClient } from "./lsp-client";
-import path from "path";
-import { promises as fs } from "fs";
 
 
 const FUNCTION_CODE = "model { real foo = beta(1,2); }";

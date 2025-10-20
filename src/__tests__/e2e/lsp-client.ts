@@ -1,23 +1,21 @@
 import { spawn, type ChildProcess } from "child_process";
-import { TextDocument } from "vscode-languageserver-textdocument";
 import type {
-  InitializeParams,
-  InitializeResult,
-  CompletionParams,
-  CompletionList,
   CompletionItem,
-  DocumentFormattingParams,
-  TextEdit,
-  HoverParams,
-  Hover,
-  DidOpenTextDocumentParams,
+  CompletionList,
+  CompletionParams,
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
+  DidOpenTextDocumentParams,
   DocumentDiagnosticParams,
   DocumentDiagnosticReport,
+  DocumentFormattingParams,
+  Hover,
+  HoverParams,
+  InitializeParams,
+  InitializeResult,
   LSPAny,
+  TextEdit,
 } from "vscode-languageserver-protocol";
-import path from "path";
 
 export interface LSPMessage {
   jsonrpc: "2.0";
@@ -43,7 +41,7 @@ export class LSPTestClient {
   private currentSettings: any = {};
   private workspaceUri: string | null = null;
   private registrationResolve: (() => void) | null = null;
-  
+
   serverMessages: LSPMessage[] = [];
   numRefreshRequest: number = 0;
 

@@ -1,9 +1,9 @@
-import { describe, expect, it, beforeEach, spyOn, mock } from "bun:test";
-import { TextDocument } from "vscode-languageserver-textdocument";
-import { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
-import type { RemoteConsole } from "vscode-languageserver";
-import { handleIncludes } from "../../handlers/compilation/includes";
+import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { promises } from "fs";
+import type { RemoteConsole } from "vscode-languageserver";
+import { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
+import { TextDocument } from "vscode-languageserver-textdocument";
+import { handleIncludes } from "../../handlers/compilation/includes";
 
 describe("Includes Handler", () => {
 
