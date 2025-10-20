@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { LSPTestClient } from "./lsp-client";
 import path from "path";
-import { promises as fs } from "fs";
+import { LSPTestClient } from "./lsp-client";
 
 const fixturesDir = path.resolve(__dirname, "../../__fixtures__/");
 const workspaceUri = `file://${fixturesDir}`;

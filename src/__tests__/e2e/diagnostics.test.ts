@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { LSPTestClient } from "./lsp-client";
 import { DiagnosticSeverity } from "vscode-languageserver";
+import { LSPTestClient } from "./lsp-client";
 
 describe("Diagnostics", () => {
   let client: LSPTestClient;
