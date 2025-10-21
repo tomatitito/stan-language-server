@@ -65,13 +65,13 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "24.8.1",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
-    "eslint": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "8.0.0",
+    "@typescript-eslint/parser": "8.0.0",
+    "eslint": "9.0.0",
     "typescript": "5.9.3"
   },
   "dependencies": {
-    "stanc3": "^2.37.0",
+    "stanc3": "2.37.0",
     "trie-search": "2.2.0",
     "vscode-languageserver": "9.0.1",
     "vscode-languageserver-textdocument": "1.0.12",
