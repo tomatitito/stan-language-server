@@ -22,11 +22,5 @@ jobs:
     - name: Build project
       run: bun build:binary
 
-    - name: Setup Python
-      uses: actions/setup-python@v6
-
-    - name: Install dependencies
-      run: pip install pytest "pytest-lsp==0.4.3" "pygls<2"
-
     - name: Run tests
-      run: pytest tests --verbose
+      run: bun run test:e2e
