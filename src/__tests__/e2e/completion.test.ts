@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
 import { CompletionList, type CompletionItem } from "vscode-languageserver-protocol";
 import { LSPTestClient } from "./lsp-client";
 
@@ -17,13 +17,16 @@ describe("Completion", () => {
     }
   }
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     client = new LSPTestClient();
     await client.start();
   });
 
   afterEach(async () => {
     await client.closeAll();
+  });
+
+  afterAll(async () => {
     try {
       await client.shutdown();
       await client.exit();

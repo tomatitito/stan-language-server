@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
 import path from "path";
 import { LSPTestClient } from "./lsp-client";
 
@@ -8,13 +8,16 @@ const workspaceUri = `file://${fixturesDir}`;
 describe("Formatting", () => {
   let client: LSPTestClient;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     client = new LSPTestClient();
     await client.start();
   });
 
   afterEach(async () => {
     await client.closeAll();
+  });
+
+  afterAll(async () => {
     try {
       await client.shutdown();
       await client.exit();
