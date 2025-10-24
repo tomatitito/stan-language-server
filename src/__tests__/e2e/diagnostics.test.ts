@@ -70,6 +70,19 @@ describe("Diagnostics", () => {
     }
   });
 
+  it("should report an error when a .stanfunctions file is opened as .stan file", async () => {
+    const content = "real id(real x) { return x; }";
+    const uri = "file:///test/invalid.stan";
+    await client.didOpen(uri, "stan", content);
+
+    const result = await client.diagnostics(uri);
+
+    expect(result).toBeDefined();
+    if (result.kind === "full") {
+      expect(result.items.length).toBeGreaterThan(0);
+    }
+  })
+
   it("should report an error when included file is not found", async () => {
     const content = `#include "foo.stan"
 model { foo ~ std_normal(); }`;
