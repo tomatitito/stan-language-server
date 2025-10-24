@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { TextDocumentSyncKind, type InitializeResult } from "vscode-languageserver-protocol";
+import { RegistrationRequest, TextDocumentSyncKind, type InitializeResult } from "vscode-languageserver-protocol";
 import { LSPTestClient } from "./lsp-client";
 
 describe("Server Lifecycle", () => {
@@ -58,7 +58,7 @@ describe("Server Lifecycle", () => {
       await client.waitForRegistration();
 
       const registerCapabilityMessages = client.serverMessages.filter(
-        msg => msg.method === "client/registerCapability"
+        msg => msg.method === RegistrationRequest.method
       );
 
       const didChangeConfigRegistrations = registerCapabilityMessages.filter(msg =>
@@ -88,7 +88,7 @@ describe("Server Lifecycle", () => {
       expect(registrationTimedOut).toBe(true);
 
       const registerCapabilityMessages = client.serverMessages.filter(
-        msg => msg.method === "client/registerCapability"
+        msg => msg.method === RegistrationRequest.method
       );
 
       const didChangeConfigRegistrations = registerCapabilityMessages.filter(msg =>

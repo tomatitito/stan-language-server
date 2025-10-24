@@ -1,20 +1,26 @@
 import { spawn, type ChildProcess } from "child_process";
 import type {
-  CompletionItem,
-  CompletionList,
-  CompletionParams,
-  DidChangeTextDocumentParams,
-  DidCloseTextDocumentParams,
-  DidOpenTextDocumentParams,
-  DocumentDiagnosticParams,
-  DocumentDiagnosticReport,
-  DocumentFormattingParams,
-  Hover,
-  HoverParams,
-  InitializeParams,
-  InitializeResult,
-  LSPAny,
-  TextEdit,
+    CompletionItem,
+    CompletionList,
+    CompletionParams,
+    DidChangeTextDocumentParams,
+    DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams,
+    DocumentDiagnosticParams,
+    DocumentDiagnosticReport,
+    DocumentFormattingParams,
+    Hover,
+    HoverParams,
+    InitializeParams,
+    InitializeResult,
+    LSPAny,
+    TextEdit,
+} from "vscode-languageserver-protocol";
+import {
+    ConfigurationRequest,
+    DiagnosticRefreshRequest,
+    RegistrationRequest,
+    WorkspaceFoldersRequest,
 } from "vscode-languageserver-protocol";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 
@@ -140,13 +146,13 @@ export class LSPTestClient {
         request.resolve(message.result);
       }
     } else if (message.method) {
-      if (message.method === 'workspace/diagnostic/refresh') {
+      if (message.method === DiagnosticRefreshRequest.method) {
         this.handleDiagnosticRefresh(message);
-      } else if (message.method === 'workspace/configuration') {
+      } else if (message.method === ConfigurationRequest.method) {
         this.handleConfigurationRequest(message);
-      } else if (message.method === 'workspace/workspaceFolders') {
+      } else if (message.method === WorkspaceFoldersRequest.method) {
         this.handleWorkspaceFoldersRequest(message);
-      } else if (message.method === 'client/registerCapability') {
+      } else if (message.method === RegistrationRequest.method) {
         this.handleRegisterCapability(message);
       }
       // Notifications/requests from server are handled above
@@ -280,7 +286,7 @@ export class LSPTestClient {
   async waitForRegistration(timeout: number = 2000): Promise<void> {
     // Check if we already received a registration
     const hasRegistration = this.serverMessages.some(
-      msg => msg.method === "client/registerCapability"
+      msg => msg.method === RegistrationRequest.method
     );
 
     if (hasRegistration) {
