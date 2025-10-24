@@ -173,6 +173,56 @@ model { foo ~ std_normal(); }`;
     }
   });
 
+  it("should report an error in included file", async () => {
+    const mainContent = `
+#include "foo.stan"
+model { foo ~ std_normal(); }`;
+    const includedContent = "parameters { real foo }"; // Missing semicolon - syntax error
+
+    const includedUri = "file:///test/foo.stan";
+    await client.didOpen(includedUri, "stan", includedContent);
+
+    const mainUri = "file:///test/include-error.stan";
+    await client.didOpen(mainUri, "stan", mainContent);
+
+    const result = await client.diagnostics(mainUri);
+
+    expect(result).toBeDefined();
+
+    if (result.kind === "full") {
+      expect(result.items.length).toBeGreaterThan(0);
+      expect(result.items.map(item => item.message.match(/^Error in included file:/))).toBeTruthy();
+      expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
+      expect(result.items.map(item => item.range.start.line)).toContain(1);
+      expect(result.items.map(item => item.range.start.character)).toContain(0);
+    }
+  });
+
+  it("should report warning in included file", async () => {
+    const mainContent = `
+#include "foo.stan"
+model { foo ~ std_normal(); }`;
+    const includedContent = "parameters { real foo; } transformed parameters { real bar = 1 / 2; }"; // Integer division warning
+
+    const includedUri = "file:///test/foo.stan";
+    await client.didOpen(includedUri, "stan", includedContent);
+
+    const mainUri = "file:///test/include-warning.stan";
+    await client.didOpen(mainUri, "stan", mainContent);
+
+    const result = await client.diagnostics(mainUri);
+
+    expect(result).toBeDefined();
+
+    if (result.kind === "full") {
+      expect(result.items.length).toBeGreaterThan(0);
+      expect(result.items.map(item => item.message.match(/^Warning in included file:/))).toBeTruthy();
+      expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Warning);
+      expect(result.items.map(item => item.range.start.line)).toContain(1);
+      expect(result.items.map(item => item.range.start.character)).toContain(0);
+    }
+  });
+
   it("should pick up a configuration change", async () => {
     const content = "model { foo ~ std_normal(); }";
     const uri = "file:///test/config-change.stan";
