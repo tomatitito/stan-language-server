@@ -1,17 +1,20 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { LSPTestClient } from "./lsp-client";
 
 describe("Diagnostics", () => {
   let client: LSPTestClient;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     client = new LSPTestClient();
     await client.start();
   });
 
   afterEach(async () => {
     await client.closeAll();
+  });
+
+  afterAll(async () => {
     try {
       await client.shutdown();
       await client.exit();

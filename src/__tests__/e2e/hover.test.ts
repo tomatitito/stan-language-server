@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, describe, expect, it, test } from "bun:test";
 import { LSPTestClient } from "./lsp-client";
 
 
@@ -8,13 +8,16 @@ const DISTRIBUTION_CODE = "model { foo ~ std_normal(); }";
 describe("Hover", () => {
   let client: LSPTestClient;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     client = new LSPTestClient();
     await client.start();
   });
 
   afterEach(async () => {
     await client.closeAll();
+  });
+
+  afterAll(async () => {
     try {
       await client.shutdown();
       await client.exit();
