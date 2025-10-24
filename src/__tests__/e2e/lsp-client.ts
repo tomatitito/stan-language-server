@@ -42,10 +42,10 @@ export class LSPTestClient {
   private currentSettings: any = {};
   private workspaceUri: string | null = null;
   private registrationResolve: (() => void) | null = null;
+  private openDocumentUris: string[] = []
 
   serverMessages: LSPMessage[] = [];
   numRefreshRequest: number = 0;
-  openDocumentUris: string[] = []
 
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
