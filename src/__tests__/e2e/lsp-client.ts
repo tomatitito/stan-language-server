@@ -1,26 +1,26 @@
 import { spawn, type ChildProcess } from "child_process";
 import type {
-    CompletionItem,
-    CompletionList,
-    CompletionParams,
-    DidChangeTextDocumentParams,
-    DidCloseTextDocumentParams,
-    DidOpenTextDocumentParams,
-    DocumentDiagnosticParams,
-    DocumentDiagnosticReport,
-    DocumentFormattingParams,
-    Hover,
-    HoverParams,
-    InitializeParams,
-    InitializeResult,
-    LSPAny,
-    TextEdit,
+  CompletionItem,
+  CompletionList,
+  CompletionParams,
+  DidChangeTextDocumentParams,
+  DidCloseTextDocumentParams,
+  DidOpenTextDocumentParams,
+  DocumentDiagnosticParams,
+  DocumentDiagnosticReport,
+  DocumentFormattingParams,
+  Hover,
+  HoverParams,
+  InitializeParams,
+  InitializeResult,
+  LSPAny,
+  TextEdit,
 } from "vscode-languageserver-protocol";
 import {
-    ConfigurationRequest,
-    DiagnosticRefreshRequest,
-    RegistrationRequest,
-    WorkspaceFoldersRequest,
+  ConfigurationRequest,
+  DiagnosticRefreshRequest,
+  RegistrationRequest,
+  WorkspaceFoldersRequest,
 } from "vscode-languageserver-protocol";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 
@@ -66,7 +66,15 @@ export class LSPTestClient {
       }
 
       this.server.stdout.on("data", (data: Buffer) => {
-        this.handleServerMessage(data.toString());
+        const dataStr = data.toString();
+        try {
+          this.handleServerMessage(dataStr);
+        } catch (error) {
+          reject(new Error(
+            `Failed to handle server message: ${error instanceof Error ? error.message : String(error)}. ` +
+            `Content: ${dataStr.substring(0, 200)}...`
+          ));
+        }
       });
 
       this.server.stderr.on("data", (data: Buffer) => {
@@ -125,13 +133,9 @@ export class LSPTestClient {
       const messageContent = this.buffer.substring(messageStart, messageStart + contentLength);
       this.buffer = this.buffer.substring(messageStart + contentLength);
 
-      try {
-        const message: LSPMessage = JSON.parse(messageContent);
-        this.serverMessages.push(message);
-        this.handleMessage(message);
-      } catch (error) {
-        console.error("Failed to parse LSP message:", error, "Content:", messageContent);
-      }
+      const message: LSPMessage = JSON.parse(messageContent);
+      this.serverMessages.push(message);
+      this.handleMessage(message);
     }
   }
 
@@ -342,7 +346,7 @@ export class LSPTestClient {
     this.sendNotification("textDocument/didClose", params);
     this.openDocumentUris = this.openDocumentUris.filter(u => u !== uri);
   }
-  
+
   async closeAll(): Promise<void> {
     await Promise.all(this.openDocumentUris.map(uri => this.didClose(uri)));
   }
