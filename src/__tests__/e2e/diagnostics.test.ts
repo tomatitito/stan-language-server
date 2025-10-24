@@ -124,6 +124,55 @@ model { foo ~ std_normal(); }`;
     }
   });
 
+  it("should handle nested includes without errors", async () => {
+    const mainContent = `parameters { real foo; }
+#include "foo.stan"`;
+    const fooContent = `#include <bar.stan>`;
+    const barContent = `model { foo ~ std_normal(); }`;
+
+    const barUri = "file:///test/bar.stan";
+    await client.didOpen(barUri, "stan", barContent);
+
+    const fooUri = "file:///test/foo.stan";
+    await client.didOpen(fooUri, "stan", fooContent);
+
+    const mainUri = "file:///test/main.stan";
+    await client.didOpen(mainUri, "stan", mainContent);
+
+    const result = await client.diagnostics(mainUri);
+
+    expect(result).toBeDefined();
+
+    if (result.kind === "full") {
+      expect(result.items.length).toEqual(0);
+    }
+  });
+
+  it("should detect recursive includes", async () => {
+    const bazContent = `#include "foo.stan"`;
+    const fooContent = `#include bar.stan`;
+    const barContent = `#include <baz.stan>`;
+
+    const barUri = "file:///test/bar.stan";
+    await client.didOpen(barUri, "stan", barContent);
+
+    const fooUri = "file:///test/foo.stan";
+    await client.didOpen(fooUri, "stan", fooContent);
+
+    const bazUri = "file:///test/baz.stan";
+    await client.didOpen(bazUri, "stan", bazContent);
+
+    const result = await client.diagnostics(bazUri);
+
+    expect(result).toBeDefined();
+
+    if (result.kind === "full") {
+      expect(result.items.length).toBeGreaterThan(0);
+      expect(result.items.map(item => item.message.match(/recursively included itself/))).toBeTruthy();
+      expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
+    }
+  });
+
   it("should pick up a configuration change", async () => {
     const content = "model { foo ~ std_normal(); }";
     const uri = "file:///test/config-change.stan";
