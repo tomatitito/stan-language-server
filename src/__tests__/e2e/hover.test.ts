@@ -14,6 +14,7 @@ describe("Hover", () => {
   });
 
   afterEach(async () => {
+    await client.closeAll();
     try {
       await client.shutdown();
       await client.exit();
