@@ -55,7 +55,7 @@ export class LSPTestClient {
 
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.server = spawn("bun", ["run", "src/server/cli.ts", "--stdio"], {
+      this.server = spawn("bin/stan-language-server", ["--stdio"], {
         stdio: ["pipe", "pipe", "pipe"],
         env: { ...process.env, NODE_ENV: "test" },
       });
