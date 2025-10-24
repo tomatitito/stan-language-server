@@ -62,6 +62,7 @@
     "test": "bun test",
     "test:unit": "bun test --exclude='**/e2e/**'",
     "test:e2e": "bun run build:binary && bun test src/__tests__/e2e/",
+    "test:e2e:ci": "bun test src/__tests__/e2e/",
     "dev": "bun run src/server/cli.ts"
   },
   "devDependencies": {
