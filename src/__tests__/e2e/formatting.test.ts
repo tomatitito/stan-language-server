@@ -62,8 +62,6 @@ describe("Formatting", () => {
     await client.didClose(uri);
     await client.didChangeConfiguration({ "stan-language-server": { maxLineLength: 15 } });
 
-    await new Promise(resolve => setTimeout(resolve, 100));
-
     await client.didOpen(uri, "stan", code);
 
     results = await client.formatting(uri);
