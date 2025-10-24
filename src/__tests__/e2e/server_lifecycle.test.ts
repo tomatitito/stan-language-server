@@ -120,6 +120,7 @@ describe("Server Lifecycle", () => {
 
       await client.didClose(uri);
 
+      // After closing, hover should return null
       hoverResult = await client.hover(uri, 0, 17);
       expect(hoverResult).toBeNull();
     });

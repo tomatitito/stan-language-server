@@ -23,6 +23,7 @@ describe("Completion", () => {
   });
 
   afterEach(async () => {
+    await client.closeAll();
     try {
       await client.shutdown();
       await client.exit();
@@ -42,7 +43,6 @@ describe("Completion", () => {
     const labels = extractLabels(result);
 
     expect(labels).toContain("bernoulli_lpmf");
-    await client.didClose(uri);
   });
 
   it("should provide distribution completions", async () => {
@@ -55,7 +55,6 @@ describe("Completion", () => {
     const labels = extractLabels(result);
 
     expect(labels).toContain("bernoulli");
-    await client.didClose(uri);
   })
 
   it("should provide keyword completions", async () => {
@@ -68,7 +67,6 @@ describe("Completion", () => {
     const labels = extractLabels(result);
 
     expect(labels).toContain("transformed");
-    await client.didClose(uri);
   })
 
 })

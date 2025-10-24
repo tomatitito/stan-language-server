@@ -11,6 +11,7 @@ describe("Diagnostics", () => {
   });
 
   afterEach(async () => {
+    await client.closeAll();
     try {
       await client.shutdown();
       await client.exit();
@@ -36,8 +37,6 @@ describe("Diagnostics", () => {
       expect(result.items.map(item => item.range.start.line)).toContain(0);
       expect(result.items.map(item => item.range.start.character)).toContain(18);
     }
-
-    await client.didClose(uri);
   });
 
   it("should report an error", async () => {
@@ -56,8 +55,6 @@ describe("Diagnostics", () => {
       expect(result.items.map(item => item.range.start.line)).toContain(0);
       expect(result.items.map(item => item.range.start.character)).toContain(8);
     }
-
-    await client.didClose(uri);
   });
 
   it("should not report diagnostics with a valid stanfunctions file", async () => {
@@ -71,8 +68,6 @@ describe("Diagnostics", () => {
     if (result.kind === "full") {
       expect(result.items.length).toEqual(0);
     }
-
-    await client.didClose(uri);
   });
 
   it("should report an error when included file is not found", async () => {
@@ -92,8 +87,6 @@ model { foo ~ std_normal(); }`;
       expect(result.items.map(item => item.range.start.line)).toContain(0);
       expect(result.items.map(item => item.range.start.character)).toContain(0);
     }
-
-    await client.didClose(uri);
   });
 
   it("should not report diagnostics when included file is found", async () => {
@@ -116,9 +109,6 @@ model { foo ~ std_normal(); }`;
     if (result.kind === "full") {
       expect(result.items.length).toEqual(0);
     }
-
-    await client.didClose(mainUri);
-    await client.didClose(includedUri);
   });
 
   it("should pick up a configuration change", async () => {
@@ -148,7 +138,5 @@ model { foo ~ std_normal(); }`;
     if (result.kind === "full") {
       expect(result.items.length).toBeGreaterThan(0);
     }
-
-    await client.didClose(uri);
   });
 });

@@ -16,6 +16,7 @@ import type {
   LSPAny,
   TextEdit,
 } from "vscode-languageserver-protocol";
+import type { TextDocument } from "vscode-languageserver-textdocument";
 
 export interface LSPMessage {
   jsonrpc: "2.0";
@@ -44,6 +45,7 @@ export class LSPTestClient {
 
   serverMessages: LSPMessage[] = [];
   numRefreshRequest: number = 0;
+  openDocumentUris: string[] = []
 
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -315,6 +317,7 @@ export class LSPTestClient {
         text,
       },
     };
+    this.openDocumentUris.push(uri);
     this.sendNotification("textDocument/didOpen", params);
   }
 
@@ -331,6 +334,11 @@ export class LSPTestClient {
       textDocument: { uri },
     };
     this.sendNotification("textDocument/didClose", params);
+    this.openDocumentUris = this.openDocumentUris.filter(u => u !== uri);
+  }
+  
+  async closeAll(): Promise<void> {
+    await Promise.all(this.openDocumentUris.map(uri => this.didClose(uri)));
   }
 
   async didChangeConfiguration(settings?: LSPAny): Promise<void> {
