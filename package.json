@@ -67,10 +67,10 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "25.2.3",
-    "@typescript-eslint/eslint-plugin": "8.55.0",
-    "@typescript-eslint/parser": "8.55.0",
-    "eslint": "10.0.0",
+    "@types/node": "25.3.3",
+    "@typescript-eslint/eslint-plugin": "8.56.1",
+    "@typescript-eslint/parser": "8.56.1",
+    "eslint": "10.0.2",
     "typescript": "5.9.3"
   },
   "dependencies": {
