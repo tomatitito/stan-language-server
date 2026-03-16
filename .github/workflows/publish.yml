@@ -70,3 +70,15 @@ jobs:
         run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }} --provenance
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Build stan-language-server-bin package
+        run: bun run build:bin-package
+
+      - name: Verify stan-language-server-bin CLI works
+        run: node npm/stan-language-server-bin/bin/cli.js --help
+
+      - name: Publish stan-language-server-bin to npm
+        working-directory: npm/stan-language-server-bin
+        run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }} --provenance
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

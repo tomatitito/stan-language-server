@@ -1,0 +1,32 @@
+{
+  "name": "stan-language-server-bin",
+  "version": "0.3.0",
+  "description": "CLI distribution of the Stan language server",
+  "bin": {
+    "stan-language-server": "bin/cli.js"
+  },
+  "files": [
+    "bin/"
+  ],
+  "keywords": [
+    "stan",
+    "language-server",
+    "lsp",
+    "probabilistic-programming",
+    "bayesian",
+    "statistics"
+  ],
+  "author": "Jens Kouros <jens.kouros@posteo.de>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomatitito/stan-language-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tomatitito/stan-language-server/issues"
+  },
+  "homepage": "https://github.com/tomatitito/stan-language-server#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

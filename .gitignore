@@ -36,6 +36,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 stan-language-server
 .rules
 
+# Built bin-package artifacts
+npm/stan-language-server-bin/bin/
+
 # tests
 *.pyc
 

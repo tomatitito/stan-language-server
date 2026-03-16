@@ -16,11 +16,20 @@ if (!/^\d+\.\d+\.\d+(-[\w\d\-\.]+)?(\+[\w\d\-\.]+)?$/.test(version)) {
   process.exit(1);
 }
 
-const packageJsonPath = join(process.cwd(), 'package.json');
-const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+const cwd = process.cwd();
 
-packageJson.version = version;
+const packageJsonPaths = [
+  join(cwd, 'package.json'),
+  join(cwd, 'npm', 'stan-language-server-bin', 'package.json'),
+];
 
-writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
-
-console.log(`Updated package.json version to ${version}`);
+for (const packageJsonPath of packageJsonPaths) {
+  try {
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    packageJson.version = version;
+    writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+    console.log(`Updated ${packageJsonPath} to ${version}`);
+  } catch {
+    // Skip if file doesn't exist
+  }
+}
