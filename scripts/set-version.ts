@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const version = process.argv[2];
@@ -24,12 +24,13 @@ const packageJsonPaths = [
 ];
 
 for (const packageJsonPath of packageJsonPaths) {
-  try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-    packageJson.version = version;
-    writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
-    console.log(`Updated ${packageJsonPath} to ${version}`);
-  } catch {
-    // Skip if file doesn't exist
+  if (!existsSync(packageJsonPath)) {
+    console.error(`Package file not found: ${packageJsonPath}`);
+    process.exit(1);
   }
+
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+  packageJson.version = version;
+  writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+  console.log(`Updated ${packageJsonPath} to ${version}`);
 }
