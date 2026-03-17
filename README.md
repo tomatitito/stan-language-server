@@ -139,6 +139,6 @@ bun test
 
 To run end-to-end tests:
 ```bash
-pip install pytest pytest-lsp
-bun build:binary && pytest tests/
+bun test:e2e
 ```
+
