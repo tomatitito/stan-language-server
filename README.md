@@ -21,47 +21,12 @@ or [open-vsx](https://open-vsx.org/extension/wardbrian/vscode-stan-extension).
 
 ### Neovim
 
-There are many ways to install language servers in neovim. Here is one (if you have a different or better way, consider contributing it!):
+Download the latest language server executable from [GitHub](https://github.com/tomatitito/stan-language-server/releases) and put it somewhere in your `PATH`.
 
-Download the latest language server executable from [GitHub](https://github.com/tomatitito/stan-language-server/tags) and put it somewhere in your PATH. Then in your `nvim` config folder add `lua/lsp/init.lua` with:
-```lua
-local servers = {
-    stan_ls = "lsp.stan",
-}
+#### Neovim 0.11+ (built-in LSP)
 
-local function setup_server(name, config_module)
-    local config = require(config_module)
+Add `lsp/stan_ls.lua` to your Neovim config directory (e.g., `~/.config/nvim/`):
 
-    vim.api.nvim_create_autocmd("FileType", {
-        pattern = config.filetypes,
-        callback = function()
-            if #vim.lsp.get_clients({ bufnr = 0, name = name }) > 0 then
-                return
-            end
-
-            local root_dir = vim.fs.root(0, config.root_markers)
-            print(string.format("Starting %s for buffer %d with root: %s", name, vim.api.nvim_get_current_buf(),
-                root_dir or "none"))
-
-            vim.lsp.start({
-                name = name,
-                cmd = config.cmd,
-                root_dir = root_dir,
-                initialization_options = config.settings or {},
-                on_exit = function(code, signal)
-                    print(string.format("%s exited with code %d, signal %d", name, code, signal))
-                end,
-            })
-        end,
-    })
-end
-
-for server_name, config_path in pairs(servers) do
-    setup_server(server_name, config_path)
-end
-```
-
-Then in `lua/lsp/stan.lua` add the following:
 ```lua
 return {
     cmd = { "stan-language-server", "--stdio" },
@@ -72,6 +37,33 @@ return {
         includePaths = {},
     },
 }
+```
+
+Then enable it:
+
+```lua
+vim.lsp.enable("stan_ls")
+```
+
+#### Older Neovim (with nvim-lspconfig)
+
+```lua
+local lspconfig = require("lspconfig")
+local configs = require("lspconfig.configs")
+
+configs.stan_ls = {
+    default_config = {
+        cmd = { "stan-language-server", "--stdio" },
+        filetypes = { "stan" },
+        root_dir = lspconfig.util.root_pattern(".git"),
+        settings = {
+            maxLineLength = 78,
+            includePaths = {},
+        },
+    },
+}
+
+lspconfig.stan_ls.setup({})
 ```
 
 ### Zed
