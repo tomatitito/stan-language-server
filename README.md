@@ -107,10 +107,20 @@ Assuming you are using [stan-ts-mode](https://github.com/WardBrian/stan-ts-mode)
 and add the following to your `init.el`:
 
 ```elisp
-; elgot is built in to emacs 29+, but a similar config would work for lsp-mode
-(with-eval-after-load 'eglot
-    (add-to-list 'eglot-server-programs
-        '(stan-ts-mode . ("/YOUR/PATH/TO/stan-language-server" "--stdio"))))
+; elgot is built in to emacs 29+, but some features work better if you use the
+;; latest version from GNU ELPA
+(require 'package)
+(add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
+(package-initialize)
+
+(use-package eglot
+  :ensure t
+  :demand t
+  :pin gnu
+  :hook (stan-ts-mode . eglot-ensure)
+  :config
+  (add-to-list 'eglot-server-programs '(stan-ts-mode .
+  ("PATH/TO/stan-language-server" "--stdio"))))
 ```
 
 
