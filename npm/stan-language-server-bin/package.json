@@ -6,7 +6,9 @@
     "stan-language-server": "bin/cli.js"
   },
   "files": [
-    "bin/"
+    "bin/",
+    "LICENSE",
+    "README.md"
   ],
   "keywords": [
     "stan",
