@@ -19,8 +19,7 @@ execSync(
 const content = readFileSync(outFile, 'utf-8');
 writeFileSync(outFile, '#!/usr/bin/env node\n' + content);
 
-// Copy LICENSE and README from repo root so they're included in the npm package
+// Copy LICENSE from repo root so it's included in the npm package
 copyFileSync(join(cwd, 'LICENSE'), join(pkgDir, 'LICENSE'));
-copyFileSync(join(cwd, 'README.md'), join(pkgDir, 'README.md'));
 
 console.log(`Built stan-language-server-bin to ${pkgDir}`);

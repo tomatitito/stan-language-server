@@ -39,7 +39,6 @@ stan-language-server
 # Built bin-package artifacts
 npm/stan-language-server-bin/bin/
 npm/stan-language-server-bin/LICENSE
-npm/stan-language-server-bin/README.md
 
 # tests
 *.pyc
