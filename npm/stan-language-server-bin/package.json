@@ -1,6 +1,6 @@
 {
   "name": "stan-language-server-bin",
-  "version": "0.3.0",
+  "version": "0.4.2",
   "description": "CLI distribution of the Stan language server",
   "bin": {
     "stan-language-server": "bin/cli.js"

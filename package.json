@@ -1,6 +1,6 @@
 {
   "name": "stan-language-server",
-  "version": "0.3.0",
+  "version": "0.4.2",
   "description": "Language Server Protocol implementation for the Stan probabilistic programming language",
   "main": "dist/server/index.js",
   "module": "src/server/index.ts",
