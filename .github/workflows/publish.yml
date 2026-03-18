@@ -1,11 +1,9 @@
 name: Publish to npm
-
 on:
   workflow_run:
     workflows: ["Build and Release Executables"]
     types:
       - completed
-
 jobs:
   publish-npm:
     name: Publish to npm
@@ -13,19 +11,22 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'v') }}
     permissions:
       contents: read
-      id-token: write # For npm provenance
+      id-token: write # For npm provenance and trusted publishing
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-
+      - name: Setup Node.js (for npm >= 11.5.1)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Update npm
+        run: npm install -g npm@latest
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
       - name: Extract version from tag
         id: version
         run: |
@@ -33,18 +34,11 @@ jobs:
           VERSION=${TAG_NAME#v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing version: $VERSION"
-
       - name: Update package.json version
         run: |
           bun run version:set ${{ steps.version.outputs.version }}
-
       - name: Build package
         run: bun run build
-
-      - name: Setup npm authentication
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-
       - name: Determine npm tag
         id: npm_tag
         run: |
@@ -65,20 +59,12 @@ jobs:
             echo "tag=next" >> $GITHUB_OUTPUT
             echo "Publishing as next (pre-release)"
           fi
-
       - name: Publish to npm
         run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }} --provenance
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Build stan-language-server-bin package
         run: bun run build:bin-package
-
       - name: Verify stan-language-server-bin CLI works
         run: node npm/stan-language-server-bin/bin/cli.js --help
-
       - name: Publish stan-language-server-bin to npm
         working-directory: npm/stan-language-server-bin
         run: npm publish --access public --tag ${{ steps.npm_tag.outputs.tag }} --provenance
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
