@@ -90,22 +90,22 @@ jobs:
           7z a "${{ env.ZIP_PATH }}" ./bin/stan-language-server.exe
           
       - if: "!contains(matrix.os, 'windows')"
-        name: Set executable path (unix)
+        name: Rename executable (unix)
         run: |
-          echo "EXE_PATH=./bin/stan-language-server" >> $GITHUB_ENV
-          echo "EXE_NAME=stan-ls-${{ steps.version.outputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_ENV
+          mv ./bin/stan-language-server "./bin/stan-ls-${{ steps.version.outputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}"
+          echo "EXE_PATH=./bin/stan-ls-${{ steps.version.outputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_ENV
 
       - if: "contains(matrix.os, 'windows')"
-        name: Set executable path (windows)
+        name: Rename executable (windows)
         run: |
-          echo "EXE_PATH=./bin/stan-language-server.exe" >> $env:GITHUB_ENV
-          echo "EXE_NAME=stan-ls-${{ steps.version.outputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.exe" >> $env:GITHUB_ENV
+          mv ./bin/stan-language-server.exe "./bin/stan-ls-${{ steps.version.outputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.exe"
+          echo "EXE_PATH=./bin/stan-ls-${{ steps.version.outputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.exe" >> $env:GITHUB_ENV
 
       - name: Upload Release Assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ steps.version.outputs.version }}" \
-            "${{ env.ZIP_PATH }}#${{ matrix.platform }}-${{ matrix.arch }}.zip" \
-            "${{ env.EXE_PATH }}#${{ env.EXE_NAME }}" \
+            "${{ env.ZIP_PATH }}" \
+            "${{ env.EXE_PATH }}" \
             --repo="$GITHUB_REPOSITORY"
