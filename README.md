@@ -21,7 +21,19 @@ or [open-vsx](https://open-vsx.org/extension/wardbrian/vscode-stan-extension).
 
 ### Neovim
 
-Download the latest language server executable from [GitHub](https://github.com/tomatitito/stan-language-server/releases) and put it somewhere in your `PATH`.
+#### Mason 
+
+The Stan language server is installable with
+[Mason](https://github.com/mason-org/mason.nvim) by running `:MasonInstall
+stan-language-server`.
+
+#### Manual install
+
+The language server can also be configured manually by first installing
+the language server executable. This can be done directly via `npm install -g
+stan-language-server-bin` or by downloading the latest executable from
+[GitHub](https://github.com/tomatitito/stan-language-server/releases) and putting
+it somewhere in your `PATH`.
 
 #### Neovim 0.11+ (built-in LSP)
 
