@@ -1,0 +1,20 @@
+minimum_prek_version = "0.3.3"
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "lint"
+name = "eslint"
+entry = "bun run lint"
+language = "system"
+pass_filenames = false
+stages = ["pre-push"]
+
+[[repos.hooks]]
+id = "unit-tests"
+name = "unit tests"
+entry = "bun test:unit"
+language = "system"
+pass_filenames = false
+stages = ["pre-commit"]
