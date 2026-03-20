@@ -1,50 +1,48 @@
 import { describe, expect, it } from "bun:test";
 import { provideDatatypeCompletions } from "../../../../language/completion/providers/datatypes";
-import type { Datatype } from "../../../../types/completion";
 
 describe("Datatype Completion Provider", () => {
-  it("should provide completion items for datatype prefix", () => {
-    const text = "int";
-    const position = { line: 0, character: 3 };
+  const matchingCases = [
+    {
+      name: "basic datatype prefix",
+      text: "int",
+      position: { line: 0, character: 3 },
+      expectedName: "int",
+    },
+    {
+      name: "vector datatype prefix",
+      text: "vec",
+      position: { line: 0, character: 3 },
+      expectedName: "vector",
+    },
+    {
+      name: "matrix datatype prefix",
+      text: "mat",
+      position: { line: 0, character: 3 },
+      expectedName: "matrix",
+    },
+    {
+      name: "prefix with leading whitespace",
+      text: "   int",
+      position: { line: 0, character: 6 },
+      expectedName: "int",
+    },
+  ] as const;
 
-    const result = provideDatatypeCompletions(text, position);
-    
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.every((item): item is Datatype => typeof item.name === "string")).toBe(true);
-    expect(result.some(item => item.name === "int")).toBe(true);
+  for (const { name, text, position, expectedName } of matchingCases) {
+    it(`returns matches for ${name}`, () => {
+      const result = provideDatatypeCompletions(text, position);
+      expect(result.map((item) => item.name)).toContain(expectedName);
+    });
+  }
+
+  it("returns empty array for non-matching prefix", () => {
+    const result = provideDatatypeCompletions("xyz", { line: 0, character: 3 });
+    expect(result).toEqual([]);
   });
 
-  it("should find vector types", () => {
-    const text = "vec";
-    const position = { line: 0, character: 3 };
-
-    const result = provideDatatypeCompletions(text, position);
-    
-    expect(result.some(item => item.name === "vector")).toBe(true);
-  });
-
-  it("should return empty array for non-matching prefix", () => {
-    const text = "xyz";
-    const position = { line: 0, character: 3 };
-
-    const result = provideDatatypeCompletions(text, position);
-    expect(result).toHaveLength(0);
-  });
-
-  it("should handle whitespace before datatype", () => {
-    const text = "   int";
-    const position = { line: 0, character: 6 };
-
-    const result = provideDatatypeCompletions(text, position);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.some(item => item.name === "int")).toBe(true);
-  });
-
-  it("should find matrix types", () => {
-    const text = "mat";
-    const position = { line: 0, character: 3 };
-
-    const result = provideDatatypeCompletions(text, position);
-    expect(result.some(item => item.name === "matrix")).toBe(true);
+  it("returns empty array when no word pattern is present", () => {
+    const result = provideDatatypeCompletions("~", { line: 0, character: 1 });
+    expect(result).toEqual([]);
   });
 });
