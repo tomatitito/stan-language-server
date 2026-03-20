@@ -10,7 +10,6 @@ A language server for the Stan probabilistic programming language written in Typ
 - **Code formatting**: Using the official Stan compiler
 - **Include file support**: Full `#include` resolution and compilation
 
-
 ## Editor-specific configuration
 
 ### VSCode:
@@ -21,7 +20,7 @@ or [open-vsx](https://open-vsx.org/extension/wardbrian/vscode-stan-extension).
 
 ### Neovim
 
-#### Mason 
+#### Mason
 
 The Stan language server is installable with
 [Mason](https://github.com/mason-org/mason.nvim) by running `:MasonInstall
@@ -107,26 +106,73 @@ and add the following to the settings file:
 ### Emacs (eglot)
 
 Assuming you are using [stan-ts-mode](https://github.com/WardBrian/stan-ts-mode),
-[download the latest release](https://github.com/tomatitito/stan-language-server/releases)
-and add the following to your `init.el`:
+add the following to your `init.el`.
+This will download the latest release the first time you load a Stan file.
 
 ```elisp
-; elgot is built in to emacs 29+, but some features work better if you use the
-;; latest version from GNU ELPA
 (require 'package)
-(add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
+;; elgot is built in to emacs 29+, but some features work better if you use the
+;; latest version from GNU ELPA
+(add-to-list 'package-archives '("gnu-devel" . "https://elpa.gnu.org/devel/"))
 (package-initialize)
+
+;; work around https://debbugs.gnu.org/cgi/bugreport.cgi?bug=69423
+(assq-delete-all 'eglot package--builtins)
+(assq-delete-all 'eglot package--builtin-versions)
+
+(defcustom bmw/stan-language-server-location
+  (expand-file-name (concat "bin/stan-language-server" (car exec-suffixes)) user-emacs-directory)
+  "Location to download the stan-language-server binary to."
+  :type 'file
+  :group 'stan)
+
+(use-package url)
+
+(defun bmw/download-stan-language-server (&optional force)
+  "Download the latest copy of the stan-language-server.
+The location is determined by stan-ts-mode-language-server-location.
+Argument FORCE will make the download proceed even if the file exists."
+  (interactive "P")
+  (when (or force (not (file-exists-p bmw/stan-language-server-location)))
+    (let*
+        ((version
+          (with-temp-buffer
+            (url-insert-file-contents
+             "https://api.github.com/repos/tomatitito/stan-language-server/releases/latest")
+            (let ((json  (json-parse-buffer)))
+              (gethash "tag_name" json))))
+         (os-tag
+          (pcase system-type
+            ((or 'windows-nt 'cygwin 'ms-dos) "windows-x86_64")
+            ('darwin (concat "macos-"
+                             (if (string-match-p "aarch64\\|arm" system-configuration ) "aarch64" "x86_64") ))
+            (_  (concat "linux-"
+                        (if (string-match-p "aarch64\\|arm" system-configuration ) "arm64" "x86_64")))))
+         (url
+          (concat
+           "https://github.com/tomatitito/stan-language-server/releases/download/"
+           version
+           "/stan-ls-"
+           version
+           "-"
+           os-tag
+           (car exec-suffixes)))
+         (file bmw/stan-language-server-location))
+      (make-empty-file file t)
+      (delete-file file)
+      (url-copy-file url file)
+      (chmod file 500))))
 
 (use-package eglot
   :ensure t
-  :demand t
-  :pin gnu
-  :hook (stan-ts-mode . eglot-ensure)
+  :pin gnu-devel
+  :hook ((stan-ts-base-mode . bmw/download-stan-language-server)
+         (stan-ts-base-mode . eglot-ensure))
   :config
-  (add-to-list 'eglot-server-programs '(stan-ts-mode .
-  ("PATH/TO/stan-language-server" "--stdio"))))
+  (add-to-list
+   'eglot-server-programs
+   `(stan-ts-base-mode . (,bmw/stan-language-server-location "--stdio"))))
 ```
-
 
 ## For developers
 
@@ -145,12 +191,13 @@ bun build:binary
 ```
 
 To run unit tests:
+
 ```bash
 bun test
 ```
 
 To run end-to-end tests:
+
 ```bash
 bun test:e2e
 ```
-
