@@ -30,6 +30,7 @@ const startLanguageServer = (
   let hasConfigurationCapability: boolean = false;
   let hasWorkspaceFolderCapability: boolean = false;
   let hasDynamicConfigurationRequestCapability: boolean = false;
+  let hasSnippetSupport: boolean = false;
 
   connection.onInitialize((params: InitializeParams): InitializeResult => {
     connection.console.info("Initializing Stan language server...");
@@ -42,6 +43,7 @@ const startLanguageServer = (
       capabilities.workspace?.didChangeConfiguration?.dynamicRegistration
     );
     hasWorkspaceFolderCapability = Boolean(capabilities.workspace?.workspaceFolders);
+    hasSnippetSupport = Boolean(capabilities.textDocument?.completion?.completionItem?.snippetSupport);
 
     return {
       capabilities: {
@@ -120,7 +122,7 @@ const startLanguageServer = (
   const documents = new TextDocuments(TextDocument);
 
   connection.onCompletion((params) => {
-    return handleCompletion(params, documents);
+    return handleCompletion(params, documents, hasSnippetSupport);
   });
 
   const getWorkspaceFolders = async () => {

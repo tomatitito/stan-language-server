@@ -72,4 +72,20 @@ describe("Completion", () => {
     expect(labels).toContain("transformed");
   })
 
+
+  it("should provide snippet completions", async () => {
+    await client.initialize();
+    await client.initialized();
+
+    const content = "data { if (0) {} elsei";
+    const position = { line: 0, character: 23 };
+
+    const uri = "file:///test/test.stan";
+    await client.didOpen(uri, "stan", content);
+    const result = await client.completion(uri, position.line, position.character);
+    const labels = extractLabels(result);
+
+    expect(labels).toContain("elseif");
+  })
+
 })
