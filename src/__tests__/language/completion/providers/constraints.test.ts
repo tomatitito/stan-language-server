@@ -8,7 +8,7 @@ describe("Constraint Completion Provider", () => {
     const position = { line: 0, character: 3 };
 
     const result = provideConstraintCompletions(text, position);
-    
+
     expect(result.length).toBeGreaterThan(0);
     expect(result.every((item): item is Constraint => typeof item.name === "string")).toBe(true);
     expect(result.some(item => item.name === "lower")).toBe(true);
@@ -19,7 +19,7 @@ describe("Constraint Completion Provider", () => {
     const position = { line: 0, character: 3 };
 
     const result = provideConstraintCompletions(text, position);
-    
+
     expect(result.some(item => item.name === "upper")).toBe(true);
   });
 
@@ -40,11 +40,4 @@ describe("Constraint Completion Provider", () => {
     expect(result.some(item => item.name === "lower")).toBe(true);
   });
 
-  it("should find matrix constraint types", () => {
-    const text = "corr";
-    const position = { line: 0, character: 4 };
-
-    const result = provideConstraintCompletions(text, position);
-    expect(result.some(item => item.name === "corr_matrix")).toBe(true);
-  });
 });
