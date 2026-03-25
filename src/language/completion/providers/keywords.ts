@@ -58,25 +58,24 @@ const getKeywords = (): Keyword[] => {
   }));
 };
 
+const SEARCHABLE_KEYWORDS = getSearchableItems(getKeywords(), {
+  splitOnRegEx: /[\s_]/g,
+  min: 0,
+});
+
 export const provideKeywordCompletions = (
   text: string,
   position: Position,
 ): Keyword[] => {
   const textUpToCursor = getTextUpToCursor(text, position);
 
-  const keywords = getKeywords();
-  const searchableKeywords = getSearchableItems(keywords, {
-    splitOnRegEx: /[\s_]/g,
-    min: 0,
-  });
-
   // Look for word pattern at the end of current text
   const match = textUpToCursor.match(/(?:^|\s)([\w_]+)$/);
   if (match) {
     const keywordName = match[1] || "";
-    const completionProposals = searchableKeywords.search(keywordName);
+    const completionProposals = SEARCHABLE_KEYWORDS.search(keywordName);
     return completionProposals;
   }
-  
+
   return [];
 };

@@ -4,39 +4,33 @@ import {
   TextDocuments,
   CompletionItem,
   CompletionItemKind,
+  InsertTextFormat,
+  InsertTextMode,
 } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 // Import pure providers
-import { 
-  provideKeywordCompletions,
-} from "../language/completion/providers/keywords";
-import { 
-  provideDistributionCompletions,
-} from "../language/completion/providers/distributions";
-import { 
-  provideDatatypeCompletions,
-} from "../language/completion/providers/datatypes";
-import { 
-  provideFunctionCompletions,
-} from "../language/completion/providers/functions";
-import { 
-  provideConstraintCompletions,
-} from "../language/completion/providers/constraints";
+import { provideKeywordCompletions } from "../language/completion/providers/keywords";
+import { provideDistributionCompletions } from "../language/completion/providers/distributions";
+import { provideDatatypeCompletions } from "../language/completion/providers/datatypes";
+import { provideFunctionCompletions } from "../language/completion/providers/functions";
+import { provideConstraintCompletions } from "../language/completion/providers/constraints";
 
 // Import existing types
-import type { 
+import type {
   Position,
-  Keyword, 
-  Distribution, 
-  Datatype, 
-  StanFunction, 
-  Constraint 
+  Keyword,
+  Distribution,
+  Datatype,
+  StanFunction,
+  Constraint,
+  Snippet,
 } from "../types/completion";
 import {
   dump_stan_math_distributions,
   dump_stan_math_signatures,
 } from "stanc3";
+import { provideSnippetCompletions } from "../language/completion/providers/snippets";
 
 // Convert existing types to LSP completion items
 function keywordToCompletionItem(keyword: Keyword): CompletionItem {
@@ -46,7 +40,9 @@ function keywordToCompletionItem(keyword: Keyword): CompletionItem {
   };
 }
 
-function distributionToCompletionItem(distribution: Distribution): CompletionItem {
+function distributionToCompletionItem(
+  distribution: Distribution,
+): CompletionItem {
   return {
     label: distribution.name,
     kind: CompletionItemKind.Function,
@@ -74,6 +70,17 @@ function constraintToCompletionItem(constraint: Constraint): CompletionItem {
   };
 }
 
+function snippetToCompletionItem(snippet: Snippet): CompletionItem {
+  return {
+    label: snippet.name,
+    kind: CompletionItemKind.Snippet,
+    insertText: snippet.body.join("\n"),
+    insertTextFormat: InsertTextFormat.Snippet,
+    insertTextMode: InsertTextMode.adjustIndentation,
+    detail: snippet.description,
+  };
+}
+
 // Get distributions data
 const DISTRIBUTION_DATA = dump_stan_math_distributions()
   .split("\n")
@@ -86,6 +93,7 @@ const FUNCTION_DATA = dump_stan_math_signatures().split("\n");
 export function handleCompletion(
   params: CompletionParams,
   documents: TextDocuments<TextDocument>,
+  supportsSnippets: boolean,
 ): CompletionItem[] {
   const document = documents.get(params.textDocument.uri);
   if (!document) {
@@ -97,10 +105,17 @@ export function handleCompletion(
 
   // Get completion items from all providers
   const keywords = provideKeywordCompletions(text, position);
-  const distributions = provideDistributionCompletions(text, position, DISTRIBUTION_DATA);
+  const distributions = provideDistributionCompletions(
+    text,
+    position,
+    DISTRIBUTION_DATA,
+  );
   const datatypes = provideDatatypeCompletions(text, position);
   const functions = provideFunctionCompletions(text, position, FUNCTION_DATA);
   const constraints = provideConstraintCompletions(text, position);
+  const snippets = supportsSnippets
+    ? provideSnippetCompletions(text, position)
+    : [];
 
   // Convert all items to LSP format and combine
   const allItems = [
@@ -109,6 +124,7 @@ export function handleCompletion(
     ...datatypes.map(datatypeToCompletionItem),
     ...functions.map(functionToCompletionItem),
     ...constraints.map(constraintToCompletionItem),
+    ...snippets.map(snippetToCompletionItem),
   ];
 
   return allItems;

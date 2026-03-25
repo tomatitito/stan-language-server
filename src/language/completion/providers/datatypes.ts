@@ -35,25 +35,24 @@ const getDatatypes = (): Datatype[] => {
   }));
 };
 
+
+const SEARCHABLE_DATATYPES = getSearchableItems(getDatatypes(), {
+  splitOnRegEx: /[\s_]/g,
+  min: 0,
+});
+
 export const provideDatatypeCompletions = (
   text: string,
   position: Position,
 ): Datatype[] => {
   const textUpToCursor = getTextUpToCursor(text, position);
-
-  const datatypes = getDatatypes();
-  const searchableDatatypes = getSearchableItems(datatypes, {
-    splitOnRegEx: /[\s_]/g,
-    min: 0,
-  });
-
   // Look for word pattern at the end of current text
   const match = textUpToCursor.match(/(?:^|\s)([\w_]+)$/);
   if (match) {
     const typeName = match[1] || "";
-    const completionProposals = searchableDatatypes.search(typeName);
+    const completionProposals = SEARCHABLE_DATATYPES.search(typeName);
     return completionProposals;
   }
-  
+
   return [];
 };
