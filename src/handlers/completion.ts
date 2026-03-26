@@ -1,93 +1,83 @@
-// Completion handler - manages LSP protocol conversion and coordinates providers
 import {
   type CompletionParams,
   TextDocuments,
   CompletionItem,
   CompletionItemKind,
-  InsertTextFormat,
-  InsertTextMode,
 } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
-// Import pure providers
-import { provideKeywordCompletions } from "../language/completion/providers/keywords";
-import { provideDistributionCompletions } from "../language/completion/providers/distributions";
-import { provideDatatypeCompletions } from "../language/completion/providers/datatypes";
-import { provideFunctionCompletions } from "../language/completion/providers/functions";
-import { provideConstraintCompletions } from "../language/completion/providers/constraints";
-import { provideSnippetCompletions } from "../language/completion/providers/snippets";
+import type { Position } from "../types";
 
-// Import existing types
-import type {
-  Keyword,
-  Distribution,
-  Datatype,
-  StanFunction,
-  Constraint,
-  Snippet,
-} from "../types/completion";
-import {
-  dump_stan_math_distributions,
-  dump_stan_math_signatures,
-} from "stanc3";
+import TrieSearch from "trie-search";
 
-// Convert existing types to LSP completion items
-function keywordToCompletionItem(keyword: Keyword): CompletionItem {
-  return {
-    label: keyword.name,
-    kind: CompletionItemKind.Keyword,
-  };
-}
+import { CONSTRAINTS } from "./completion/constraints";
+import { DATATYPES } from "./completion/datatypes";
+import { KEYWORDS } from "./completion/keywords";
+import { SNIPPETS } from "./completion/snippets";
+import { DISTRIBUTIONS } from "./completion/distributions";
+import { FUNCTIONS } from "./completion/functions";
 
-function distributionToCompletionItem(
-  distribution: Distribution,
-): CompletionItem {
-  return {
-    label: distribution.name,
-    kind: CompletionItemKind.Function,
-  };
-}
+// Build one trie for general word-boundary completions.
+const COMPLETION_TRIE: TrieSearch<CompletionItem> = new TrieSearch("label", {
+  splitOnRegEx: /[\s_]/g,
+  min: 0,
+});
 
-function datatypeToCompletionItem(datatype: Datatype): CompletionItem {
-  return {
-    label: datatype.name,
-    kind: CompletionItemKind.Class,
-  };
-}
+COMPLETION_TRIE.addAll([
+  ...CONSTRAINTS,
+  ...DATATYPES,
+  ...KEYWORDS,
+  ...FUNCTIONS,
+  ...SNIPPETS,
+]);
 
-function functionToCompletionItem(func: StanFunction): CompletionItem {
-  return {
-    label: func.name,
-    kind: CompletionItemKind.Function,
-  };
-}
+const searchWords = (
+  textUpToCursor: string,
+  supportsSnippets: boolean,
+): CompletionItem[] => {
+  const match = textUpToCursor.match(/(?:^|\s)([\w_]+)$/);
+  if (match) {
+    const word = match[1] || "";
+    const completionProposals = COMPLETION_TRIE.search(word);
+    if (!supportsSnippets) {
+      // Filter out snippets if client does not support them
+      return completionProposals.filter(
+        (item) => item.kind !== CompletionItemKind.Snippet,
+      );
+    }
+    return completionProposals;
+  }
+  return [];
+};
 
-function constraintToCompletionItem(constraint: Constraint): CompletionItem {
-  return {
-    label: constraint.name,
-    kind: CompletionItemKind.Property,
-  };
-}
+// Distributions use a different word matching strategy, so we maintain a separate trie
+const DISTRIBUTION_TRIE: TrieSearch<CompletionItem> = new TrieSearch("label", {
+  splitOnRegEx: /[\s_]/g,
+  min: 0,
+});
 
-function snippetToCompletionItem(snippet: Snippet): CompletionItem {
-  return {
-    label: snippet.name,
-    kind: CompletionItemKind.Snippet,
-    insertText: snippet.body.join("\n"),
-    insertTextFormat: InsertTextFormat.Snippet,
-    insertTextMode: InsertTextMode.adjustIndentation,
-    detail: snippet.description,
-  };
-}
+DISTRIBUTION_TRIE.addAll(DISTRIBUTIONS);
 
-// Get distributions data
-const DISTRIBUTION_DATA = dump_stan_math_distributions()
-  .split("\n")
-  .map((line) => line.split(":")[0]?.trim() ?? "")
-  .filter((name) => name !== "");
+const searchDistributions = (textUpToCursor: string): CompletionItem[] => {
+  const match = textUpToCursor.match(/.*~\s*([\w_]*)$/);
+  if (match) {
+    const distName = match[1] || "";
+    let completionProposals;
+    if (distName === "") {
+      completionProposals = DISTRIBUTIONS;
+    } else {
+      completionProposals = DISTRIBUTION_TRIE.search(distName);
+    }
+    return completionProposals;
+  }
+  return [];
+};
 
-// Get function signatures data
-const FUNCTION_DATA = dump_stan_math_signatures().split("\n");
+export const getTextUpToCursor = (text: string, position: Position): string => {
+  const lines = text.split("\n");
+  const currentLine = lines[position.line] || "";
+  return currentLine.substring(0, position.character);
+};
 
 export function handleCompletion(
   params: CompletionParams,
@@ -99,32 +89,10 @@ export function handleCompletion(
     return [];
   }
 
-  const text = document.getText();
-  const position = params.position;
+  const textUpToCursor = getTextUpToCursor(document.getText(), params.position);
 
-  // Get completion items from all providers
-  const keywords = provideKeywordCompletions(text, position);
-  const distributions = provideDistributionCompletions(
-    text,
-    position,
-    DISTRIBUTION_DATA,
-  );
-  const datatypes = provideDatatypeCompletions(text, position);
-  const functions = provideFunctionCompletions(text, position, FUNCTION_DATA);
-  const constraints = provideConstraintCompletions(text, position);
-  const snippets = supportsSnippets
-    ? provideSnippetCompletions(text, position)
-    : [];
-
-  // Convert all items to LSP format and combine
-  const allItems = [
-    ...keywords.map(keywordToCompletionItem),
-    ...distributions.map(distributionToCompletionItem),
-    ...datatypes.map(datatypeToCompletionItem),
-    ...functions.map(functionToCompletionItem),
-    ...constraints.map(constraintToCompletionItem),
-    ...snippets.map(snippetToCompletionItem),
+  return [
+    ...searchDistributions(textUpToCursor),
+    ...searchWords(textUpToCursor, supportsSnippets),
   ];
-
-  return allItems;
 }
