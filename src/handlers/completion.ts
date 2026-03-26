@@ -15,10 +15,10 @@ import { provideDistributionCompletions } from "../language/completion/providers
 import { provideDatatypeCompletions } from "../language/completion/providers/datatypes";
 import { provideFunctionCompletions } from "../language/completion/providers/functions";
 import { provideConstraintCompletions } from "../language/completion/providers/constraints";
+import { provideSnippetCompletions } from "../language/completion/providers/snippets";
 
 // Import existing types
 import type {
-  Position,
   Keyword,
   Distribution,
   Datatype,
@@ -30,7 +30,6 @@ import {
   dump_stan_math_distributions,
   dump_stan_math_signatures,
 } from "stanc3";
-import { provideSnippetCompletions } from "../language/completion/providers/snippets";
 
 // Convert existing types to LSP completion items
 function keywordToCompletionItem(keyword: Keyword): CompletionItem {
