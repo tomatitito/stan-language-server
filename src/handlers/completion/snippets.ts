@@ -1,6 +1,24 @@
-// Pure snippets provider - returns Snippet[] using existing types
-import type { Snippet, Position } from "../../../types/completion";
-import { getSearchableItems, getTextUpToCursor } from "../util";
+import {
+  CompletionItem,
+  CompletionItemKind,
+  InsertTextFormat,
+  InsertTextMode,
+} from "vscode-languageserver";
+
+function snippetToCompletionItem(snippet: {
+  name: string;
+  body: string[];
+  description: string;
+}): CompletionItem {
+  return {
+    label: snippet.name,
+    kind: CompletionItemKind.Snippet,
+    insertText: snippet.body.join("\n"),
+    insertTextFormat: InsertTextFormat.Snippet,
+    insertTextMode: InsertTextMode.adjustIndentation,
+    detail: snippet.description,
+  };
+}
 
 export const SNIPPETS = [
   {
@@ -46,6 +64,7 @@ export const SNIPPETS = [
   {
     name: "profile",
     body: ['profile("${1:name}") {', "   ${0:/* code to be profiled */}", "}"],
+    description: "Code snippet for 'profile' block",
   },
   {
     name: "data",
@@ -113,26 +132,4 @@ export const SNIPPETS = [
     body: ["jacobian += ${1};"],
     description: "Code snippet for 'jacobian +=' statement",
   },
-];
-
-const SEARCHABLE_SNIPPETS = getSearchableItems(SNIPPETS, {
-  splitOnRegEx: /[\s_]/g,
-  min: 0,
-});
-
-export const provideSnippetCompletions = (
-  text: string,
-  position: Position,
-): Snippet[] => {
-  const textUpToCursor = getTextUpToCursor(text, position);
-
-  // Look for word pattern at the end of current text
-  const match = textUpToCursor.match(/(?:^|\s)([\w_]+)$/);
-  if (match) {
-    const snippetName = match[1] || "";
-    const completionProposals = SEARCHABLE_SNIPPETS.search(snippetName);
-    return completionProposals;
-  }
-
-  return [];
-};
+].map(snippetToCompletionItem);
