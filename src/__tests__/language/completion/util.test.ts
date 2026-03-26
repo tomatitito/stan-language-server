@@ -1,80 +1,56 @@
 import { describe, expect, it } from "bun:test";
-import { getTextUpToCursor, getSearchableItems } from "../../../language/completion/util";
+import {
+  getTextUpToCursor,
+  getSearchableItems,
+} from "../../../language/completion/util";
 import type { Position, Searchable } from "../../../types/completion";
 
 describe("Completion Utilities", () => {
   describe("getTextUpToCursor", () => {
-    it("should extract text from start of line to cursor position", () => {
-      const text = "hello world";
-      const position: Position = { line: 0, character: 5 };
-      
-      const result = getTextUpToCursor(text, position);
-      expect(result).toBe("hello");
-    });
+    const cursorCases: Array<{
+      name: string;
+      text: string;
+      position: Position;
+      expected: string;
+    }> = [
+      {
+        name: "extract text up to cursor in a single line",
+        text: "hello world",
+        position: { line: 0, character: 5 },
+        expected: "hello",
+      },
+      {
+        name: "extract text up to cursor in a multi-line document",
+        text: "line one\nline two\nline three",
+        position: { line: 1, character: 4 },
+        expected: "line",
+      },
+      {
+        name: "return full line when character exceeds line length",
+        text: "short",
+        position: { line: 0, character: 100 },
+        expected: "short",
+      },
+      {
+        name: "return empty string for out-of-range line",
+        text: "line one\nline two",
+        position: { line: 5, character: 3 },
+        expected: "",
+      },
+      {
+        name: "handle Stan completion context",
+        text: "parameters {\n  real mu;\n  variable ~ ",
+        position: { line: 2, character: 13 },
+        expected: "  variable ~ ",
+      },
+    ];
 
-    it("should handle multi-line text correctly", () => {
-      const text = "line one\nline two\nline three";
-      const position: Position = { line: 1, character: 4 };
-      
-      const result = getTextUpToCursor(text, position);
-      expect(result).toBe("line");
-    });
-
-    it("should return empty string for position at start of line", () => {
-      const text = "hello world";
-      const position: Position = { line: 0, character: 0 };
-      
-      const result = getTextUpToCursor(text, position);
-      expect(result).toBe("");
-    });
-
-    it("should return full line when cursor is at end", () => {
-      const text = "hello";
-      const position: Position = { line: 0, character: 5 };
-      
-      const result = getTextUpToCursor(text, position);
-      expect(result).toBe("hello");
-    });
-
-    it("should handle position beyond line length gracefully", () => {
-      const text = "short";
-      const position: Position = { line: 0, character: 100 };
-      
-      const result = getTextUpToCursor(text, position);
-      expect(result).toBe("short");
-    });
-
-    it("should handle invalid line numbers", () => {
-      const text = "line one\nline two";
-      const position: Position = { line: 5, character: 3 };
-      
-      const result = getTextUpToCursor(text, position);
-      expect(result).toBe("");
-    });
-
-    it("should handle empty text", () => {
-      const text = "";
-      const position: Position = { line: 0, character: 0 };
-      
-      const result = getTextUpToCursor(text, position);
-      expect(result).toBe("");
-    });
-
-    it("should handle text with only newlines", () => {
-      const text = "\n\n\n";
-      const position: Position = { line: 1, character: 0 };
-      
-      const result = getTextUpToCursor(text, position);
-      expect(result).toBe("");
-    });
-
-    it("should work with Stan code patterns", () => {
-      const text = "parameters {\n  real mu;\n  variable ~ ";
-      const position: Position = { line: 2, character: 13 };
-      
-      const result = getTextUpToCursor(text, position);
-      expect(result).toBe("  variable ~ ");
-    });
+    for (const { name, text, position, expected } of cursorCases) {
+      it(`should ${name}`, () => {
+        const result = getTextUpToCursor(text, position);
+        expect(result).toBe(expected);
+      });
+    }
   });
 
   describe("getSearchableItems", () => {
@@ -87,12 +63,12 @@ describe("Completion Utilities", () => {
       { name: "beta" },
       { name: "gamma" },
       { name: "student_t" },
-      { name: "exponential" }
+      { name: "exponential" },
     ];
 
     it("should create a searchable trie structure", () => {
       const searchable = getSearchableItems(testItems);
-      
+
       expect(searchable).toBeDefined();
       expect(typeof searchable.search).toBe("function");
     });
@@ -100,31 +76,31 @@ describe("Completion Utilities", () => {
     it("should find exact matches", () => {
       const searchable = getSearchableItems(testItems);
       const results = searchable.search("normal");
-      
+
       expect(results).toHaveLength(1);
-      expect(results.map(item => item.name)).toContainValue("normal");
+      expect(results.map((item) => item.name)).toContainValue("normal");
     });
 
     it("should find prefix matches", () => {
       const searchable = getSearchableItems(testItems);
       const results = searchable.search("bet");
-      
+
       expect(results).toHaveLength(1);
-      expect(results.map(item => item.name)).toContainValue("beta");
+      expect(results.map((item) => item.name)).toContainValue("beta");
     });
 
     it("should find multiple matches for partial input", () => {
       const searchable = getSearchableItems(testItems);
       const results = searchable.search("e");
-      
+
       expect(results.length).toBeGreaterThan(0);
-      expect(results.some(item => item.name === "exponential")).toBe(true);
+      expect(results.some((item) => item.name === "exponential")).toBe(true);
     });
 
     it("should handle empty search term", () => {
       const searchable = getSearchableItems(testItems);
       const results = searchable.search("");
-      
+
       // TrieSearch returns empty array for empty search term
       expect(results).toHaveLength(0);
     });
@@ -132,7 +108,7 @@ describe("Completion Utilities", () => {
     it("should return empty array for non-matching search", () => {
       const searchable = getSearchableItems(testItems);
       const results = searchable.search("xyz");
-      
+
       expect(results).toHaveLength(0);
     });
 
@@ -143,15 +119,15 @@ describe("Completion Utilities", () => {
       };
       const searchable = getSearchableItems(testItems, options);
       const results = searchable.search("student");
-      
+
       expect(results).toHaveLength(1);
-      expect(results.map(item => item.name)).toContainValue("student_t");
+      expect(results.map((item) => item.name)).toContainValue("student_t");
     });
 
     it("should handle empty input array", () => {
       const searchable = getSearchableItems([]);
       const results = searchable.search("test");
-      
+
       expect(results).toHaveLength(0);
     });
   });

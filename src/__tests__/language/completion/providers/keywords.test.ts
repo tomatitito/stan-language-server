@@ -1,60 +1,48 @@
 import { describe, expect, it } from "bun:test";
 import { provideKeywordCompletions } from "../../../../language/completion/providers/keywords";
-import type { Keyword } from "../../../../types/completion";
 
 describe("Keyword Completion Provider", () => {
-  it("should provide completion items for keyword prefix", () => {
-    const text = "fo";
-    const position = { line: 0, character: 2 };
+  const matchingCases = [
+    {
+      name: "prefix match",
+      text: "fo",
+      position: { line: 0, character: 2 },
+      expectedName: "for",
+    },
+    {
+      name: "exact keyword match",
+      text: "for",
+      position: { line: 0, character: 3 },
+      expectedName: "for",
+    },
+    {
+      name: "partial match",
+      text: "tru",
+      position: { line: 0, character: 3 },
+      expectedName: "true",
+    },
+    {
+      name: "prefix with leading whitespace",
+      text: "   fo",
+      position: { line: 0, character: 5 },
+      expectedName: "for",
+    },
+  ] as const;
 
-    const result = provideKeywordCompletions(text, position);
-    
-    // Should find keywords starting with "fo" (like "for")
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.every((item): item is Keyword => typeof item.name === "string")).toBe(true);
-    expect(result.some(item => item.name === "for")).toBe(true);
+  for (const { name, text, position, expectedName } of matchingCases) {
+    it(`returns matches for ${name}`, () => {
+      const result = provideKeywordCompletions(text, position);
+      expect(result.map((item) => item.name)).toContain(expectedName);
+    });
+  }
+
+  it("returns empty array for non-matching prefix", () => {
+    const result = provideKeywordCompletions("xyz", { line: 0, character: 3 });
+    expect(result).toEqual([]);
   });
 
-  it("should provide completion items for exact keyword match", () => {
-    const text = "for";
-    const position = { line: 0, character: 3 };
-
-    const result = provideKeywordCompletions(text, position);
-    
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.some(item => item.name === "for")).toBe(true);
-  });
-
-  it("should return empty array for non-matching prefix", () => {
-    const text = "xyz";
-    const position = { line: 0, character: 3 };
-
-    const result = provideKeywordCompletions(text, position);
-    expect(result).toHaveLength(0);
-  });
-
-  it("should handle whitespace before keyword", () => {
-    const text = "   fo";
-    const position = { line: 0, character: 5 };
-
-    const result = provideKeywordCompletions(text, position);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.some(item => item.name === "for")).toBe(true);
-  });
-
-  it("should return empty array when no word pattern matches", () => {
-    const text = "~";
-    const position = { line: 0, character: 1 };
-
-    const result = provideKeywordCompletions(text, position);
-    expect(result).toHaveLength(0);
-  });
-
-  it("should find partial matches", () => {
-    const text = "tru";
-    const position = { line: 0, character: 3 };
-
-    const result = provideKeywordCompletions(text, position);
-    expect(result.some(item => item.name === "true")).toBe(true);
+  it("returns empty array when no word pattern matches", () => {
+    const result = provideKeywordCompletions("~", { line: 0, character: 1 });
+    expect(result).toEqual([]);
   });
 });

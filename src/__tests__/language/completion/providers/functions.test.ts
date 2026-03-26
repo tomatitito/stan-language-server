@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import { provideFunctionCompletions } from "../../../../language/completion/providers/functions";
-import type { StanFunction } from "../../../../types/completion";
 
 describe("Function Completion Provider", () => {
   const mockSignatures = [
@@ -11,41 +10,40 @@ describe("Function Completion Provider", () => {
     "baz()",
   ];
 
-  it("should provide completion items for function prefix", () => {
-    const text = "myvar = fo";
-    const position = { line: 0, character: 10 };
+  const matchingCases = [
+    {
+      name: "function prefix after assignment",
+      text: "myvar = fo",
+      position: { line: 0, character: 10 },
+      expectedName: "foo",
+    },
+    {
+      name: "function prefix with leading whitespace",
+      text: "   fo",
+      position: { line: 0, character: 5 },
+      expectedName: "foo",
+    },
+  ] as const;
 
-    const result = provideFunctionCompletions(text, position, mockSignatures);
-    
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.every((item): item is StanFunction => typeof item.name === "string")).toBe(true);
-    expect(result.some(item => item.name === "foo")).toBe(true);
+  for (const { name, text, position, expectedName } of matchingCases) {
+    it(`returns matches for ${name}`, () => {
+      const result = provideFunctionCompletions(text, position, mockSignatures);
+      expect(result.map((item) => item.name)).toContain(expectedName);
+    });
+  }
+
+  it("includes built-in statements", () => {
+    const result = provideFunctionCompletions(" print", { line: 0, character: 6 }, []);
+    expect(result.map((item) => item.name)).toContain("print");
   });
 
-  it("should include built-in statements", () => {
-    const text = " print";
-    const position = { line: 0, character: 6 };
-
-    const result = provideFunctionCompletions(text, position, []);
-    
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.some(item => item.name === "print")).toBe(true);
+  it("returns empty array for non-matching prefix", () => {
+    const result = provideFunctionCompletions("xyz", { line: 0, character: 3 }, mockSignatures);
+    expect(result).toEqual([]);
   });
 
-  it("should return empty array for non-matching prefix", () => {
-    const text = "xyz";
-    const position = { line: 0, character: 3 };
-
-    const result = provideFunctionCompletions(text, position, mockSignatures);
-    expect(result).toHaveLength(0);
-  });
-
-  it("should handle whitespace before function name", () => {
-    const text = "   fo";
-    const position = { line: 0, character: 5 };
-
-    const result = provideFunctionCompletions(text, position, mockSignatures);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.some(item => item.name === "foo")).toBe(true);
+  it("returns empty array when no word pattern is present", () => {
+    const result = provideFunctionCompletions("~", { line: 0, character: 1 }, mockSignatures);
+    expect(result).toEqual([]);
   });
 });
