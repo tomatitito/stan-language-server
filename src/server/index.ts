@@ -35,7 +35,7 @@ const startLanguageServer = (
   connection.onInitialize((params: InitializeParams): InitializeResult => {
     connection.console.info("Initializing Stan language server...");
 
-    let capabilities = params.capabilities;
+    const capabilities = params.capabilities;
 
     hasConfigurationCapability = Boolean(capabilities.workspace?.configuration);
     hasDynamicConfigurationRequestCapability = Boolean(
@@ -84,7 +84,7 @@ const startLanguageServer = (
   let globalSettings: Settings = defaultSettings;
 
   // Cache the settings of all open documents
-  let documentSettings: Map<string, Settings> = new Map();
+  const documentSettings: Map<string, Settings> = new Map();
 
   connection.onDidChangeConfiguration((change) => {
     if (hasDynamicConfigurationRequestCapability) {
@@ -103,13 +103,13 @@ const startLanguageServer = (
       return Promise.resolve(globalSettings);
     }
     // check cache
-    let result = documentSettings.get(resource);
+    const result = documentSettings.get(resource);
     if (result !== undefined) {
       return result;
     }
 
     // request from client
-    let clientSettings =
+    const clientSettings =
       (await connection.workspace.getConfiguration({
         scopeUri: resource,
         section: SERVER_ID,
