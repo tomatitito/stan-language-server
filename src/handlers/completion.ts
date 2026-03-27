@@ -4,9 +4,8 @@ import {
   CompletionItem,
   CompletionItemKind,
 } from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
+import { TextDocument, type Position } from "vscode-languageserver-textdocument";
 
-import type { Position } from "../types";
 
 import TrieSearch from "trie-search";
 
