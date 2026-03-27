@@ -22,7 +22,6 @@ import {
   RegistrationRequest,
   WorkspaceFoldersRequest,
 } from "vscode-languageserver-protocol";
-import type { TextDocument } from "vscode-languageserver-textdocument";
 
 export interface LSPMessage {
   jsonrpc: "2.0";

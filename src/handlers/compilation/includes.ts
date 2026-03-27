@@ -175,7 +175,9 @@ const readIncludedFileFromFileSystem = async (
         0,
         content
       );
-    } catch (error) {}
+    } catch (_error) {
+      // ignored
+    }
   }
   return Promise.resolve({ msg: `File not found: ${filename}` });
 };

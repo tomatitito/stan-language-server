@@ -47,7 +47,7 @@
   },
   "scripts": {
     "build": "bun build src/server/index.ts --outdir dist/server --packages external --target browser --format esm && tsc --emitDeclarationOnly --outDir dist",
-    "build:binary": "bun build src/server/cli.ts --drop=console --compile --outfile bin/stan-language-server",
+    "build:binary": "bun build src/server/cli.ts --compile --outfile bin/stan-language-server",
     "build:bin-package": "bun run scripts/build-bin-package.ts",
     "prepublishOnly": "bun run build",
     "version:set": "bun run scripts/set-version.ts",
@@ -72,6 +72,9 @@
     "@typescript-eslint/eslint-plugin": "8.57.1",
     "@typescript-eslint/parser": "8.57.1",
     "eslint": "10.0.3",
+    "globals": "^17.3.0",
+    "@eslint/js": "^10.0.1",
+    "typescript-eslint": "^8.57.0",
     "typescript": "5.9.3"
   },
   "dependencies": {
