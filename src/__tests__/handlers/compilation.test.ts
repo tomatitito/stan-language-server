@@ -33,7 +33,7 @@ describe("Compilation Handler", () => {
 
   it("should compile Stan model successfully", async () => {
     const document = createDocument("file:///test.stan", "parameters { real x; } model { x ~ normal(0, 1); }");
-    const result = await handleCompilation(document, mockManager, mockFolders, defaultSettings, mockLogger);
+    const result = await handleCompilation(document, mockManager, mockFolders, defaultSettings, "formatting", mockLogger);
 
     expect(result.errors).toBeUndefined();
     expect(typeof result.result).toBe("string");
@@ -41,7 +41,7 @@ describe("Compilation Handler", () => {
 
   it("should add functions-only flag for stanfunctions", async () => {
     const document = createDocument("file:///functions.stanfunctions", "real f(real x) { return x * 2; }", "stan");
-    const result = await handleCompilation(document, mockManager, mockFolders, defaultSettings, mockLogger);
+    const result = await handleCompilation(document, mockManager, mockFolders, defaultSettings, "formatting", mockLogger);
 
     expect(result.errors).toBeUndefined();
     expect(typeof result.result).toBe("string");
@@ -49,7 +49,7 @@ describe("Compilation Handler", () => {
 
   it("should handle compilation errors", async () => {
     const document = createDocument("file:///error.stan", "invalid stan code");
-    const result = await handleCompilation(document, mockManager, mockFolders, defaultSettings, mockLogger);
+    const result = await handleCompilation(document, mockManager, mockFolders, defaultSettings, "formatting", mockLogger);
 
     expect(Array.isArray(result.errors)).toBe(true);
     expect(result.result).toBeUndefined();
