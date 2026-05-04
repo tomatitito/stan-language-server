@@ -227,7 +227,7 @@ model { foo ~ std_normal(); }`;
   });
 
   it("should pick up a configuration change", async () => {
-    const content = "model { foo ~ std_normal(); }";
+    const content = "parameters {real foo; } model { foo ~ std_normal(); foo ~ std_normal(); }";
     const uri = "file:///test/config-change.stan";
     await client.didOpen(uri, "stan", content);
 
@@ -236,12 +236,12 @@ model { foo ~ std_normal(); }`;
     expect(result).toBeDefined();
     expect(result.kind).toBe("full");
     if (result.kind === "full") {
-      expect(result.items.length).toBeGreaterThan(0);
+      expect(result.items.length).toBe(0);
     }
 
     const initialRefreshCount = client.numRefreshRequest;
 
-    await client.didChangeConfiguration({ "stan-language-server": { maxLineLength: 100 } });
+    await client.didChangeConfiguration({ "stan-language-server": { warnPedantic: true } });
 
     // Wait a bit for the server to process the configuration change
     await new Promise(resolve => setTimeout(resolve, 100));

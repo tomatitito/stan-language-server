@@ -22,7 +22,7 @@ export async function handleDiagnostics(
   reader?: FileSystemReader
 ): Promise<Diagnostic[]> {
   const document = documents.get(params.textDocument.uri);
-  if (!document) {
+  if (!document || !document.languageId.startsWith("stan")) {
     return [];
   }
 
@@ -31,8 +31,9 @@ export async function handleDiagnostics(
     documents,
     workspaceFolders,
     settings,
+    "linting",
     logger,
-    reader
+    reader,
   );
 
   const diagnostics: Diagnostic[] = provideDiagnostics(compilerResult).map((diagnostic) => {

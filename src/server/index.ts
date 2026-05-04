@@ -176,7 +176,7 @@ const startLanguageServer = (
 
   connection.onHover((params) => {
     const document = documents.get(params.textDocument.uri);
-    if (!document) {
+    if (!document || !document.languageId.startsWith("stan")) {
       return null;
     }
     return handleHover(document, params);

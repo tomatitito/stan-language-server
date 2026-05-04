@@ -84,7 +84,7 @@ export function handleCompletion(
   supportsSnippets: boolean,
 ): CompletionItem[] {
   const document = documents.get(params.textDocument.uri);
-  if (!document) {
+  if (!document || !document.languageId.startsWith("stan")) {
     return [];
   }
 

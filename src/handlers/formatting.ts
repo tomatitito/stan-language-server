@@ -15,10 +15,10 @@ export async function handleFormatting(
   workspaceFolders: WorkspaceFolder[],
   settings: Settings,
   logger: RemoteConsole,
-  reader?: FileSystemReader
+  reader?: FileSystemReader,
 ): Promise<TextEdit[] | { errors: string[] }> {
   const document = documents.get(params.textDocument.uri);
-  if (!document) {
+  if (!document || !document.languageId.startsWith("stan")) {
     return [];
   }
   const result = await handleCompilation(
@@ -26,8 +26,9 @@ export async function handleFormatting(
     documents,
     workspaceFolders,
     settings,
+    "formatting",
     logger,
-    reader
+    reader,
   );
 
   if (result.errors && result.errors.length > 0) {
