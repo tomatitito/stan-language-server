@@ -9,7 +9,10 @@
     "allowJs": true,
     "esModuleInterop": true,
     "rootDir": "src",
-    "outDir": "build",
+    "outDir": "dist",
+    "emitDeclarationOnly": true,
+    "types": ["bun"],
+
     // Bundler mode
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

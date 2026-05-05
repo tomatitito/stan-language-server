@@ -9,7 +9,7 @@ import * as diagnosticsModule from "../../language/diagnostics/provider";
 // const { handleDiagnostics } = diagnosticsModule;
 
 describe("Diagnostic Handler", () => {
-  const defaultSettings = { maxLineLength: 78, includePaths: [] };
+  const defaultSettings = { maxLineLength: 78, includePaths: [], warnPedantic: false };
   const documentUri = "file:///test.stan";
   const document = TextDocument.create(documentUri, "stan", 1, "stan code here")
   const params = {
