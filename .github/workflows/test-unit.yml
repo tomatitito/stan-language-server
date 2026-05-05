@@ -22,5 +22,8 @@ jobs:
     - name: Lint
       run: bun lint
 
+    - name: Typecheck
+      run: bun typecheck
+
     - name: Run tests
       run: bun run test:unit
