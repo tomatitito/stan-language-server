@@ -252,6 +252,7 @@ model { foo ~ std_normal(); }`;
     expect(result.kind).toBeDefined();
     if (result.kind === "full") {
       expect(result.items.length).toBeGreaterThan(0);
+      expect(result.items[0]!.message).toBe("The parameter foo has 2 priors.");
     }
   });
 });
