@@ -39,7 +39,7 @@ function getRangeFromMessage(message: string): Range | undefined {
 
 function getWarningMessage(message: string) {
   const msg = String(message);
-  let warning = msg.replace(/Warning.*column \d+: /s, "");
+  let warning = msg.replace(/Warning.*column \d+:/s, "");
   warning = warning.replace(/\s+/gs, " ");
   warning = warning.trim();
   warning = msg.includes("included from")
