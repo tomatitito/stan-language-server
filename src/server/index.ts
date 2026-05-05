@@ -6,6 +6,7 @@ import {
   MessageType,
   TextDocumentSyncKind,
   TextDocuments,
+  CompletionItemKind,
   type Connection,
   type InitializeParams,
   type InitializeResult,
@@ -43,7 +44,12 @@ const startLanguageServer = (
       capabilities.workspace?.didChangeConfiguration?.dynamicRegistration
     );
     hasWorkspaceFolderCapability = Boolean(capabilities.workspace?.workspaceFolders);
-    hasSnippetSupport = Boolean(capabilities.textDocument?.completion?.completionItem?.snippetSupport);
+    hasSnippetSupport = Boolean(
+      capabilities.textDocument?.completion?.completionItem?.snippetSupport ||
+      capabilities.textDocument?.completion?.completionItemKind?.valueSet?.some(
+        (kind) => kind === CompletionItemKind.Snippet,
+      ),
+    );
 
     return {
       capabilities: {
