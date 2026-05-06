@@ -100,7 +100,7 @@ describe("Diagnostic Handler", () => {
       ],
       expectedSeverities: [DiagnosticSeverity.Warning, DiagnosticSeverity.Warning],
     },
-  ] as const;
+  ];
 
   for (const { name, providedDiagnostics, expectedSeverities } of diagnosticsCases) {
     it(`should map ${name}`, async () => {
@@ -119,9 +119,12 @@ describe("Diagnostic Handler", () => {
 
       result.forEach((diagnostic, idx) => {
         const providedDiagnostic = providedDiagnostics[idx];
-        expect(diagnostic?.message).toEqual(providedDiagnostic?.message);
-        expect(diagnostic?.range).toEqual(providedDiagnostic?.range);
-        expect(diagnostic?.source).toEqual(SERVER_ID);
+        expect(providedDiagnostic).toBeDefined();
+        if (!providedDiagnostic) return;
+
+        expect(diagnostic.message).toEqual(providedDiagnostic.message);
+        expect(diagnostic.range).toEqual(providedDiagnostic.range);
+        expect(diagnostic.source).toEqual(SERVER_ID);
       });
     });
   }
