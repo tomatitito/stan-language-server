@@ -13,6 +13,9 @@ export const DATATYPES = [
   "int",
   "real",
   "complex",
+  // Containers
+  "array",
+  "tuple",
   // Vector and matrix types
   "vector",
   "row_vector",

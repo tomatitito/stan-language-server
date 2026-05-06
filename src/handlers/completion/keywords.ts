@@ -12,18 +12,12 @@ export const KEYWORDS = [
   "for",
   "in",
   "while",
-  "repeat",
-  "until",
   "if",
   "then",
   "else",
   "break",
   "continue",
   "return",
-  // Boolean literals and target
-  "true",
-  "false",
-  "target",
   // Block identifiers
   "functions",
   "data",
@@ -37,22 +31,12 @@ export const KEYWORDS = [
   "reject",
   "fatal_error",
   "profile",
-  "get_lp",
-  // Future reserved keywords
-  "struct",
-  "typedef",
-  "export",
-  "auto",
-  "extern",
-  "var",
-  "static",
-  "array",
+  // constraints
   "lower",
   "upper",
   "offset",
   "multiplier",
-  "tuple",
   // Special identifiers
-  "truncate",
+  "target",
   "jacobian",
 ].map(keywordToCompletionItem);
