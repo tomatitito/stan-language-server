@@ -6,7 +6,6 @@ import {
 } from "vscode-languageserver";
 import { TextDocument, type Position } from "vscode-languageserver-textdocument";
 
-
 import TrieSearch from "trie-search";
 
 import { CONSTRAINTS } from "./completion/constraints";
@@ -15,6 +14,13 @@ import { KEYWORDS } from "./completion/keywords";
 import { SNIPPETS } from "./completion/snippets";
 import { DISTRIBUTIONS } from "./completion/distributions";
 import { FUNCTIONS } from "./completion/functions";
+
+const addTextEdit = (item: CompletionItem, position: Position, prefix_length: number) => {
+  let start = { line: position.line, character: position.character - prefix_length };
+  let end = position;
+  let textEdit = { range: { start, end }, newText: item.insertText || item.label };
+  return { ...item, textEdit };
+};
 
 // Build one trie for general word-boundary completions.
 const COMPLETION_TRIE: TrieSearch<CompletionItem> = new TrieSearch("label", {
@@ -31,6 +37,7 @@ COMPLETION_TRIE.addAll([
 ]);
 
 const searchWords = (
+  position: Position,
   textUpToCursor: string,
   supportsSnippets: boolean,
 ): CompletionItem[] => {
@@ -40,11 +47,9 @@ const searchWords = (
     const completionProposals = COMPLETION_TRIE.search(word);
     if (!supportsSnippets) {
       // Filter out snippets if client does not support them
-      return completionProposals.filter(
-        (item) => item.kind !== CompletionItemKind.Snippet,
-      );
+      return completionProposals.filter((item) => item.kind !== CompletionItemKind.Snippet);
     }
-    return completionProposals;
+    return completionProposals.map((item) => addTextEdit(item, position, word.length));
   }
   return [];
 };
@@ -57,7 +62,7 @@ const DISTRIBUTION_TRIE: TrieSearch<CompletionItem> = new TrieSearch("label", {
 
 DISTRIBUTION_TRIE.addAll(DISTRIBUTIONS);
 
-const searchDistributions = (textUpToCursor: string): CompletionItem[] => {
+const searchDistributions = (position: Position, textUpToCursor: string): CompletionItem[] => {
   const match = textUpToCursor.match(/.*~\s*([\w_]*)$/);
   if (match) {
     const distName = match[1] || "";
@@ -67,7 +72,7 @@ const searchDistributions = (textUpToCursor: string): CompletionItem[] => {
     } else {
       completionProposals = DISTRIBUTION_TRIE.search(distName);
     }
-    return completionProposals;
+    return completionProposals.map((item) => addTextEdit(item, position, distName.length));
   }
   return [];
 };
@@ -79,19 +84,19 @@ export const getTextUpToCursor = (text: string, position: Position): string => {
 };
 
 export function handleCompletion(
-  params: CompletionParams,
+  { position, textDocument }: CompletionParams,
   documents: TextDocuments<TextDocument>,
   supportsSnippets: boolean,
 ): CompletionItem[] {
-  const document = documents.get(params.textDocument.uri);
+  const document = documents.get(textDocument.uri);
   if (!document || !document.languageId.startsWith("stan")) {
     return [];
   }
 
-  const textUpToCursor = getTextUpToCursor(document.getText(), params.position);
+  const textUpToCursor = getTextUpToCursor(document.getText(), position);
 
   return [
-    ...searchDistributions(textUpToCursor),
-    ...searchWords(textUpToCursor, supportsSnippets),
+    ...searchDistributions(position, textUpToCursor),
+    ...searchWords(position, textUpToCursor, supportsSnippets),
   ];
 }
