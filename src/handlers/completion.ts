@@ -16,9 +16,9 @@ import { DISTRIBUTIONS } from "./completion/distributions";
 import { FUNCTIONS } from "./completion/functions";
 
 const addTextEdit = (item: CompletionItem, position: Position, prefix_length: number) => {
-  let start = { line: position.line, character: position.character - prefix_length };
-  let end = position;
-  let textEdit = { range: { start, end }, newText: item.insertText || item.label };
+  const start = { line: position.line, character: position.character - prefix_length };
+  const end = position;
+  const textEdit = { range: { start, end }, newText: item.insertText || item.label };
   return { ...item, textEdit };
 };
 
