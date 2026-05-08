@@ -46,8 +46,9 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "bun build src/server/index.ts --outdir dist/server --packages external --target browser --format esm && tsc --emitDeclarationOnly --outDir dist",
-    "build:binary": "bun build src/server/cli.ts --compile --outfile bin/stan-language-server",
+    "generate:wasm": "bun run scripts/generate-wasm-data.ts",
+    "build": "bun run generate:wasm && bun build src/server/index.ts --outdir dist/server --packages external --target browser --format esm && tsc --emitDeclarationOnly --outDir dist",
+    "build:binary": "bun run generate:wasm && bun build src/server/cli.ts --compile --outfile bin/stan-language-server",
     "build:bin-package": "bun run scripts/build-bin-package.ts",
     "prepublishOnly": "bun run build",
     "version:set": "bun run scripts/set-version.ts",
@@ -67,15 +68,17 @@
     "dev": "bun run src/server/cli.ts"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/bun": "latest",
     "@types/node": "25.6.0",
     "@typescript-eslint/eslint-plugin": "8.59.1",
     "@typescript-eslint/parser": "8.59.1",
+    "@wardbrian/tree-sitter-stan": "0.3.1",
     "eslint": "10.3.0",
     "globals": "^17.3.0",
-    "@eslint/js": "^10.0.1",
+    "typescript": "6.0.3",
     "typescript-eslint": "^8.57.0",
-    "typescript": "6.0.3"
+    "web-tree-sitter": "0.26.8"
   },
   "dependencies": {
     "stanc3": "2.38.0",

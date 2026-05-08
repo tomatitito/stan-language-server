@@ -5,6 +5,7 @@ node_modules
 out
 dist
 *.tgz
+src/language/treesitter/wasm-data.generated.ts
 
 # code coverage
 coverage
