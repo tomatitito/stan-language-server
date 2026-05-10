@@ -59,7 +59,7 @@
     "publish:rc": "bun run build && npm publish --access public --tag rc",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun run generate:wasm && tsc --noEmit",
     "check": "bun run lint && bun run typecheck",
     "test": "bun test",
     "test:unit": "bun test src/__tests__/handlers src/__tests__/language",
