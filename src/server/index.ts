@@ -16,6 +16,7 @@ import {
   handleDiagnostics,
   handleFormatting,
   handleHover,
+  handleRename,
 } from "../handlers/index.ts";
 import { type FileSystemReader } from "../types/common.ts";
 import {
@@ -189,9 +190,12 @@ const startLanguageServer = (
     return handleHover(document, params);
   });
 
-  connection.onRenameRequest(() => {
-    connection.console.info("hello rename");
-    return { documentChanges: [] };
+  connection.onRenameRequest((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document || !document.languageId.startsWith("stan")) {
+      return { documentChanges: [] };
+    }
+    return handleRename(document, params);
   });
 
   documents.listen(connection);
