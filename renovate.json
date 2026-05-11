@@ -3,7 +3,15 @@
   "extends": [
     "config:recommended"
   ],
+  "internalChecksFilter": "strict",
   "packageRules": [
+    {
+      "matchDatasources": [
+        "npm"
+      ],
+      "minimumReleaseAge": "7 days",
+      "description": "Wait until npm package releases are at least 7 days old"
+    },
     {
       "matchUpdateTypes": [
         "minor",
