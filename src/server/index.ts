@@ -66,6 +66,7 @@ const startLanguageServer = (
           },
         },
         hoverProvider: true,
+        renameProvider: true,
         diagnosticProvider: {
           interFileDependencies: true,
           workspaceDiagnostics: false,
@@ -186,6 +187,11 @@ const startLanguageServer = (
       return null;
     }
     return handleHover(document, params);
+  });
+
+  connection.onRenameRequest(() => {
+    connection.console.info("hello rename");
+    return { documentChanges: [] };
   });
 
   documents.listen(connection);
