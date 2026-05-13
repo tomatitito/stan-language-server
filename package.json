@@ -1,6 +1,7 @@
 {
   "name": "stan-language-server",
   "version": "0.4.2",
+  "packageManager": "bun@1.3.13",
   "description": "Language Server Protocol implementation for the Stan probabilistic programming language",
   "main": "dist/server/index.js",
   "module": "src/server/index.ts",
@@ -46,8 +47,9 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "bun build src/server/index.ts --outdir dist/server --packages external --target browser --format esm && tsc --emitDeclarationOnly --outDir dist",
-    "build:binary": "bun build src/server/cli.ts --compile --outfile bin/stan-language-server",
+    "generate:wasm": "bun run scripts/generate-wasm-data.ts",
+    "build": "bun run generate:wasm && bun build src/server/index.ts --outdir dist/server --packages external --target browser --format esm && tsc --emitDeclarationOnly --outDir dist",
+    "build:binary": "bun run generate:wasm && bun build src/server/cli.ts --compile --outfile bin/stan-language-server",
     "build:bin-package": "bun run scripts/build-bin-package.ts",
     "prepublishOnly": "bun run build",
     "version:set": "bun run scripts/set-version.ts",
@@ -58,7 +60,8 @@
     "publish:rc": "bun run build && npm publish --access public --tag rc",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "typecheck": "tsc --noEmit",
+    "deps:check": "bun run scripts/check-dependency-policy.ts",
+    "typecheck": "bun run generate:wasm && tsc --noEmit",
     "check": "bun run lint && bun run typecheck",
     "test": "bun test",
     "test:unit": "bun test src/__tests__/handlers src/__tests__/language",
@@ -67,15 +70,17 @@
     "dev": "bun run src/server/cli.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@eslint/js": "10.0.1",
+    "@types/bun": "1.3.13",
     "@types/node": "25.6.0",
-    "@typescript-eslint/eslint-plugin": "8.59.1",
-    "@typescript-eslint/parser": "8.59.1",
+    "@typescript-eslint/eslint-plugin": "8.59.2",
+    "@typescript-eslint/parser": "8.59.2",
+    "@wardbrian/tree-sitter-stan": "0.3.1",
     "eslint": "10.3.0",
-    "globals": "^17.3.0",
-    "@eslint/js": "^10.0.1",
-    "typescript-eslint": "^8.57.0",
-    "typescript": "6.0.3"
+    "globals": "17.6.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.59.2",
+    "web-tree-sitter": "0.26.8"
   },
   "dependencies": {
     "stanc3": "2.38.0",
@@ -83,5 +88,8 @@
     "vscode-languageserver": "9.0.1",
     "vscode-languageserver-textdocument": "1.0.12",
     "vscode-uri": "3.1.0"
+  },
+  "overrides": {
+    "@types/node": "25.6.0"
   }
 }
