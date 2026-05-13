@@ -35,4 +35,5 @@ export const DATATYPES = [
   "cov_matrix",
   "row_stochastic_matrix",
   "column_stochastic_matrix",
+  "sum_to_zero_matrix",
 ].map(datatypeToCompletionItem);
