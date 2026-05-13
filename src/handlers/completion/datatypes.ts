@@ -33,6 +33,7 @@ export const DATATYPES = [
   "cholesky_factor_cov",
   "corr_matrix",
   "cov_matrix",
-  "stochastic_column_matrix",
-  "stochastic_row_matrix",
+  "row_stochastic_matrix",
+  "column_stochastic_matrix",
+  "sum_to_zero_matrix",
 ].map(datatypeToCompletionItem);
