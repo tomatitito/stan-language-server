@@ -6,6 +6,7 @@ import type {
 } from "vscode-languageserver-protocol";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import { prepareRename } from "../language/rename/prepare";
+import { provideRename } from "../language/rename/provider";
 
 export async function handlePrepareRename(
   document: TextDocument,
@@ -20,5 +21,24 @@ export async function handleRename(
   params: RenameParams,
 ): Promise<WorkspaceEdit> {
   console.error("hello rename", document.uri, params.newName);
-  return { documentChanges: [] };
+
+  const occurrences = provideRename(document.getText(), params.position);
+  if (occurrences.length === 0) {
+    return { documentChanges: [] };
+  }
+
+  return {
+    documentChanges: [
+      {
+        textDocument: {
+          uri: document.uri,
+          version: document.version,
+        },
+        edits: occurrences.map((occurrence) => ({
+          range: occurrence.range,
+          newText: params.newName,
+        })),
+      },
+    ],
+  };
 }

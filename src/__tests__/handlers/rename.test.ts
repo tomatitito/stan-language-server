@@ -7,6 +7,7 @@ import type {
   WorkspaceEdit,
 } from "vscode-languageserver-protocol";
 import * as prepareModule from "../../language/rename/prepare";
+import * as providerModule from "../../language/rename/provider";
 import { handlePrepareRename, handleRename } from "../../handlers/index";
 
 describe("Rename Handler", () => {
@@ -24,16 +25,16 @@ describe("Rename Handler", () => {
 
   const renameParams: RenameParams = {
     textDocument: { uri: document.uri },
-    position: { line: 0, character: 18 },
+    position: { line: 0, character: 19 },
     newName: "beta",
   };
 
   let prepareSpy: ReturnType<typeof spyOn>;
-  let logSpy: ReturnType<typeof spyOn>;
+  let occurrencesSpy: ReturnType<typeof spyOn>;
 
   afterEach(() => {
     prepareSpy?.mockRestore();
-    logSpy?.mockRestore();
+    occurrencesSpy?.mockRestore();
   });
 
   it("delegates prepare rename to the language layer and returns the target range", async () => {
@@ -55,13 +56,38 @@ describe("Rename Handler", () => {
     expect(prepareSpy).toHaveBeenCalledWith(document.getText(), prepareParams.position);
   });
 
-  it("returns an empty WorkspaceEdit and logs mock rename activity", async () => {
-    logSpy = spyOn(console, "error").mockImplementation(() => {});
+  it("delegates rename occurrence lookup to the language layer and converts it to a WorkspaceEdit", async () => {
+    occurrencesSpy = spyOn(providerModule, "provideRename").mockReturnValue([
+      {
+        range: {
+          start: { line: 0, character: 18 },
+          end: { line: 0, character: 23 },
+        },
+      },
+    ]);
 
     const result = await handleRename(document, renameParams);
 
-    const expected: WorkspaceEdit = { documentChanges: [] };
+    const expected: WorkspaceEdit = {
+      documentChanges: [
+        {
+          textDocument: {
+            uri: document.uri,
+            version: document.version,
+          },
+          edits: [
+            {
+              range: {
+                start: { line: 0, character: 18 },
+                end: { line: 0, character: 23 },
+              },
+              newText: "beta",
+            },
+          ],
+        },
+      ],
+    };
     expect(result).toEqual(expected);
-    expect(logSpy).toHaveBeenCalledWith("hello rename", document.uri, renameParams.newName);
+    expect(occurrencesSpy).toHaveBeenCalledWith(document.getText(), renameParams.position);
   });
 });
