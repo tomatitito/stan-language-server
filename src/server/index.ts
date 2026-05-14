@@ -16,6 +16,8 @@ import {
   handleDiagnostics,
   handleFormatting,
   handleHover,
+  handlePrepareRename,
+  handleRename,
 } from "../handlers/index.ts";
 import { type FileSystemReader } from "../types/common.ts";
 import {
@@ -66,6 +68,9 @@ const startLanguageServer = (
           },
         },
         hoverProvider: true,
+        renameProvider: {
+          prepareProvider: true,
+        },
         diagnosticProvider: {
           interFileDependencies: true,
           workspaceDiagnostics: false,
@@ -186,6 +191,22 @@ const startLanguageServer = (
       return null;
     }
     return handleHover(document, params);
+  });
+
+  connection.onPrepareRename((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document || !document.languageId.startsWith("stan")) {
+      return null;
+    }
+    return handlePrepareRename(document, params);
+  });
+
+  connection.onRenameRequest((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document || !document.languageId.startsWith("stan")) {
+      return { documentChanges: [] };
+    }
+    return handleRename(document, params);
   });
 
   documents.listen(connection);

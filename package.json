@@ -48,7 +48,7 @@
   },
   "scripts": {
     "generate:wasm": "bun run scripts/generate-wasm-data.ts",
-    "build": "bun run generate:wasm && bun build src/server/index.ts --outdir dist/server --packages external --target browser --format esm && tsc --emitDeclarationOnly --outDir dist",
+    "build": "bun run generate:wasm && bun build src/server/index.ts --outdir dist/server --packages external --target browser --format esm && tsc --project tsconfig.src.json --emitDeclarationOnly --outDir dist",
     "build:binary": "bun run generate:wasm && bun build src/server/cli.ts --compile --outfile bin/stan-language-server",
     "build:bin-package": "bun run scripts/build-bin-package.ts",
     "prepublishOnly": "bun run build",
@@ -60,8 +60,7 @@
     "publish:rc": "bun run build && npm publish --access public --tag rc",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "deps:check": "bun run scripts/check-dependency-policy.ts",
-    "typecheck": "bun run generate:wasm && tsc --noEmit",
+    "typecheck": "bun run generate:wasm && tsc --project tsconfig.src.json --noEmit && tsc --project tsconfig.tools.json",
     "check": "bun run lint && bun run typecheck",
     "test": "bun test",
     "test:unit": "bun test src/__tests__/handlers src/__tests__/language",

@@ -14,7 +14,9 @@ import type {
   InitializeParams,
   InitializeResult,
   LSPAny,
+  RenameParams,
   TextEdit,
+  WorkspaceEdit,
 } from "vscode-languageserver-protocol";
 import {
   ConfigurationRequest,
@@ -51,6 +53,8 @@ export class LSPTestClient {
 
   serverMessages: LSPMessage[] = [];
   numRefreshRequest: number = 0;
+  stdoutChunks: string[] = [];
+  stderrChunks: string[] = [];
 
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -66,6 +70,7 @@ export class LSPTestClient {
 
       this.server.stdout.on("data", (data: Buffer) => {
         const dataStr = data.toString();
+        this.stdoutChunks.push(dataStr);
         try {
           this.handleServerMessage(dataStr);
         } catch (error) {
@@ -77,7 +82,9 @@ export class LSPTestClient {
       });
 
       this.server.stderr.on("data", (data: Buffer) => {
-        console.error("Server stderr:", data.toString());
+        const dataStr = data.toString();
+        this.stderrChunks.push(dataStr);
+        console.error("Server stderr:", dataStr);
       });
 
       this.server.on("error", (error) => {
@@ -102,6 +109,8 @@ export class LSPTestClient {
     this.serverMessages = [];
     this.numRefreshRequest = 0;
     this.currentSettings = {};
+    this.stdoutChunks = [];
+    this.stderrChunks = [];
   }
 
   private handleServerMessage(data: string): void {
@@ -391,5 +400,14 @@ export class LSPTestClient {
       textDocument: { uri },
     };
     return this.sendRequest<DocumentDiagnosticReport>("textDocument/diagnostic", params);
+  }
+
+  async rename(uri: string, line: number, character: number, newName: string): Promise<WorkspaceEdit | null> {
+    const params: RenameParams = {
+      textDocument: { uri },
+      position: { line, character },
+      newName,
+    };
+    return this.sendRequest<WorkspaceEdit | null>("textDocument/rename", params);
   }
 }
