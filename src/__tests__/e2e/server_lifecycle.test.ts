@@ -28,7 +28,7 @@ describe("Server Lifecycle", () => {
       expect(result.capabilities.completionProvider?.resolveProvider).toBeFalse();
       expect(result.capabilities.documentFormattingProvider).toBeTrue();
       expect(result.capabilities.hoverProvider).toBeTrue();
-      expect(result.capabilities.renameProvider).toBeTrue();
+      expect(result.capabilities.renameProvider).toEqual({ prepareProvider: true });
       expect(result.capabilities.diagnosticProvider?.interFileDependencies).toBeTrue();
       expect(result.capabilities.diagnosticProvider?.workspaceDiagnostics).toBeFalse();
       expect(result.capabilities.workspace?.workspaceFolders?.supported).toEqual(true);
