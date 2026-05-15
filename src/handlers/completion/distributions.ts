@@ -1,6 +1,5 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
-
-import { dump_stan_math_distributions } from "stanc3";
+import { STAN_DISTRIBUTIONS } from "../../language/stan-symbols";
 
 function distributionToCompletionItem(distribution: string): CompletionItem {
   return {
@@ -9,12 +8,4 @@ function distributionToCompletionItem(distribution: string): CompletionItem {
   };
 }
 
-const getDistributions = (): CompletionItem[] => {
-  const distributions = dump_stan_math_distributions()
-    .split("\n")
-    .map((line) => line.split(":")[0]?.trim() ?? "")
-    .filter((name) => name !== "");
-  return distributions.map(distributionToCompletionItem);
-};
-
-export const DISTRIBUTIONS = getDistributions();
+export const DISTRIBUTIONS = STAN_DISTRIBUTIONS.map(distributionToCompletionItem);

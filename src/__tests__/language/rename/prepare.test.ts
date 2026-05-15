@@ -30,4 +30,12 @@ describe("prepareRename", () => {
 
     expect(result).toBeNull();
   });
+
+  it("returns null for reserved or built-in Stan names", () => {
+    logSpy = spyOn(console, "error").mockImplementation(() => {});
+
+    const result = prepareRename("model { real alpha; }", { line: 0, character: 8 });
+
+    expect(result).toBeNull();
+  });
 });

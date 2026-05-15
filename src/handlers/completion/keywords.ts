@@ -1,4 +1,5 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+import { STAN_KEYWORDS } from "../../language/stan-symbols";
 
 function keywordToCompletionItem(keyword: string): CompletionItem {
   return {
@@ -7,36 +8,4 @@ function keywordToCompletionItem(keyword: string): CompletionItem {
   };
 }
 
-export const KEYWORDS = [
-  // Control flow
-  "for",
-  "in",
-  "while",
-  "if",
-  "then",
-  "else",
-  "break",
-  "continue",
-  "return",
-  // Block identifiers
-  "functions",
-  "data",
-  "transformed",
-  "parameters",
-  "model",
-  "generated",
-  "quantities",
-  // Built-in functions
-  "print",
-  "reject",
-  "fatal_error",
-  "profile",
-  // constraints
-  "lower",
-  "upper",
-  "offset",
-  "multiplier",
-  // Special identifiers
-  "target",
-  "jacobian",
-].map(keywordToCompletionItem);
+export const KEYWORDS = STAN_KEYWORDS.map(keywordToCompletionItem);

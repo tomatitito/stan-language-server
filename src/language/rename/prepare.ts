@@ -1,3 +1,4 @@
+import { isReservedOrBuiltInStanName } from "../stan-symbols";
 import type { RenameTarget, SourcePosition } from "./types";
 
 const IDENTIFIER_PATTERN = /[A-Za-z_][A-Za-z0-9_]*/g;
@@ -29,6 +30,10 @@ export function prepareRename(
     const end = start + name.length;
     if (position.character < start || position.character > end) {
       continue;
+    }
+
+    if (isReservedOrBuiltInStanName(name)) {
+      return null;
     }
 
     return {
