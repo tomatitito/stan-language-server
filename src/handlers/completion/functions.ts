@@ -1,7 +1,5 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
-
-import { dump_stan_math_signatures } from "stanc3";
-import { manual_functions } from "../hover";
+import { STAN_FUNCTIONS } from "../../language/stan-symbols";
 
 function functionToCompletionItem(func: string): CompletionItem {
   return {
@@ -10,13 +8,4 @@ function functionToCompletionItem(func: string): CompletionItem {
   };
 }
 
-const getFunctions = (): CompletionItem[] => {
-  const functions = dump_stan_math_signatures().split("\n");
-  const functionNames = functions
-    .map((line) => line.split("(", 1)[0]?.trim() ?? "")
-    .filter((name) => name !== "");
-  const uniqueFunctions = [...new Set([...functionNames, ...manual_functions])];
-  return uniqueFunctions.map(functionToCompletionItem);
-};
-
-export const FUNCTIONS = getFunctions();
+export const FUNCTIONS = STAN_FUNCTIONS.map(functionToCompletionItem);
