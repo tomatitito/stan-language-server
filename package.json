@@ -48,7 +48,7 @@
   },
   "scripts": {
     "generate:wasm": "bun run scripts/generate-wasm-data.ts",
-    "build": "bun run generate:wasm && bun build src/server/index.ts --outdir dist/server --packages external --target browser --format esm && tsc --emitDeclarationOnly --outDir dist",
+    "build": "bun run generate:wasm && bun build src/server/index.ts --outdir dist/server --packages external --target browser --format esm && tsc -p ./tsconfig.src.json",
     "build:binary": "bun run generate:wasm && bun build src/server/cli.ts --compile --outfile bin/stan-language-server",
     "build:bin-package": "bun run scripts/build-bin-package.ts",
     "prepublishOnly": "bun run build",
