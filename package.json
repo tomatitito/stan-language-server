@@ -83,7 +83,7 @@
     "web-tree-sitter": "0.26.8"
   },
   "dependencies": {
-    "stanc3": "2.38.0",
+    "stanc3": "2.39.0",
     "trie-search": "2.2.1",
     "vscode-languageserver": "9.0.1",
     "vscode-languageserver-textdocument": "1.0.12",
