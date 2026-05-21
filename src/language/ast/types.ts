@@ -8,14 +8,24 @@ export type SourceRange = {
 };
 
 export type SymbolId = string;
+export type ReferenceId = string;
+
+export type SymbolKind = "function" | "value";
 
 export type SymbolInfo = {
   id: SymbolId;
   name: string;
+  kind: SymbolKind;
   range: SourceRange;
   nodeId: number;
 };
 
+export type ReferenceInfo = {
+  id: ReferenceId;
+  symbolId: SymbolId;
+  range: SourceRange;
+  nodeId: number;
+};
 
 export type NameInfo =
   | {
@@ -25,14 +35,15 @@ export type NameInfo =
     }
   | {
       kind: "reference";
-      symbolId?: SymbolId;
+      refId?: ReferenceId;
       renameable: boolean;
     };
 
 export type SemanticIndex = {
-  lines: string[];
   nameInfoByNodeId: Map<number, NameInfo>;
   symbolsById: Map<SymbolId, SymbolInfo>;
+  referencesById: Map<ReferenceId, ReferenceInfo>;
+  referenceIdsBySymbolId: Map<SymbolId, ReferenceId[]>;
 };
 
 export type SemanticIndexEntry = {

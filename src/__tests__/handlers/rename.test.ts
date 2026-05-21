@@ -55,10 +55,7 @@ describe("Rename Handler", () => {
   });
 
   it("delegates rename occurrence lookup to the language layer and converts it to a WorkspaceEdit", async () => {
-    occurrencesSpy = spyOn(
-      providerModule,
-      "provideRenameFromEntry",
-    ).mockReturnValue([
+    occurrencesSpy = spyOn(providerModule, "provideRename").mockReturnValue([
       {
         range: {
           start: { line: 0, character: 18 },

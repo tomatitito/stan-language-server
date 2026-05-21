@@ -33,7 +33,9 @@ export const symbolAtPosition = (
   index: Pick<SemanticIndexEntry, "tree" | "semanticIndex">,
   source: string,
   position: SourcePosition,
-): { symbolId: SymbolId; range: ReturnType<typeof nodeToRange> } | undefined => {
+):
+  | { symbolId: SymbolId; range: ReturnType<typeof nodeToRange> }
+  | undefined => {
   if (!("rootNode" in index.tree) || !index.tree.rootNode) {
     return undefined;
   }
@@ -46,7 +48,7 @@ export const symbolAtPosition = (
     return undefined;
   }
 
-  const range = nodeToRange(index.semanticIndex.lines, node);
+  const range = nodeToRange(source.split("\n"), node);
   if (
     comparePositions(position, range.start) < 0 ||
     comparePositions(position, range.end) >= 0
@@ -55,9 +57,28 @@ export const symbolAtPosition = (
   }
 
   const nameInfo = index.semanticIndex.nameInfoByNodeId.get(node.id);
-  if (!nameInfo || !nameInfo.renameable || nameInfo.symbolId === undefined) {
+  if (!nameInfo?.renameable) {
     return undefined;
   }
 
-  return { symbolId: nameInfo.symbolId, range };
+  switch (nameInfo.kind) {
+    case "declaration":
+      return { symbolId: nameInfo.symbolId, range };
+
+    case "reference": {
+      if (nameInfo.refId === undefined) {
+        return undefined;
+      }
+
+      const reference = index.semanticIndex.referencesById.get(nameInfo.refId);
+      if (reference === undefined) {
+        return undefined;
+      }
+
+      return { symbolId: reference.symbolId, range };
+    }
+
+    default:
+      return undefined;
+  }
 };

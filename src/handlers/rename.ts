@@ -7,7 +7,7 @@ import type {
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import { getSemanticIndexEntry } from "../language/ast/workspace_index";
 import { prepareRename } from "../language/rename/prepare";
-import { provideRenameFromEntry } from "../language/rename/provider";
+import { provideRename } from "../language/rename/provider";
 import type { WorkspaceIndex } from "../language/ast/types";
 
 export function handlePrepareRename(
@@ -33,7 +33,7 @@ export function handleRename(
     return { documentChanges: [] };
   }
 
-  const occurrences = provideRenameFromEntry(entry, params.position);
+  const occurrences = provideRename(entry, params.position);
   if (occurrences.length === 0) {
     return { documentChanges: [] };
   }

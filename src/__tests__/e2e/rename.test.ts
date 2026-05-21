@@ -26,7 +26,7 @@ describe("Rename", () => {
     await client.stop();
   });
 
-  it("returns a safe empty WorkspaceEdit", async () => {
+  it("returns a WorkspaceEdit for current-file occurrences", async () => {
     const uri = "file:///test-workspace/rename-target.stan";
     const content = `parameters {
   real alpha;
@@ -40,7 +40,31 @@ model {
 
     const result: WorkspaceEdit | null = await client.rename(uri, 1, 7, "beta");
 
-    expect(result).toEqual({ documentChanges: [] });
-
+    expect(result).toEqual({
+      documentChanges: [
+        {
+          textDocument: {
+            uri,
+            version: 1,
+          },
+          edits: [
+            {
+              range: {
+                start: { line: 1, character: 7 },
+                end: { line: 1, character: 12 },
+              },
+              newText: "beta",
+            },
+            {
+              range: {
+                start: { line: 4, character: 2 },
+                end: { line: 4, character: 7 },
+              },
+              newText: "beta",
+            },
+          ],
+        },
+      ],
+    });
   });
 });

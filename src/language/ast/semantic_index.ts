@@ -3,9 +3,12 @@ import type {
   NameInfo,
   SemanticIndex,
   SemanticIndexEntry,
+  ReferenceId,
+  ReferenceInfo,
   SourcePosition,
   SymbolId,
   SymbolInfo,
+  SymbolKind,
 } from "./types";
 
 
@@ -30,7 +33,10 @@ type Scope = {
 type WalkState = {
   scope: Scope;
   nextSymbolId: number;
+  nextReferenceId: number;
   symbolsById: Map<SymbolId, SymbolInfo>;
+  referencesById: Map<ReferenceId, ReferenceInfo>;
+  referenceIdsBySymbolId: Map<SymbolId, ReferenceId[]>;
   nameInfoByNodeId: Map<number, NameInfo>;
 };
 
@@ -99,15 +105,23 @@ const createScope = (parent: Scope | null): Scope => ({
   declarations: new Map(),
 });
 
-const resolveSymbol = (scope: Scope, name: string): SymbolId | undefined => {
+const resolveSymbol = (
+  scope: Scope,
+  name: string,
+  kind: SymbolKind,
+  symbolsById: Map<SymbolId, SymbolInfo>,
+): SymbolId | undefined => {
   for (
     let current: Scope | null = scope;
     current !== null;
     current = current.parent
   ) {
-    const symbolId = current.declarations.get(name)?.at(-1);
-    if (symbolId !== undefined) {
-      return symbolId;
+    const symbolIds = current.declarations.get(name) ?? [];
+    for (let index = symbolIds.length - 1; index >= 0; index -= 1) {
+      const symbolId = symbolIds[index];
+      if (symbolId !== undefined && symbolsById.get(symbolId)?.kind === kind) {
+        return symbolId;
+      }
     }
   }
 
@@ -165,6 +179,34 @@ const declarationScopeForNode = (node: Node, currentScope: Scope): Scope => {
   return currentScope;
 };
 
+const declarationKindForNode = (node: Node): SymbolKind => {
+  if (node.parent?.type === "function_declarator") {
+    return "function";
+  }
+  return "value";
+};
+
+const isFirstArgumentOfMapRect = (node: Node): boolean => {
+  const expression = node.parent;
+  const argumentList = expression?.parent;
+  const functionExpression = argumentList?.parent;
+
+  return (
+    expression?.type === "variable_expression" &&
+    argumentList?.type === "argument_list" &&
+    functionExpression?.type === "function_expression" &&
+    functionExpression.childForFieldName("name")?.text === "map_rect" &&
+    argumentList.namedChildren[0]?.id === expression.id
+  );
+};
+
+const referenceKindForNode = (node: Node): SymbolKind => {
+  if (node.parent?.type === "function_expression" || isFirstArgumentOfMapRect(node)) {
+    return "function";
+  }
+  return "value";
+};
+
 export const buildSemanticIndex = (
   source: string,
   tree: SemanticIndexEntry["tree"],
@@ -172,12 +214,15 @@ export const buildSemanticIndex = (
   const lines = source.split("\n");
   const nameInfoByNodeId = new Map<number, NameInfo>();
   const symbolsById = new Map<SymbolId, SymbolInfo>();
+  const referencesById = new Map<ReferenceId, ReferenceInfo>();
+  const referenceIdsBySymbolId = new Map<SymbolId, ReferenceId[]>();
 
   if (!("rootNode" in tree) || !tree.rootNode) {
     return {
-      lines,
       nameInfoByNodeId,
       symbolsById,
+      referencesById,
+      referenceIdsBySymbolId,
     };
   }
 
@@ -198,6 +243,7 @@ export const buildSemanticIndex = (
       nextState.symbolsById.set(symbolId, {
         id: symbolId,
         name: node.text,
+        kind: declarationKindForNode(node),
         range: nodeToRange(lines, node),
         nodeId: node.id,
       });
@@ -213,12 +259,37 @@ export const buildSemanticIndex = (
         nextSymbolId: nextState.nextSymbolId + 1,
       };
     } else if (isReferenceIdentifier(node)) {
-      const symbolId = resolveSymbol(currentScope, node.text);
-      nextState.nameInfoByNodeId.set(node.id, {
-        kind: "reference",
-        symbolId,
-        renameable: symbolId !== undefined,
-      });
+      const symbolId = resolveSymbol(
+        currentScope,
+        node.text,
+        referenceKindForNode(node),
+        nextState.symbolsById,
+      );
+      if (symbolId === undefined) {
+        nextState.nameInfoByNodeId.set(node.id, {
+          kind: "reference",
+          renameable: false,
+        });
+      } else {
+        const refId: ReferenceId = `reference-${nextState.nextReferenceId}`;
+        nextState.referencesById.set(refId, {
+          id: refId,
+          symbolId,
+          range: nodeToRange(lines, node),
+          nodeId: node.id,
+        });
+        const referenceIds = nextState.referenceIdsBySymbolId.get(symbolId) ?? [];
+        nextState.referenceIdsBySymbolId.set(symbolId, [...referenceIds, refId]);
+        nextState.nameInfoByNodeId.set(node.id, {
+          kind: "reference",
+          refId,
+          renameable: true,
+        });
+        nextState = {
+          ...nextState,
+          nextReferenceId: nextState.nextReferenceId + 1,
+        };
+      }
     }
 
     for (const child of node.namedChildren) {
@@ -238,13 +309,17 @@ export const buildSemanticIndex = (
   const finalState = walk(tree.rootNode, {
     scope: createScope(null),
     nextSymbolId: 1,
+    nextReferenceId: 1,
     symbolsById,
+    referencesById,
+    referenceIdsBySymbolId,
     nameInfoByNodeId,
   });
 
   return {
-    lines,
     nameInfoByNodeId: finalState.nameInfoByNodeId,
     symbolsById: finalState.symbolsById,
+    referencesById: finalState.referencesById,
+    referenceIdsBySymbolId: finalState.referenceIdsBySymbolId,
   };
 };
