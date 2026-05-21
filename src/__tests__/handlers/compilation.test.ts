@@ -58,9 +58,7 @@ describe("Compilation Handler", () => {
       undefined
     );
 
-    // stanc3's StancReturn type requires `errors: undefined` on success,
-    // but the runtime value omits the `errors` property entirely.
-    expect(Object.hasOwn(result, "errors")).toBe(false);
+    expect(result.errors).not.toBeDefined();
     expect(result.result).toBe("parameters {\n  real x;\n}\nmodel {\n  x ~ normal(0, 1);\n}\n");
     expect(result.warnings).toEqual([]);
   });
@@ -73,9 +71,7 @@ describe("Compilation Handler", () => {
 
     const result = await handleCompilation(document, mockManager, mockFolders, settings, purpose, mockLogger);
 
-    // stanc3's StancReturn type requires `errors: undefined` on success,
-    // but the runtime value omits the `errors` property entirely.
-    expect(Object.hasOwn(result, "errors")).toBe(false);
+    expect(result.errors).not.toBeDefined();
     expect(result.result).toBe("real f(real x) {\n  return x * 2;\n}");
     expect(result.warnings).toEqual([]);
   });
