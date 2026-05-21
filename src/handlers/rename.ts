@@ -5,24 +5,35 @@ import type {
   WorkspaceEdit,
 } from "vscode-languageserver-protocol";
 import type { TextDocument } from "vscode-languageserver-textdocument";
+import { getSemanticIndexEntry } from "../language/ast/workspace_index";
 import { prepareRename } from "../language/rename/prepare";
-import { provideRename } from "../language/rename/provider";
+import { provideRenameFromEntry } from "../language/rename/provider";
+import type { WorkspaceIndex } from "../language/ast/types";
 
-export async function handlePrepareRename(
+export function handlePrepareRename(
   document: TextDocument,
   params: PrepareRenameParams,
-): Promise<PrepareRenameResult | null> {
-  const target = prepareRename(document.getText(), params.position);
-  return target?.range ?? null;
+  workspaceIndex: WorkspaceIndex,
+): PrepareRenameResult | null {
+  const entry = getSemanticIndexEntry(workspaceIndex, document);
+  if (entry === null) {
+    return null;
+  }
+
+  return prepareRename(entry, params.position)?.range ?? null;
 }
 
-export async function handleRename(
+export function handleRename(
   document: TextDocument,
   params: RenameParams,
-): Promise<WorkspaceEdit> {
-  console.error("hello rename", document.uri, params.newName);
+  workspaceIndex: WorkspaceIndex,
+): WorkspaceEdit {
+  const entry = getSemanticIndexEntry(workspaceIndex, document);
+  if (entry === null) {
+    return { documentChanges: [] };
+  }
 
-  const occurrences = provideRename(document.getText(), params.position);
+  const occurrences = provideRenameFromEntry(entry, params.position);
   if (occurrences.length === 0) {
     return { documentChanges: [] };
   }

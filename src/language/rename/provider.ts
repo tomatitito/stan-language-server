@@ -1,16 +1,35 @@
 import { prepareRename } from "./prepare";
-import type { RenameOccurrence, SourcePosition } from "./types";
+import type { SemanticIndexEntry, SourcePosition } from "../ast/types";
+import type { RenameOccurrence } from "./types";
 
-export function provideRename(
-  documentText: string,
+export function provideRenameFromEntry(
+  entry: SemanticIndexEntry,
   position: SourcePosition,
 ): RenameOccurrence[] {
-  console.error("rename triggered", position);
-
-  const target = prepareRename(documentText, position);
+  const target = prepareRename(entry, position);
   if (target === null) {
     return [];
   }
 
   return [];
 }
+
+export const provideRename = (
+  documentText: string,
+  position: SourcePosition,
+): RenameOccurrence[] => {
+  return provideRenameFromEntry(
+    {
+      uri: "",
+      version: 0,
+      text: documentText,
+      tree: {} as SemanticIndexEntry["tree"],
+      semanticIndex: {
+        lines: documentText.split("\n"),
+        nameInfoByNodeId: new Map(),
+        symbolsById: new Map(),
+      },
+    },
+    position,
+  );
+};

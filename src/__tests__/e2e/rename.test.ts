@@ -26,7 +26,7 @@ describe("Rename", () => {
     await client.stop();
   });
 
-  it("returns a safe empty WorkspaceEdit and emits a temporary mock rename log", async () => {
+  it("returns a safe empty WorkspaceEdit", async () => {
     const uri = "file:///test-workspace/rename-target.stan";
     const content = `parameters {
   real alpha;
@@ -42,7 +42,5 @@ model {
 
     expect(result).toEqual({ documentChanges: [] });
 
-    const combinedLogs = [...client.stdoutChunks, ...client.stderrChunks].join("\n");
-    expect(combinedLogs).toContain("hello rename");
   });
 });

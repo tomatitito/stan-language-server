@@ -6,21 +6,28 @@ import type {
   RenameParams,
   WorkspaceEdit,
 } from "vscode-languageserver-protocol";
-import * as prepareModule from "../../language/rename/prepare";
 import * as providerModule from "../../language/rename/provider";
+import {
+  createWorkspaceIndex,
+  upsertSemanticIndexEntry,
+} from "../../language/ast/workspace_index";
 import { handlePrepareRename, handleRename } from "../../handlers/index";
+
+const createIndexedWorkspace = async (document: TextDocument) => {
+  return upsertSemanticIndexEntry(createWorkspaceIndex(), document);
+};
 
 describe("Rename Handler", () => {
   const document = TextDocument.create(
     "file:///test.stan",
     "stan",
     1,
-    "parameters { real alpha; }",
+    "parameters { real alpha; }\nmodel { alpha ~ normal(0, 1); }",
   );
 
   const prepareParams: PrepareRenameParams = {
     textDocument: { uri: document.uri },
-    position: { line: 0, character: 19 },
+    position: { line: 1, character: 8 },
   };
 
   const renameParams: RenameParams = {
@@ -29,35 +36,29 @@ describe("Rename Handler", () => {
     newName: "beta",
   };
 
-  let prepareSpy: ReturnType<typeof spyOn>;
   let occurrencesSpy: ReturnType<typeof spyOn>;
 
   afterEach(() => {
-    prepareSpy?.mockRestore();
     occurrencesSpy?.mockRestore();
   });
 
-  it("delegates prepare rename to the language layer and returns the target range", async () => {
-    prepareSpy = spyOn(prepareModule, "prepareRename").mockReturnValue({
-      name: "alpha",
-      range: {
-        start: { line: 0, character: 18 },
-        end: { line: 0, character: 23 },
-      },
-    });
+  it("returns the range for the symbol at the cursor", async () => {
+    const workspaceIndex = await createIndexedWorkspace(document);
 
-    const result = await handlePrepareRename(document, prepareParams);
+    const result = handlePrepareRename(document, prepareParams, workspaceIndex);
 
     const expected: Range = {
-      start: { line: 0, character: 18 },
-      end: { line: 0, character: 23 },
+      start: { line: 1, character: 8 },
+      end: { line: 1, character: 13 },
     };
     expect(result).toEqual(expected);
-    expect(prepareSpy).toHaveBeenCalledWith(document.getText(), prepareParams.position);
   });
 
   it("delegates rename occurrence lookup to the language layer and converts it to a WorkspaceEdit", async () => {
-    occurrencesSpy = spyOn(providerModule, "provideRename").mockReturnValue([
+    occurrencesSpy = spyOn(
+      providerModule,
+      "provideRenameFromEntry",
+    ).mockReturnValue([
       {
         range: {
           start: { line: 0, character: 18 },
@@ -66,7 +67,8 @@ describe("Rename Handler", () => {
       },
     ]);
 
-    const result = await handleRename(document, renameParams);
+    const workspaceIndex = await createIndexedWorkspace(document);
+    const result = handleRename(document, renameParams, workspaceIndex);
 
     const expected: WorkspaceEdit = {
       documentChanges: [
@@ -88,6 +90,9 @@ describe("Rename Handler", () => {
       ],
     };
     expect(result).toEqual(expected);
-    expect(occurrencesSpy).toHaveBeenCalledWith(document.getText(), renameParams.position);
+    expect(occurrencesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ text: document.getText() }),
+      renameParams.position,
+    );
   });
 });

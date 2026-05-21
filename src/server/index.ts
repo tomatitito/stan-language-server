@@ -19,6 +19,11 @@ import {
   handlePrepareRename,
   handleRename,
 } from "../handlers/index.ts";
+import {
+  createWorkspaceIndex,
+  removeSemanticIndexEntry,
+  upsertSemanticIndexEntry,
+} from "../language/ast/workspace_index.ts";
 import { type FileSystemReader } from "../types/common.ts";
 import {
   defaultSettings,
@@ -28,7 +33,7 @@ import { SERVER_ID } from "../constants/index.ts";
 
 const startLanguageServer = (
   connection: Connection,
-  reader?: FileSystemReader
+  reader?: FileSystemReader,
 ) => {
   let hasConfigurationCapability: boolean = false;
   let hasWorkspaceFolderCapability: boolean = false;
@@ -43,9 +48,11 @@ const startLanguageServer = (
     hasConfigurationCapability = Boolean(capabilities.workspace?.configuration);
     hasDynamicConfigurationRequestCapability = Boolean(
       capabilities.workspace?.configuration &&
-      capabilities.workspace?.didChangeConfiguration?.dynamicRegistration
+      capabilities.workspace?.didChangeConfiguration?.dynamicRegistration,
     );
-    hasWorkspaceFolderCapability = Boolean(capabilities.workspace?.workspaceFolders);
+    hasWorkspaceFolderCapability = Boolean(
+      capabilities.workspace?.workspaceFolders,
+    );
     hasSnippetSupport = Boolean(
       capabilities.textDocument?.completion?.completionItem?.snippetSupport ||
       capabilities.textDocument?.completion?.completionItemKind?.valueSet?.some(
@@ -131,6 +138,7 @@ const startLanguageServer = (
   };
 
   const documents = new TextDocuments(TextDocument);
+  let workspaceIndex = createWorkspaceIndex();
 
   connection.onCompletion((params) => {
     return handleCompletion(params, documents, hasSnippetSupport);
@@ -154,7 +162,7 @@ const startLanguageServer = (
         folders,
         settings,
         connection.console,
-        reader
+        reader,
       ),
     };
   });
@@ -168,7 +176,7 @@ const startLanguageServer = (
       folders,
       settings,
       connection.console,
-      reader
+      reader,
     );
     if (Array.isArray(formattingResult)) {
       return formattingResult;
@@ -179,7 +187,8 @@ const startLanguageServer = (
       }
       connection.sendNotification("window/showMessage", {
         type: MessageType.Error,
-        message: "Formatting failed due to compile errors. See diagnostics for details.",
+        message:
+          "Formatting failed due to compile errors. See diagnostics for details.",
       });
       return [];
     }
@@ -193,20 +202,29 @@ const startLanguageServer = (
     return handleHover(document, params);
   });
 
-  connection.onPrepareRename((params) => {
+  connection.onPrepareRename(async (params) => {
     const document = documents.get(params.textDocument.uri);
     if (!document || !document.languageId.startsWith("stan")) {
       return null;
     }
-    return handlePrepareRename(document, params);
+    workspaceIndex = await upsertSemanticIndexEntry(workspaceIndex, document);
+    return handlePrepareRename(document, params, workspaceIndex);
   });
 
-  connection.onRenameRequest((params) => {
+  connection.onRenameRequest(async (params) => {
     const document = documents.get(params.textDocument.uri);
     if (!document || !document.languageId.startsWith("stan")) {
       return { documentChanges: [] };
     }
-    return handleRename(document, params);
+    workspaceIndex = await upsertSemanticIndexEntry(workspaceIndex, document);
+    return handleRename(document, params, workspaceIndex);
+  });
+
+  documents.onDidClose((event) => {
+    workspaceIndex = removeSemanticIndexEntry(
+      workspaceIndex,
+      event.document.uri,
+    );
   });
 
   documents.listen(connection);
