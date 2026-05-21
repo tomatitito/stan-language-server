@@ -5,7 +5,7 @@
     "": {
       "name": "stan-language-server",
       "dependencies": {
-        "stanc3": "2.38.0",
+        "stanc3": "2.39.0",
         "trie-search": "2.2.1",
         "vscode-languageserver": "9.0.1",
         "vscode-languageserver-textdocument": "1.0.12",
@@ -208,7 +208,7 @@
 
     "shebang-regex": ["shebang-regex@3.0.0", "", {}, "sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A=="],
 
-    "stanc3": ["stanc3@2.38.0", "", {}, "sha512-xPQN0IwZhwZxj4ZJDyHqCDQBmOh8pSJvOHOB9OitC7omMA/UY2/Sg65cyaZjMLF0RJtvn8KzPq960czQ6yygSw=="],
+    "stanc3": ["stanc3@2.39.0", "", {}, "sha512-HKbus7PqzOGE4ZfkC6jAQ15U6UEtnMbRNvvqeVWj67NHphrMCoGLrlU1+nqkBPLfAHCWo1Xlap/ZSEefi1Nf9g=="],
 
     "tinyglobby": ["tinyglobby@0.2.15", "", { "dependencies": { "fdir": "^6.5.0", "picomatch": "^4.0.3" } }, "sha512-j2Zq4NyQYG5XMST4cbs02Ak8iJUdxRM0XI5QyxXuZOzKOINmWurp3smXu3y5wDcJrptwpSjgXHzIQxR0omXljQ=="],
 
