@@ -17,6 +17,7 @@ export function prepareRename(
   }
 
   return {
+    symbolId: symbol.symbolId,
     name: symbolInfo.name,
     range: symbol.range,
   };

@@ -2,7 +2,7 @@ import { prepareRename } from "./prepare";
 import type { SemanticIndexEntry, SourcePosition } from "../ast/types";
 import type { RenameOccurrence } from "./types";
 
-export function provideRenameFromEntry(
+export function provideRename(
   entry: SemanticIndexEntry,
   position: SourcePosition,
 ): RenameOccurrence[] {
@@ -11,25 +11,19 @@ export function provideRenameFromEntry(
     return [];
   }
 
-  return [];
-}
+  const symbol = entry.semanticIndex.symbolsById.get(target.symbolId);
+  if (symbol === undefined) {
+    return [];
+  }
 
-export const provideRename = (
-  documentText: string,
-  position: SourcePosition,
-): RenameOccurrence[] => {
-  return provideRenameFromEntry(
-    {
-      uri: "",
-      version: 0,
-      text: documentText,
-      tree: {} as SemanticIndexEntry["tree"],
-      semanticIndex: {
-        lines: documentText.split("\n"),
-        nameInfoByNodeId: new Map(),
-        symbolsById: new Map(),
-      },
-    },
-    position,
-  );
-};
+  const referenceIds =
+    entry.semanticIndex.referenceIdsBySymbolId.get(target.symbolId) ?? [];
+
+  return [
+    { range: symbol.range },
+    ...referenceIds.flatMap((referenceId) => {
+      const reference = entry.semanticIndex.referencesById.get(referenceId);
+      return reference === undefined ? [] : [{ range: reference.range }];
+    }),
+  ];
+}

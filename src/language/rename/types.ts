@@ -1,6 +1,7 @@
-import type { SourceRange } from "../ast/types";
+import type { SourceRange, SymbolId } from "../ast/types";
 
 export type RenameTarget = {
+  symbolId: SymbolId;
   name: string;
   range: SourceRange;
 };
