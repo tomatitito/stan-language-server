@@ -1,49 +1,23 @@
-import { isReservedOrBuiltInStanName } from "../stan-symbols";
-import type { RenameTarget, SourcePosition } from "./types";
-
-const IDENTIFIER_PATTERN = /[A-Za-z_][A-Za-z0-9_]*/g;
-
-const getLineText = (documentText: string, line: number): string | null => {
-  const lines = documentText.split("\n");
-  return lines[line] ?? null;
-};
+import { symbolAtPosition } from "../ast/symbol";
+import type { SemanticIndexEntry, SourcePosition } from "../ast/types";
+import type { RenameTarget } from "./types";
 
 export function prepareRename(
-  documentText: string,
+  entry: SemanticIndexEntry,
   position: SourcePosition,
 ): RenameTarget | null {
-  console.error("prepare rename triggered", position);
-
-  const lineText = getLineText(documentText, position.line);
-  if (lineText === null) {
+  const symbol = symbolAtPosition(entry, entry.text, position);
+  if (symbol === undefined) {
     return null;
   }
 
-  for (const match of lineText.matchAll(IDENTIFIER_PATTERN)) {
-    const start = match.index;
-    const name = match[0];
-
-    if (start === undefined || name === undefined) {
-      continue;
-    }
-
-    const end = start + name.length;
-    if (position.character < start || position.character > end) {
-      continue;
-    }
-
-    if (isReservedOrBuiltInStanName(name)) {
-      return null;
-    }
-
-    return {
-      name,
-      range: {
-        start: { line: position.line, character: start },
-        end: { line: position.line, character: end },
-      },
-    };
+  const symbolInfo = entry.semanticIndex.symbolsById.get(symbol.symbolId);
+  if (symbolInfo === undefined) {
+    return null;
   }
 
-  return null;
+  return {
+    name: symbolInfo.name,
+    range: symbol.range,
+  };
 }

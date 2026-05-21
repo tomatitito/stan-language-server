@@ -1,9 +1,4 @@
-export type SourcePosition = { line: number; character: number };
-
-export type SourceRange = {
-  start: SourcePosition;
-  end: SourcePosition;
-};
+import type { SourceRange } from "../ast/types";
 
 export type RenameTarget = {
   name: string;

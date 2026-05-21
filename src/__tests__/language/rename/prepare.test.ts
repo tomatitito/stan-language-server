@@ -1,40 +1,54 @@
-import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import { TextDocument } from "vscode-languageserver-textdocument";
+import { createWorkspaceIndex, getSemanticIndexEntry, upsertSemanticIndexEntry } from "../../../language/ast/workspace_index";
 import { prepareRename } from "../../../language/rename/prepare";
 
+const createIndexedEntry = async (text: string) => {
+  const document = TextDocument.create("file:///prepare-rename-test.stan", "stan", 1, text);
+  const index = await upsertSemanticIndexEntry(createWorkspaceIndex(), document);
+  const entry = getSemanticIndexEntry(index, document);
+  if (entry === null) {
+    throw new Error("Expected indexed entry");
+  }
+  return entry;
+};
+
 describe("prepareRename", () => {
-  let logSpy: ReturnType<typeof spyOn>;
+  it("returns the symbol occurrence at the requested position", async () => {
+    const entry = await createIndexedEntry(`parameters {\n  real alpha;\n}\nmodel {\n  alpha ~ normal(0, 1);\n}\n`);
 
-  afterEach(() => {
-    logSpy?.mockRestore();
-  });
-
-  it("returns a simple identifier target at the requested position", () => {
-    logSpy = spyOn(console, "error").mockImplementation(() => {});
-
-    const result = prepareRename("parameters { real alpha; }", { line: 0, character: 19 });
+    const result = prepareRename(entry, {
+      line: 4,
+      character: 3,
+    });
 
     expect(result).toEqual({
       name: "alpha",
       range: {
-        start: { line: 0, character: 18 },
-        end: { line: 0, character: 23 },
+        start: { line: 4, character: 2 },
+        end: { line: 4, character: 7 },
       },
     });
-    expect(logSpy).toHaveBeenCalledWith("prepare rename triggered", { line: 0, character: 19 });
   });
 
-  it("returns null when the requested position is not on an identifier", () => {
-    logSpy = spyOn(console, "error").mockImplementation(() => {});
+  it("returns null when the requested position is not on a symbol", async () => {
+    const entry = await createIndexedEntry(`parameters {\n  real alpha;\n}\n`);
 
-    const result = prepareRename("parameters { real alpha; }", { line: 0, character: 11 });
+    const result = prepareRename(entry, {
+      line: 1,
+      character: 12,
+    });
 
     expect(result).toBeNull();
   });
 
-  it("returns null for reserved or built-in Stan names", () => {
-    logSpy = spyOn(console, "error").mockImplementation(() => {});
+  it("returns null for unresolved or non-renameable names", async () => {
+    const entry = await createIndexedEntry(`model {\n  print(alpha);\n}\n`);
 
-    const result = prepareRename("model { real alpha; }", { line: 0, character: 8 });
+    const result = prepareRename(entry, {
+      line: 1,
+      character: 3,
+    });
 
     expect(result).toBeNull();
   });
