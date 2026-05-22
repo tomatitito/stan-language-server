@@ -28,13 +28,14 @@ describe("Rename", () => {
 
   it("returns a WorkspaceEdit for current-file occurrences", async () => {
     const uri = "file:///test-workspace/rename-target.stan";
-    const content = `parameters {
+    const content = `
+parameters {
   real alpha;
 }
 model {
   alpha ~ normal(0, 1);
 }
-`;
+`.trimStart();
 
     await client.didOpen(uri, "stan", content);
 
@@ -61,6 +62,58 @@ model {
                 end: { line: 4, character: 7 },
               },
               newText: "beta",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("renames symbols after a didChange notification", async () => {
+    const uri = "file:///test-workspace/rename-after-change.stan";
+    const initialContent = `
+parameters {
+  real alpha;
+}
+model {
+  alpha ~ normal(0, 1);
+}
+`.trimStart();
+    const updatedContent = `
+parameters {
+  real gamma;
+}
+model {
+  gamma ~ normal(0, 1);
+}
+`.trimStart();
+
+    await client.didOpen(uri, "stan", initialContent);
+    await client.didChange(uri, updatedContent, 2);
+
+    const result: WorkspaceEdit | null = await client.rename(uri, 1, 7, "delta");
+
+    expect(result).toEqual({
+      documentChanges: [
+        {
+          textDocument: {
+            uri,
+            version: 2,
+          },
+          edits: [
+            {
+              range: {
+                start: { line: 1, character: 7 },
+                end: { line: 1, character: 12 },
+              },
+              newText: "delta",
+            },
+            {
+              range: {
+                start: { line: 4, character: 2 },
+                end: { line: 4, character: 7 },
+              },
+              newText: "delta",
             },
           ],
         },
