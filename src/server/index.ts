@@ -139,6 +139,40 @@ const startLanguageServer = (
 
   const documents = new TextDocuments(TextDocument);
   let workspaceIndex = createWorkspaceIndex();
+  let workspaceIndexUpdate: Promise<void> = Promise.resolve();
+
+  const isStanDocument = (document: TextDocument) => {
+    return document.languageId.startsWith("stan");
+  };
+
+  const queueWorkspaceIndexUpdate = (document: TextDocument) => {
+    const uri = document.uri;
+
+    workspaceIndexUpdate = workspaceIndexUpdate
+      .catch(() => undefined)
+      .then(async () => {
+        const latestDocument = documents.get(uri);
+        if (!latestDocument || !isStanDocument(latestDocument)) {
+          return;
+        }
+
+        const nextWorkspaceIndex = await upsertSemanticIndexEntry(
+          workspaceIndex,
+          latestDocument,
+        );
+        const currentDocument = documents.get(uri);
+        if (currentDocument?.version === latestDocument.version) {
+          workspaceIndex = nextWorkspaceIndex;
+        }
+      })
+      .catch((error: unknown) => {
+        connection.console.error(
+          `Failed to update workspace index for ${uri}: ${String(error)}`,
+        );
+      });
+
+    return workspaceIndexUpdate;
+  };
 
   connection.onCompletion((params) => {
     return handleCompletion(params, documents, hasSnippetSupport);
@@ -196,7 +230,7 @@ const startLanguageServer = (
 
   connection.onHover((params) => {
     const document = documents.get(params.textDocument.uri);
-    if (!document || !document.languageId.startsWith("stan")) {
+    if (!document || !isStanDocument(document)) {
       return null;
     }
     return handleHover(document, params);
@@ -204,20 +238,26 @@ const startLanguageServer = (
 
   connection.onPrepareRename(async (params) => {
     const document = documents.get(params.textDocument.uri);
-    if (!document || !document.languageId.startsWith("stan")) {
+    if (!document || !isStanDocument(document)) {
       return null;
     }
+    await workspaceIndexUpdate;
     workspaceIndex = await upsertSemanticIndexEntry(workspaceIndex, document);
     return handlePrepareRename(document, params, workspaceIndex);
   });
 
   connection.onRenameRequest(async (params) => {
     const document = documents.get(params.textDocument.uri);
-    if (!document || !document.languageId.startsWith("stan")) {
+    if (!document || !isStanDocument(document)) {
       return { documentChanges: [] };
     }
+    await workspaceIndexUpdate;
     workspaceIndex = await upsertSemanticIndexEntry(workspaceIndex, document);
     return handleRename(document, params, workspaceIndex);
+  });
+
+  documents.onDidChangeContent((event) => {
+    void queueWorkspaceIndexUpdate(event.document);
   });
 
   documents.onDidClose((event) => {
