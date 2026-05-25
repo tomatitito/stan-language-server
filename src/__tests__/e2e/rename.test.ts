@@ -69,31 +69,103 @@ model {
     });
   });
 
-  it("renames symbols after a didChange notification", async () => {
-    const uri = "file:///test-workspace/rename-after-change.stan";
-    const initialContent = `
+  it("renames bart in the example program from declaration and reference positions", async () => {
+    const uri = "file:///test-workspace/rename-bart-example.stan";
+    const content = `
+data {
+  int<lower=0> N;
+  vector[N] x;
+  vector[N] foo;
+}
 parameters {
   real alpha;
+  real bart;
+  real<lower=0> sigma;
 }
 model {
-  alpha ~ normal(0, 1);
+  real bar = 1 + 2 + 0932407324 + 02934509 + 3 + 5 + 7;
+  // real baz = 1 / 2;
+  foo ~ normal(alpha + bart * x, 1);
 }
 `.trimStart();
-    const updatedContent = `
+
+    await client.didOpen(uri, "stan", content);
+
+    expect(await client.prepareRename(uri, 7, 8)).toEqual({
+      start: { line: 7, character: 7 },
+      end: { line: 7, character: 11 },
+    });
+
+    expect(await client.prepareRename(uri, 7, 10)).toEqual({
+      start: { line: 7, character: 7 },
+      end: { line: 7, character: 11 },
+    });
+
+    expect(await client.prepareRename(uri, 13, 24)).toEqual({
+      start: { line: 13, character: 23 },
+      end: { line: 13, character: 27 },
+    });
+
+    const expectedRenameEdit = {
+      documentChanges: [
+        {
+          textDocument: {
+            uri,
+            version: 1,
+          },
+          edits: [
+            {
+              range: {
+                start: { line: 7, character: 7 },
+                end: { line: 7, character: 11 },
+              },
+              newText: "beta",
+            },
+            {
+              range: {
+                start: { line: 13, character: 23 },
+                end: { line: 13, character: 27 },
+              },
+              newText: "beta",
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(await client.rename(uri, 7, 8, "beta")).toEqual(expectedRenameEdit);
+    expect(await client.rename(uri, 7, 10, "beta")).toEqual(expectedRenameEdit);
+    expect(await client.rename(uri, 13, 24, "beta")).toEqual(expectedRenameEdit);
+  });
+
+  it("renames symbols correctly after shortening a name via didChange", async () => {
+    const uri = "file:///test-workspace/rename-after-shortening.stan";
+    const initialContent = `
+data {
+  int<lower=0> N;
+  vector[N] x;
+  vector[N] foo;
+}
 parameters {
-  real gamma;
+  real alpha;
+  real beta;
+  real<lower=0> sigma;
 }
 model {
-  gamma ~ normal(0, 1);
+  foo ~ normal(alpha + beta * x, 1);
 }
 `.trimStart();
+    const updatedContent = initialContent.replaceAll("beta", "hoo");
 
     await client.didOpen(uri, "stan", initialContent);
     await client.didChange(uri, updatedContent, 2);
 
-    const result: WorkspaceEdit | null = await client.rename(uri, 1, 7, "delta");
+    expect(await client.prepareRename(uri, 11, 24)).toEqual({
+      start: { line: 11, character: 23 },
+      end: { line: 11, character: 26 },
+    });
 
-    expect(result).toEqual({
+    expect(await client.rename(uri, 11, 24, "foo")).toEqual({
       documentChanges: [
         {
           textDocument: {
@@ -103,21 +175,22 @@ model {
           edits: [
             {
               range: {
-                start: { line: 1, character: 7 },
-                end: { line: 1, character: 12 },
+                start: { line: 7, character: 7 },
+                end: { line: 7, character: 10 },
               },
-              newText: "delta",
+              newText: "foo",
             },
             {
               range: {
-                start: { line: 4, character: 2 },
-                end: { line: 4, character: 7 },
+                start: { line: 11, character: 23 },
+                end: { line: 11, character: 26 },
               },
-              newText: "delta",
+              newText: "foo",
             },
           ],
         },
       ],
     });
   });
+
 });

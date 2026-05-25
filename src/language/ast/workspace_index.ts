@@ -38,9 +38,8 @@ export const upsertSemanticIndexEntry = async (
     return index;
   }
 
-  const previousEntry = index.entries.get(document.uri) ?? null;
   const text = document.getText();
-  const tree = await parseDocument(text, previousEntry?.tree);
+  const tree = await parseDocument(text);
   const entry: SemanticIndexEntry = {
     uri: document.uri,
     version: document.version,
