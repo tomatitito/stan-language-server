@@ -14,6 +14,8 @@ import type {
   InitializeParams,
   InitializeResult,
   LSPAny,
+  PrepareRenameParams,
+  PrepareRenameResult,
   RenameParams,
   TextEdit,
   WorkspaceEdit,
@@ -400,6 +402,14 @@ export class LSPTestClient {
       textDocument: { uri },
     };
     return this.sendRequest<DocumentDiagnosticReport>("textDocument/diagnostic", params);
+  }
+
+  async prepareRename(uri: string, line: number, character: number): Promise<PrepareRenameResult | null> {
+    const params: PrepareRenameParams = {
+      textDocument: { uri },
+      position: { line, character },
+    };
+    return this.sendRequest<PrepareRenameResult | null>("textDocument/prepareRename", params);
   }
 
   async rename(uri: string, line: number, character: number, newName: string): Promise<WorkspaceEdit | null> {

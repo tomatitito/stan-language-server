@@ -13,8 +13,10 @@ describe("workspace index", () => {
     const editedDocument = TextDocument.create("file:///a.stan", "stan", 2, "parameters { real beta; }");
     const tree = { id: "tree-v1" } as any;
     const editedTree = { id: "tree-v2" } as any;
-    const parseDocument = mock(async (_text: string, oldTree?: unknown) => {
-      return oldTree === undefined ? tree : editedTree;
+    let parseCount = 0;
+    const parseDocument = mock(async (_text: string) => {
+      parseCount += 1;
+      return parseCount === 1 ? tree : editedTree;
     });
 
     const emptyIndex = createWorkspaceIndex();
@@ -38,7 +40,7 @@ describe("workspace index", () => {
     const updatedEntry = getSemanticIndexEntry(updatedIndex, editedDocument);
 
     expect(parseDocument).toHaveBeenCalledTimes(2);
-    expect(parseDocument.mock.calls[1]).toEqual([editedDocument.getText(), tree]);
+    expect(parseDocument.mock.calls[1]).toEqual([editedDocument.getText()]);
     expect(updatedEntry).not.toBeNull();
     expect(updatedEntry).not.toBe(entry);
     expect(updatedEntry?.version).toBe(editedDocument.version);
