@@ -91,6 +91,39 @@ model {
     expect(result).toEqual([]);
   });
 
+  it("renames user-defined functions from standalone function statements", async () => {
+    const entry = await createIndexedEntry(`
+functions {
+  void foo(real x) {}
+}
+generated quantities {
+  foo(3.14);
+}
+`.trimStart());
+
+    const occurrences = [
+      {
+        range: {
+          start: { line: 1, character: 7 },
+          end: { line: 1, character: 10 },
+        },
+      },
+      {
+        range: {
+          start: { line: 4, character: 2 },
+          end: { line: 4, character: 5 },
+        },
+      },
+    ];
+
+    expect(provideRename(entry, { line: 1, character: 8 })).toEqual(
+      occurrences,
+    );
+    expect(provideRename(entry, { line: 4, character: 3 })).toEqual(
+      occurrences,
+    );
+  });
+
   const mapRectProgram = `
 functions {
   vector beta(vector theta, vector phi, array[] real x_r, array[] int x_i) {

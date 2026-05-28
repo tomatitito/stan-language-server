@@ -168,6 +168,8 @@ const isReferenceIdentifier = (node: Node): boolean => {
     (parent.type === "variable_expression" &&
       parent.firstNamedChild?.id === node.id) ||
     (parent.type === "function_expression" &&
+      parent.childForFieldName("name")?.id === node.id) ||
+    (parent.type === "function_statement" &&
       parent.childForFieldName("name")?.id === node.id)
   );
 };
@@ -201,7 +203,11 @@ const isFirstArgumentOfMapRect = (node: Node): boolean => {
 };
 
 const referenceKindForNode = (node: Node): SymbolKind => {
-  if (node.parent?.type === "function_expression" || isFirstArgumentOfMapRect(node)) {
+  if (
+    node.parent?.type === "function_expression" ||
+    node.parent?.type === "function_statement" ||
+    isFirstArgumentOfMapRect(node)
+  ) {
     return "function";
   }
   return "value";
