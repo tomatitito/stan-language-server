@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { parse } from "../../../language/treesitter/parser.ts";
+import { parse } from "../../../language/ast/parser.ts";
 
 // Requires generated WASM data. If this fails to import, run `bun run generate:wasm` first.
 
-describe("tree-sitter parser singleton", () => {
+describe("AST parser singleton", () => {
   test("lazily initializes from generated WASM data and parses a simple Stan program", async () => {
     const source = 
 `data {

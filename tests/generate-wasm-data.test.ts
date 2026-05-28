@@ -16,7 +16,7 @@ describe("generateWasmData", () => {
     const tempDir = await mkdtemp(join(tmpdir(), "sls-wasm-data-"));
     tempDirs.push(tempDir);
 
-    const outputPath = join(tempDir, "src/language/treesitter/wasm-data.generated.ts");
+    const outputPath = join(tempDir, "src/language/ast/wasm-data.generated.ts");
 
     await generateWasmData({ outputPath });
 

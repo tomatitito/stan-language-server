@@ -9,7 +9,7 @@ import { buildSemanticIndex } from "./semantic_index";
 export type ParseDocument = (text: string, oldTree?: Tree) => Promise<Tree>;
 
 const parseWithTreeSitter: ParseDocument = async (text, oldTree) => {
-  const { parse } = await import("../treesitter/parser");
+  const { parse } = await import("./parser");
   return parse(text, oldTree);
 };
 
