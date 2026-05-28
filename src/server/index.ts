@@ -140,14 +140,23 @@ const startLanguageServer = (
   const documents = new TextDocuments(TextDocument);
   let workspaceIndex = createWorkspaceIndex();
   let workspaceIndexUpdate: Promise<void> = Promise.resolve();
+  const workspaceIndexDebounceMs = 75;
+  type PendingWorkspaceIndexUpdate = {
+    timer?: ReturnType<typeof setTimeout>;
+    version: number;
+    promise: Promise<void>;
+    resolve: () => void;
+  };
+  const pendingWorkspaceIndexUpdates = new Map<
+    string,
+    PendingWorkspaceIndexUpdate
+  >();
 
   const isStanDocument = (document: TextDocument) => {
     return document.languageId.startsWith("stan");
   };
 
-  const queueWorkspaceIndexUpdate = (document: TextDocument) => {
-    const uri = document.uri;
-
+  const runWorkspaceIndexUpdate = (uri: string) => {
     workspaceIndexUpdate = workspaceIndexUpdate
       .catch(() => undefined)
       .then(async () => {
@@ -172,6 +181,67 @@ const startLanguageServer = (
       });
 
     return workspaceIndexUpdate;
+  };
+
+  const queueWorkspaceIndexUpdate = (document: TextDocument) => {
+    const uri = document.uri;
+    const existingUpdate = pendingWorkspaceIndexUpdates.get(uri);
+    if (existingUpdate?.timer) {
+      clearTimeout(existingUpdate.timer);
+    }
+
+    const createPendingUpdate = (): PendingWorkspaceIndexUpdate => {
+      let resolve!: () => void;
+      const promise = new Promise<void>((resolver) => {
+        resolve = resolver;
+      });
+      return {
+        version: document.version,
+        promise,
+        resolve,
+      };
+    };
+
+    const pendingUpdate = existingUpdate ?? createPendingUpdate();
+
+    pendingUpdate.version = document.version;
+    pendingUpdate.timer = setTimeout(() => {
+      if (pendingWorkspaceIndexUpdates.get(uri) !== pendingUpdate) {
+        return;
+      }
+      pendingWorkspaceIndexUpdates.delete(uri);
+      void runWorkspaceIndexUpdate(uri).finally(pendingUpdate.resolve);
+    }, workspaceIndexDebounceMs);
+    pendingWorkspaceIndexUpdates.set(uri, pendingUpdate);
+
+    return pendingUpdate.promise;
+  };
+
+  const clearPendingWorkspaceIndexUpdate = (uri: string) => {
+    const pendingUpdate = pendingWorkspaceIndexUpdates.get(uri);
+    if (!pendingUpdate) {
+      return;
+    }
+    if (pendingUpdate.timer) {
+      clearTimeout(pendingUpdate.timer);
+    }
+    pendingWorkspaceIndexUpdates.delete(uri);
+    pendingUpdate.resolve();
+  };
+
+  const forceWorkspaceIndexUpdate = async (document: TextDocument) => {
+    const pendingUpdate = pendingWorkspaceIndexUpdates.get(document.uri);
+    if (pendingUpdate) {
+      if (pendingUpdate.timer) {
+        clearTimeout(pendingUpdate.timer);
+      }
+      pendingWorkspaceIndexUpdates.delete(document.uri);
+      await runWorkspaceIndexUpdate(document.uri);
+      pendingUpdate.resolve();
+    } else {
+      await workspaceIndexUpdate;
+    }
+    workspaceIndex = await upsertSemanticIndexEntry(workspaceIndex, document);
   };
 
   connection.onCompletion((params) => {
@@ -241,8 +311,7 @@ const startLanguageServer = (
     if (!document || !isStanDocument(document)) {
       return null;
     }
-    await workspaceIndexUpdate;
-    workspaceIndex = await upsertSemanticIndexEntry(workspaceIndex, document);
+    await forceWorkspaceIndexUpdate(document);
     return handlePrepareRename(document, params, workspaceIndex);
   });
 
@@ -251,8 +320,7 @@ const startLanguageServer = (
     if (!document || !isStanDocument(document)) {
       return { documentChanges: [] };
     }
-    await workspaceIndexUpdate;
-    workspaceIndex = await upsertSemanticIndexEntry(workspaceIndex, document);
+    await forceWorkspaceIndexUpdate(document);
     return handleRename(document, params, workspaceIndex);
   });
 
@@ -261,6 +329,7 @@ const startLanguageServer = (
   });
 
   documents.onDidClose((event) => {
+    clearPendingWorkspaceIndexUpdate(event.document.uri);
     workspaceIndex = removeSemanticIndexEntry(
       workspaceIndex,
       event.document.uri,

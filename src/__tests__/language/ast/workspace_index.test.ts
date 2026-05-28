@@ -14,7 +14,7 @@ describe("workspace index", () => {
     const tree = { id: "tree-v1" } as any;
     const editedTree = { id: "tree-v2" } as any;
     let parseCount = 0;
-    const parseDocument = mock(async (_text: string) => {
+    const parseDocument = mock(async (_text: string, _oldTree?: any) => {
       parseCount += 1;
       return parseCount === 1 ? tree : editedTree;
     });
@@ -40,7 +40,7 @@ describe("workspace index", () => {
     const updatedEntry = getSemanticIndexEntry(updatedIndex, editedDocument);
 
     expect(parseDocument).toHaveBeenCalledTimes(2);
-    expect(parseDocument.mock.calls[1]).toEqual([editedDocument.getText()]);
+    expect(parseDocument.mock.calls[1]).toEqual([editedDocument.getText(), tree]);
     expect(updatedEntry).not.toBeNull();
     expect(updatedEntry).not.toBe(entry);
     expect(updatedEntry?.version).toBe(editedDocument.version);
