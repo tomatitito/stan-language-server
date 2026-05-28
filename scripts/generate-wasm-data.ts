@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 
 const DEFAULT_OUTPUT_PATH = join(
   process.cwd(),
-  "src/language/treesitter/wasm-data.generated.ts",
+  "src/language/ast/wasm-data.generated.ts",
 );
 
 export type GenerateWasmDataOptions = {
