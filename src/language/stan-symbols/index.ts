@@ -63,13 +63,17 @@ export const STAN_CONSTRAINT_NAMES = [
   "multiplier",
 ] as const;
 
-export const STAN_MANUAL_FUNCTIONS = [
-  "print",
-  "reject",
-  "fatal_error",
-  "target",
+export const STAN_HIGHER_ORDER_FUNCTIONS = [
+  "algebra_solver",
+  "algebra_solver_newton",
   "dae",
   "dae_tol",
+  "integrate_1d",
+  "integrate_ode",
+  "integrate_ode_adams",
+  "integrate_ode_bdf",
+  "integrate_ode_rk45",
+  "map_rect",
   "ode_adams",
   "ode_adams_tol",
   "ode_adjoint_tol_ctl",
@@ -79,12 +83,19 @@ export const STAN_MANUAL_FUNCTIONS = [
   "ode_ckrk_tol",
   "ode_rk45",
   "ode_rk45_tol",
+  "reduce_sum",
+  "reduce_sum_static",
   "solve_newton",
   "solve_newton_tol",
   "solve_powell",
   "solve_powell_tol",
-  "reduce_sum",
-  "reduce_sum_static",
+] as const;
+
+export const STAN_MANUAL_FUNCTIONS = [
+  "print",
+  "reject",
+  "fatal_error",
+  "target",
 ] as const;
 
 export const STAN_FUNCTIONS = [
@@ -110,6 +121,14 @@ const STAN_RESERVED_OR_BUILTIN_NAMES = new Set<string>([
   ...STAN_DISTRIBUTIONS,
 ]);
 
+const STAN_HIGHER_ORDER_FUNCTION_NAMES = new Set<string>(
+  STAN_HIGHER_ORDER_FUNCTIONS,
+);
+
 export const isReservedOrBuiltInStanName = (name: string): boolean => {
   return STAN_RESERVED_OR_BUILTIN_NAMES.has(name);
+};
+
+export const isHigherOrderStanFunction = (name: string): boolean => {
+  return STAN_HIGHER_ORDER_FUNCTION_NAMES.has(name);
 };
