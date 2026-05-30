@@ -183,6 +183,58 @@ transformed parameters {
     );
   });
 
+  it("renames higher-order Stan function arguments as user-defined functions", async () => {
+    const entry = await createIndexedEntry(`
+functions {
+  real partial_sum(array[] real slice, int start, int end, vector beta) {
+    return 0;
+  }
+}
+parameters {
+  vector[2] partial_sum;
+}
+model {
+  target += reduce_sum(partial_sum, to_array_1d(partial_sum), 1, partial_sum);
+}
+`.trimStart());
+
+    expect(provideRename(entry, { line: 1, character: 9 })).toEqual([
+      {
+        range: {
+          start: { line: 1, character: 7 },
+          end: { line: 1, character: 18 },
+        },
+      },
+      {
+        range: {
+          start: { line: 9, character: 23 },
+          end: { line: 9, character: 34 },
+        },
+      },
+    ]);
+
+    expect(provideRename(entry, { line: 6, character: 13 })).toEqual([
+      {
+        range: {
+          start: { line: 6, character: 12 },
+          end: { line: 6, character: 23 },
+        },
+      },
+      {
+        range: {
+          start: { line: 9, character: 48 },
+          end: { line: 9, character: 59 },
+        },
+      },
+      {
+        range: {
+          start: { line: 9, character: 65 },
+          end: { line: 9, character: 76 },
+        },
+      },
+    ]);
+  });
+
   it("renames the map_rect parameters block beta without renaming other betas", async () => {
     const entry = await createIndexedEntry(mapRectProgram);
 

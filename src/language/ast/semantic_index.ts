@@ -1,4 +1,5 @@
 import type { Node } from "web-tree-sitter";
+import { isHigherOrderStanFunction } from "../stan-symbols";
 import type {
   NameInfo,
   SemanticIndex,
@@ -188,7 +189,7 @@ const declarationKindForNode = (node: Node): SymbolKind => {
   return "value";
 };
 
-const isFirstArgumentOfMapRect = (node: Node): boolean => {
+const isFirstArgumentOfHigherOrderStanFunction = (node: Node): boolean => {
   const expression = node.parent;
   const argumentList = expression?.parent;
   const functionExpression = argumentList?.parent;
@@ -197,7 +198,9 @@ const isFirstArgumentOfMapRect = (node: Node): boolean => {
     expression?.type === "variable_expression" &&
     argumentList?.type === "argument_list" &&
     functionExpression?.type === "function_expression" &&
-    functionExpression.childForFieldName("name")?.text === "map_rect" &&
+    isHigherOrderStanFunction(
+      functionExpression.childForFieldName("name")?.text ?? "",
+    ) &&
     argumentList.namedChildren[0]?.id === expression.id
   );
 };
@@ -206,7 +209,7 @@ const referenceKindForNode = (node: Node): SymbolKind => {
   if (
     node.parent?.type === "function_expression" ||
     node.parent?.type === "function_statement" ||
-    isFirstArgumentOfMapRect(node)
+    isFirstArgumentOfHigherOrderStanFunction(node)
   ) {
     return "function";
   }
