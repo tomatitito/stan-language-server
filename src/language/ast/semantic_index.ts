@@ -20,8 +20,6 @@ const SCOPE_BOUNDARY_TYPES = new Set([
   "while_statement",
   "if_statement",
   "profile_statement",
-  "model",
-  "generated_quantities",
 ]);
 
 const TOP_LEVEL_VALUE_BLOCK_TYPES = new Set([
