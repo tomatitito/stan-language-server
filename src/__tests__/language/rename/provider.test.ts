@@ -91,6 +91,42 @@ model {
     expect(result).toEqual([]);
   });
 
+  it("renames transformed parameters variables referenced in model", async () => {
+    const entry = await createIndexedEntry(`
+parameters {
+  real sigma;
+}
+transformed parameters {
+  real sigma_sq = sigma * sigma;
+}
+model {
+  sigma_sq ~ normal(0, 1);
+}
+`.trimStart());
+
+    const occurrences = [
+      {
+        range: {
+          start: { line: 4, character: 7 },
+          end: { line: 4, character: 15 },
+        },
+      },
+      {
+        range: {
+          start: { line: 7, character: 2 },
+          end: { line: 7, character: 10 },
+        },
+      },
+    ];
+
+    expect(provideRename(entry, { line: 4, character: 8 })).toEqual(
+      occurrences,
+    );
+    expect(provideRename(entry, { line: 7, character: 3 })).toEqual(
+      occurrences,
+    );
+  });
+
   it("renames user-defined functions from standalone function statements", async () => {
     const entry = await createIndexedEntry(`
 functions {
