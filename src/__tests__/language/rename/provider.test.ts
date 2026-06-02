@@ -318,6 +318,68 @@ model {
     );
   });
 
+  it("renames model locals referenced by later model statements", async () => {
+    const entry = await createIndexedEntry(`
+model {
+  real local;
+  local = 1;
+}
+`.trimStart());
+
+    const occurrences = [
+      {
+        range: {
+          start: { line: 1, character: 7 },
+          end: { line: 1, character: 12 },
+        },
+      },
+      {
+        range: {
+          start: { line: 2, character: 2 },
+          end: { line: 2, character: 7 },
+        },
+      },
+    ];
+
+    expect(provideRename(entry, { line: 1, character: 8 })).toEqual(
+      occurrences,
+    );
+    expect(provideRename(entry, { line: 2, character: 3 })).toEqual(
+      occurrences,
+    );
+  });
+
+  it("renames generated quantities locals referenced by later generated quantities statements", async () => {
+    const entry = await createIndexedEntry(`
+generated quantities {
+  real first;
+  real second = first;
+}
+`.trimStart());
+
+    const occurrences = [
+      {
+        range: {
+          start: { line: 1, character: 7 },
+          end: { line: 1, character: 12 },
+        },
+      },
+      {
+        range: {
+          start: { line: 2, character: 16 },
+          end: { line: 2, character: 21 },
+        },
+      },
+    ];
+
+    expect(provideRename(entry, { line: 1, character: 8 })).toEqual(
+      occurrences,
+    );
+    expect(provideRename(entry, { line: 2, character: 17 })).toEqual(
+      occurrences,
+    );
+  });
+
   it("renames user-defined functions from standalone function statements", async () => {
     const entry = await createIndexedEntry(`
 functions {
