@@ -24,6 +24,22 @@ const SCOPE_BOUNDARY_TYPES = new Set([
   "generated_quantities",
 ]);
 
+const TOP_LEVEL_VALUE_BLOCK_TYPES = new Set([
+  "data",
+  "transformed_data",
+  "parameters",
+  "transformed_parameters",
+  "model",
+  "generated_quantities",
+]);
+
+const EXPORTING_TOP_LEVEL_VALUE_BLOCK_TYPES = new Set([
+  "data",
+  "transformed_data",
+  "parameters",
+  "transformed_parameters",
+]);
+
 type Scope = {
   parent: Scope | null;
   declarations: Map<string, SymbolId[]>;
@@ -306,18 +322,56 @@ export const buildSemanticIndex = (
     return nextState;
   }
 
+  function walkTopLevelValueBlock(
+    node: Node,
+    state: WalkState,
+    visibleProgramValueScope: Scope,
+  ): { state: WalkState; visibleProgramValueScope: Scope } {
+    const blockScope = createScope(visibleProgramValueScope);
+    const childState = walk(node, {
+      ...state,
+      scope: blockScope,
+    });
+    const nextVisibleProgramValueScope =
+      EXPORTING_TOP_LEVEL_VALUE_BLOCK_TYPES.has(node.type)
+        ? blockScope
+        : visibleProgramValueScope;
+
+    return {
+      state: {
+        ...childState,
+        scope: nextVisibleProgramValueScope,
+      },
+      visibleProgramValueScope: nextVisibleProgramValueScope,
+    };
+  }
+
   function walkProgram(node: Node, state: WalkState): WalkState {
     let nextState = state;
+    let visibleProgramValueScope = state.scope;
 
     for (const child of node.namedChildren) {
-      const childState =
-        child.type === "functions"
-          ? walkFunctionsBlock(child, nextState)
-          : walk(child, nextState);
-      nextState = {
-        ...childState,
-        scope: state.scope,
-      };
+      if (child.type === "functions") {
+        const childState = walkFunctionsBlock(child, nextState);
+        nextState = {
+          ...childState,
+          scope: visibleProgramValueScope,
+        };
+      } else if (TOP_LEVEL_VALUE_BLOCK_TYPES.has(child.type)) {
+        const result = walkTopLevelValueBlock(
+          child,
+          nextState,
+          visibleProgramValueScope,
+        );
+        nextState = result.state;
+        visibleProgramValueScope = result.visibleProgramValueScope;
+      } else {
+        const childState = walk(child, nextState);
+        nextState = {
+          ...childState,
+          scope: visibleProgramValueScope,
+        };
+      }
     }
 
     return nextState;
