@@ -127,6 +127,197 @@ model {
     );
   });
 
+  it("renames transformed parameters variables referenced in generated quantities", async () => {
+    const entry = await createIndexedEntry(`
+parameters {
+  real sigma;
+}
+transformed parameters {
+  real sigma_sq = sigma * sigma;
+}
+generated quantities {
+  real draw = sigma_sq;
+}
+`.trimStart());
+
+    const occurrences = [
+      {
+        range: {
+          start: { line: 4, character: 7 },
+          end: { line: 4, character: 15 },
+        },
+      },
+      {
+        range: {
+          start: { line: 7, character: 14 },
+          end: { line: 7, character: 22 },
+        },
+      },
+    ];
+
+    expect(provideRename(entry, { line: 4, character: 8 })).toEqual(
+      occurrences,
+    );
+    expect(provideRename(entry, { line: 7, character: 15 })).toEqual(
+      occurrences,
+    );
+  });
+
+  it("does not rename model locals from generated quantities", async () => {
+    const entry = await createIndexedEntry(`
+model {
+  real local_only;
+}
+generated quantities {
+  real draw = local_only;
+}
+`.trimStart());
+
+    expect(provideRename(entry, { line: 1, character: 8 })).toEqual([
+      {
+        range: {
+          start: { line: 1, character: 7 },
+          end: { line: 1, character: 17 },
+        },
+      },
+    ]);
+    expect(provideRename(entry, { line: 4, character: 15 })).toEqual([]);
+  });
+
+  it("does not export nested transformed parameters locals to model", async () => {
+    const entry = await createIndexedEntry(`
+transformed parameters {
+  real exported;
+  {
+    real nested;
+    exported = nested;
+  }
+}
+model {
+  exported ~ normal(0, 1);
+  nested ~ normal(0, 1);
+}
+`.trimStart());
+
+    expect(provideRename(entry, { line: 1, character: 8 })).toEqual([
+      {
+        range: {
+          start: { line: 1, character: 7 },
+          end: { line: 1, character: 15 },
+        },
+      },
+      {
+        range: {
+          start: { line: 4, character: 4 },
+          end: { line: 4, character: 12 },
+        },
+      },
+      {
+        range: {
+          start: { line: 8, character: 2 },
+          end: { line: 8, character: 10 },
+        },
+      },
+    ]);
+    expect(provideRename(entry, { line: 3, character: 9 })).toEqual([
+      {
+        range: {
+          start: { line: 3, character: 9 },
+          end: { line: 3, character: 15 },
+        },
+      },
+      {
+        range: {
+          start: { line: 4, character: 15 },
+          end: { line: 4, character: 21 },
+        },
+      },
+    ]);
+    expect(provideRename(entry, { line: 9, character: 3 })).toEqual([]);
+  });
+
+  it("renames transformed data variables referenced in later blocks", async () => {
+    const entry = await createIndexedEntry(`
+transformed data {
+  real td;
+}
+parameters {
+  real<lower=td> theta;
+}
+model {
+  theta ~ normal(td, 1);
+}
+`.trimStart());
+
+    const tdOccurrences = [
+      {
+        range: {
+          start: { line: 1, character: 7 },
+          end: { line: 1, character: 9 },
+        },
+      },
+      {
+        range: {
+          start: { line: 4, character: 13 },
+          end: { line: 4, character: 15 },
+        },
+      },
+      {
+        range: {
+          start: { line: 7, character: 17 },
+          end: { line: 7, character: 19 },
+        },
+      },
+    ];
+
+    expect(provideRename(entry, { line: 1, character: 8 })).toEqual(
+      tdOccurrences,
+    );
+    expect(provideRename(entry, { line: 4, character: 14 })).toEqual(
+      tdOccurrences,
+    );
+    expect(provideRename(entry, { line: 7, character: 18 })).toEqual(
+      tdOccurrences,
+    );
+  });
+
+  it("does not rename invalid references from earlier blocks to later declarations", async () => {
+    const entry = await createIndexedEntry(`
+transformed data {
+  real x = theta;
+}
+parameters {
+  real theta;
+}
+model {
+  theta ~ normal(0, 1);
+}
+`.trimStart());
+
+    const thetaOccurrences = [
+      {
+        range: {
+          start: { line: 4, character: 7 },
+          end: { line: 4, character: 12 },
+        },
+      },
+      {
+        range: {
+          start: { line: 7, character: 2 },
+          end: { line: 7, character: 7 },
+        },
+      },
+    ];
+
+    expect(provideRename(entry, { line: 1, character: 11 })).toEqual([]);
+    expect(provideRename(entry, { line: 4, character: 8 })).toEqual(
+      thetaOccurrences,
+    );
+    expect(provideRename(entry, { line: 7, character: 3 })).toEqual(
+      thetaOccurrences,
+    );
+  });
+
   it("renames user-defined functions from standalone function statements", async () => {
     const entry = await createIndexedEntry(`
 functions {
