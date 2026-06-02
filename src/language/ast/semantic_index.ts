@@ -21,8 +21,6 @@ const SCOPE_BOUNDARY_TYPES = new Set([
   "if_statement",
   "profile_statement",
   "model",
-  "transformed_data",
-  "transformed_parameters",
   "generated_quantities",
 ]);
 
@@ -33,12 +31,14 @@ type Scope = {
 
 type WalkState = {
   scope: Scope;
+  functionScope: Scope;
   nextSymbolId: number;
   nextReferenceId: number;
   symbolsById: Map<SymbolId, SymbolInfo>;
   referencesById: Map<ReferenceId, ReferenceInfo>;
   referenceIdsBySymbolId: Map<SymbolId, ReferenceId[]>;
   nameInfoByNodeId: Map<number, NameInfo>;
+  predeclaredDeclarationNodeIds: Set<number>;
 };
 
 const utf8ByteLength = (value: string): number => {
@@ -235,6 +235,94 @@ export const buildSemanticIndex = (
     };
   }
 
+  function declareSymbol(
+    node: Node,
+    state: WalkState,
+    targetScope: Scope,
+    kind: SymbolKind,
+  ): WalkState {
+    const symbolId: SymbolId = `symbol-${state.nextSymbolId}`;
+    state.symbolsById.set(symbolId, {
+      id: symbolId,
+      name: node.text,
+      kind,
+      range: nodeToRange(lines, node),
+      nodeId: node.id,
+    });
+    state.nameInfoByNodeId.set(node.id, {
+      kind: "declaration",
+      symbolId,
+      renameable: true,
+    });
+    const declarations = targetScope.declarations.get(node.text) ?? [];
+    targetScope.declarations.set(node.text, [...declarations, symbolId]);
+    return {
+      ...state,
+      nextSymbolId: state.nextSymbolId + 1,
+    };
+  }
+
+  function functionNameIdentifier(functionDefinition: Node): Node | null {
+    const functionDeclarator = functionDefinition.namedChildren.find(
+      (child) => child.type === "function_declarator",
+    );
+    return functionDeclarator?.childForFieldName("name") ?? null;
+  }
+
+  function walkFunctionsBlock(node: Node, state: WalkState): WalkState {
+    const functionValueScope = createScope(null);
+    let nextState = state;
+
+    for (const functionDefinition of node.namedChildren) {
+      if (functionDefinition.type !== "function_definition") {
+        continue;
+      }
+
+      const nameIdentifier = functionNameIdentifier(functionDefinition);
+      if (nameIdentifier === null) {
+        continue;
+      }
+
+      nextState = declareSymbol(
+        nameIdentifier,
+        nextState,
+        nextState.functionScope,
+        "function",
+      );
+      nextState.predeclaredDeclarationNodeIds.add(nameIdentifier.id);
+    }
+
+    for (const child of node.namedChildren) {
+      const childState = walk(child, {
+        ...nextState,
+        scope: functionValueScope,
+      });
+      nextState = {
+        ...childState,
+        scope: state.scope,
+      };
+    }
+
+    return nextState;
+  }
+
+  function walkProgram(node: Node, state: WalkState): WalkState {
+    let nextState = state;
+
+    for (const child of node.namedChildren) {
+      const childState =
+        child.type === "functions"
+          ? walkFunctionsBlock(child, nextState)
+          : walk(child, nextState);
+      nextState = {
+        ...childState,
+        scope: state.scope,
+      };
+    }
+
+    return nextState;
+  }
+
   function walk(node: Node, state: WalkState): WalkState {
     const enteredNewScope =
       node !== tree.rootNode && SCOPE_BOUNDARY_TYPES.has(node.type);
@@ -246,32 +334,23 @@ export const buildSemanticIndex = (
       scope: currentScope,
     };
 
-    if (isDeclarationIdentifier(node)) {
-      const symbolId: SymbolId = `symbol-${nextState.nextSymbolId}`;
+    if (
+      isDeclarationIdentifier(node) &&
+      !nextState.predeclaredDeclarationNodeIds.has(node.id)
+    ) {
       const targetScope = declarationScopeForNode(node, currentScope);
-      nextState.symbolsById.set(symbolId, {
-        id: symbolId,
-        name: node.text,
-        kind: declarationKindForNode(node),
-        range: nodeToRange(lines, node),
-        nodeId: node.id,
-      });
-      nextState.nameInfoByNodeId.set(node.id, {
-        kind: "declaration",
-        symbolId,
-        renameable: true,
-      });
-      const declarations = targetScope.declarations.get(node.text) ?? [];
-      targetScope.declarations.set(node.text, [...declarations, symbolId]);
-      nextState = {
-        ...nextState,
-        nextSymbolId: nextState.nextSymbolId + 1,
-      };
+      nextState = declareSymbol(
+        node,
+        nextState,
+        targetScope,
+        declarationKindForNode(node),
+      );
     } else if (isReferenceIdentifier(node)) {
+      const referenceKind = referenceKindForNode(node);
       const symbolId = resolveSymbol(
-        currentScope,
+        referenceKind === "function" ? nextState.functionScope : currentScope,
         node.text,
-        referenceKindForNode(node),
+        referenceKind,
         nextState.symbolsById,
       );
       if (symbolId === undefined) {
@@ -315,14 +394,16 @@ export const buildSemanticIndex = (
     };
   }
 
-  const finalState = walk(tree.rootNode, {
+  const finalState = walkProgram(tree.rootNode, {
     scope: createScope(null),
+    functionScope: createScope(null),
     nextSymbolId: 1,
     nextReferenceId: 1,
     symbolsById,
     referencesById,
     referenceIdsBySymbolId,
     nameInfoByNodeId,
+    predeclaredDeclarationNodeIds: new Set(),
   });
 
   return {

@@ -124,6 +124,42 @@ generated quantities {
     );
   });
 
+  it("renames forward references to user-defined functions", async () => {
+    const entry = await createIndexedEntry(`
+functions {
+  real f(real x) {
+    return g(x);
+  }
+
+  real g(real x) {
+    return x;
+  }
+}
+`.trimStart());
+
+    const occurrences = [
+      {
+        range: {
+          start: { line: 5, character: 7 },
+          end: { line: 5, character: 8 },
+        },
+      },
+      {
+        range: {
+          start: { line: 2, character: 11 },
+          end: { line: 2, character: 12 },
+        },
+      },
+    ];
+
+    expect(provideRename(entry, { line: 2, character: 11 })).toEqual(
+      occurrences,
+    );
+    expect(provideRename(entry, { line: 5, character: 7 })).toEqual(
+      occurrences,
+    );
+  });
+
   const mapRectProgram = `
 functions {
   vector beta(vector theta, vector phi, array[] real x_r, array[] int x_i) {
