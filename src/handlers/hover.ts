@@ -47,7 +47,9 @@ const initializeFunctionMarkupMap = (): Map<string, MarkupContent> => {
   }
 
   for (const func of STAN_MANUAL_FUNCTIONS) {
-    markupLookupMap.set(func, getDocumentationForFunction(func));
+    if (!markupLookupMap.has(func)) {
+      markupLookupMap.set(func, getDocumentationForFunction(func));
+    }
   }
 
   return markupLookupMap;
