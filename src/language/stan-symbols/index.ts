@@ -92,6 +92,7 @@ export const STAN_HIGHER_ORDER_FUNCTIONS = [
 ] as const;
 
 export const STAN_MANUAL_FUNCTIONS = [
+  ...STAN_HIGHER_ORDER_FUNCTIONS,
   "print",
   "reject",
   "fatal_error",

@@ -3,6 +3,7 @@ import { LSPTestClient } from "./lsp-client";
 
 
 const FUNCTION_CODE = "model { real foo = beta(1,2); }";
+const HIGHER_ORDER_FUNCTION_CODE = "model { real foo = map_rect(); }";
 const DISTRIBUTION_CODE = "model { foo ~ std_normal(); }";
 
 describe("Hover", () => {
@@ -65,6 +66,20 @@ beta
       expect(result?.contents).toBeDefined();
       if (result?.contents && typeof result.contents === 'object' && 'value' in result.contents) {
         expect(result.contents.value).toContain("Jump to Stan Functions Reference index entry for beta");
+      }
+    });
+
+    it("should preserve generated signatures for higher-order functions", async () => {
+      const uri = `file:///hover-higher-order-function.stan`;
+      await client.didOpen(uri, "stan", HIGHER_ORDER_FUNCTION_CODE);
+
+      const result = await client.hover(uri, 0, 20);
+
+      expect(result).not.toBeNull();
+      expect(result?.contents).toBeDefined();
+      if (result?.contents && typeof result.contents === 'object' && 'value' in result.contents) {
+        expect(result.contents.value).toContain("Jump to Stan Functions Reference index entry for map_rect");
+        expect(result.contents.value).toContain("**Available signatures**");
       }
     });
   });
