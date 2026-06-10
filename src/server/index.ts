@@ -16,7 +16,14 @@ import {
   handleDiagnostics,
   handleFormatting,
   handleHover,
+  handlePrepareRename,
+  handleRename,
 } from "../handlers/index.ts";
+import {
+  createWorkspaceIndex,
+  removeSemanticIndexEntry,
+  upsertSemanticIndexEntry,
+} from "../language/ast/workspace_index.ts";
 import { type FileSystemReader } from "../types/common.ts";
 import {
   defaultSettings,
@@ -26,7 +33,7 @@ import { SERVER_ID } from "../constants/index.ts";
 
 const startLanguageServer = (
   connection: Connection,
-  reader?: FileSystemReader
+  reader?: FileSystemReader,
 ) => {
   let hasConfigurationCapability: boolean = false;
   let hasWorkspaceFolderCapability: boolean = false;
@@ -41,9 +48,11 @@ const startLanguageServer = (
     hasConfigurationCapability = Boolean(capabilities.workspace?.configuration);
     hasDynamicConfigurationRequestCapability = Boolean(
       capabilities.workspace?.configuration &&
-      capabilities.workspace?.didChangeConfiguration?.dynamicRegistration
+      capabilities.workspace?.didChangeConfiguration?.dynamicRegistration,
     );
-    hasWorkspaceFolderCapability = Boolean(capabilities.workspace?.workspaceFolders);
+    hasWorkspaceFolderCapability = Boolean(
+      capabilities.workspace?.workspaceFolders,
+    );
     hasSnippetSupport = Boolean(
       capabilities.textDocument?.completion?.completionItem?.snippetSupport ||
       capabilities.textDocument?.completion?.completionItemKind?.valueSet?.some(
@@ -66,6 +75,9 @@ const startLanguageServer = (
           },
         },
         hoverProvider: true,
+        renameProvider: {
+          prepareProvider: true,
+        },
         diagnosticProvider: {
           interFileDependencies: true,
           workspaceDiagnostics: false,
@@ -126,6 +138,111 @@ const startLanguageServer = (
   };
 
   const documents = new TextDocuments(TextDocument);
+  let workspaceIndex = createWorkspaceIndex();
+  let workspaceIndexUpdate: Promise<void> = Promise.resolve();
+  const workspaceIndexDebounceMs = 75;
+  type PendingWorkspaceIndexUpdate = {
+    timer?: ReturnType<typeof setTimeout>;
+    version: number;
+    promise: Promise<void>;
+    resolve: () => void;
+  };
+  const pendingWorkspaceIndexUpdates = new Map<
+    string,
+    PendingWorkspaceIndexUpdate
+  >();
+
+  const isStanDocument = (document: TextDocument) => {
+    return document.languageId.startsWith("stan");
+  };
+
+  const runWorkspaceIndexUpdate = (uri: string) => {
+    workspaceIndexUpdate = workspaceIndexUpdate
+      .catch(() => undefined)
+      .then(async () => {
+        const latestDocument = documents.get(uri);
+        if (!latestDocument || !isStanDocument(latestDocument)) {
+          return;
+        }
+
+        const nextWorkspaceIndex = await upsertSemanticIndexEntry(
+          workspaceIndex,
+          latestDocument,
+        );
+        const currentDocument = documents.get(uri);
+        if (currentDocument?.version === latestDocument.version) {
+          workspaceIndex = nextWorkspaceIndex;
+        }
+      })
+      .catch((error: unknown) => {
+        connection.console.error(
+          `Failed to update workspace index for ${uri}: ${String(error)}`,
+        );
+      });
+
+    return workspaceIndexUpdate;
+  };
+
+  const queueWorkspaceIndexUpdate = (document: TextDocument) => {
+    const uri = document.uri;
+    const existingUpdate = pendingWorkspaceIndexUpdates.get(uri);
+    if (existingUpdate?.timer) {
+      clearTimeout(existingUpdate.timer);
+    }
+
+    const createPendingUpdate = (): PendingWorkspaceIndexUpdate => {
+      let resolve!: () => void;
+      const promise = new Promise<void>((resolver) => {
+        resolve = resolver;
+      });
+      return {
+        version: document.version,
+        promise,
+        resolve,
+      };
+    };
+
+    const pendingUpdate = existingUpdate ?? createPendingUpdate();
+
+    pendingUpdate.version = document.version;
+    pendingUpdate.timer = setTimeout(() => {
+      if (pendingWorkspaceIndexUpdates.get(uri) !== pendingUpdate) {
+        return;
+      }
+      pendingWorkspaceIndexUpdates.delete(uri);
+      void runWorkspaceIndexUpdate(uri).finally(pendingUpdate.resolve);
+    }, workspaceIndexDebounceMs);
+    pendingWorkspaceIndexUpdates.set(uri, pendingUpdate);
+
+    return pendingUpdate.promise;
+  };
+
+  const clearPendingWorkspaceIndexUpdate = (uri: string) => {
+    const pendingUpdate = pendingWorkspaceIndexUpdates.get(uri);
+    if (!pendingUpdate) {
+      return;
+    }
+    if (pendingUpdate.timer) {
+      clearTimeout(pendingUpdate.timer);
+    }
+    pendingWorkspaceIndexUpdates.delete(uri);
+    pendingUpdate.resolve();
+  };
+
+  const forceWorkspaceIndexUpdate = async (document: TextDocument) => {
+    const pendingUpdate = pendingWorkspaceIndexUpdates.get(document.uri);
+    if (pendingUpdate) {
+      if (pendingUpdate.timer) {
+        clearTimeout(pendingUpdate.timer);
+      }
+      pendingWorkspaceIndexUpdates.delete(document.uri);
+      await runWorkspaceIndexUpdate(document.uri);
+      pendingUpdate.resolve();
+    } else {
+      await workspaceIndexUpdate;
+    }
+    workspaceIndex = await upsertSemanticIndexEntry(workspaceIndex, document);
+  };
 
   connection.onCompletion((params) => {
     return handleCompletion(params, documents, hasSnippetSupport);
@@ -149,7 +266,7 @@ const startLanguageServer = (
         folders,
         settings,
         connection.console,
-        reader
+        reader,
       ),
     };
   });
@@ -163,7 +280,7 @@ const startLanguageServer = (
       folders,
       settings,
       connection.console,
-      reader
+      reader,
     );
     if (Array.isArray(formattingResult)) {
       return formattingResult;
@@ -174,7 +291,8 @@ const startLanguageServer = (
       }
       connection.sendNotification("window/showMessage", {
         type: MessageType.Error,
-        message: "Formatting failed due to compile errors. See diagnostics for details.",
+        message:
+          "Formatting failed due to compile errors. See diagnostics for details.",
       });
       return [];
     }
@@ -182,10 +300,40 @@ const startLanguageServer = (
 
   connection.onHover((params) => {
     const document = documents.get(params.textDocument.uri);
-    if (!document || !document.languageId.startsWith("stan")) {
+    if (!document || !isStanDocument(document)) {
       return null;
     }
     return handleHover(document, params);
+  });
+
+  connection.onPrepareRename(async (params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document || !isStanDocument(document)) {
+      return null;
+    }
+    await forceWorkspaceIndexUpdate(document);
+    return handlePrepareRename(document, params, workspaceIndex);
+  });
+
+  connection.onRenameRequest(async (params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document || !isStanDocument(document)) {
+      return { documentChanges: [] };
+    }
+    await forceWorkspaceIndexUpdate(document);
+    return handleRename(document, params, workspaceIndex);
+  });
+
+  documents.onDidChangeContent((event) => {
+    void queueWorkspaceIndexUpdate(event.document);
+  });
+
+  documents.onDidClose((event) => {
+    clearPendingWorkspaceIndexUpdate(event.document.uri);
+    workspaceIndex = removeSemanticIndexEntry(
+      workspaceIndex,
+      event.document.uri,
+    );
   });
 
   documents.listen(connection);

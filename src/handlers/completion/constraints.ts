@@ -1,4 +1,5 @@
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+import { STAN_CONSTRAINT_NAMES } from "../../language/stan-symbols";
 
 function constraintToCompletionItem(constraint: string): CompletionItem {
   return {
@@ -7,6 +8,4 @@ function constraintToCompletionItem(constraint: string): CompletionItem {
   };
 }
 
-export const CONSTRAINTS = ["lower", "upper", "offset", "multiplier"].map(
-  constraintToCompletionItem,
-);
+export const CONSTRAINTS = STAN_CONSTRAINT_NAMES.map(constraintToCompletionItem);

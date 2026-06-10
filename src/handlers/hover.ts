@@ -7,6 +7,7 @@ import {
   wordUntilNextParenthesis,
 } from "../language/hover/util";
 import { provideHover } from "../language/hover";
+import { STAN_MANUAL_FUNCTIONS } from "../language/stan-symbols";
 
 const getDocumentationForFunction = (name: string): MarkupContent => {
   return {
@@ -23,32 +24,6 @@ const appendCodeblock = (content: MarkupContent | undefined, code: string) => {
   content.value += code;
   content.value += "\n```";
 };
-
-// These are either not technically functions, like print, or
-// have signatures too complex to be output by stanc3
-export const manual_functions = [
-  "print",
-  "reject",
-  "fatal_error",
-  "target",
-  "dae",
-  "dae_tol",
-  "ode_adams",
-  "ode_adams_tol",
-  "ode_adjoint_tol_ctl",
-  "ode_bdf",
-  "ode_bdf_tol",
-  "ode_ckrk",
-  "ode_ckrk_tol",
-  "ode_rk45",
-  "ode_rk45_tol",
-  "solve_newton",
-  "solve_newton_tol",
-  "solve_powell",
-  "solve_powell_tol",
-  "reduce_sum",
-  "reduce_sum_static",
-];
 
 const initializeFunctionMarkupMap = (): Map<string, MarkupContent> => {
   const markupLookupMap = new Map();
@@ -71,8 +46,10 @@ const initializeFunctionMarkupMap = (): Map<string, MarkupContent> => {
     }
   }
 
-  for (const func of manual_functions) {
-    markupLookupMap.set(func, getDocumentationForFunction(func));
+  for (const func of STAN_MANUAL_FUNCTIONS) {
+    if (!markupLookupMap.has(func)) {
+      markupLookupMap.set(func, getDocumentationForFunction(func));
+    }
   }
 
   return markupLookupMap;
