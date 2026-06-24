@@ -1,6 +1,10 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import { DiagnosticSeverity, type MarkupContent } from "vscode-languageserver";
 import { LSPTestClient } from "./lsp-client";
+
+function diagnosticMessageText(message: string | MarkupContent): string {
+  return typeof message === "string" ? message : message.value;
+}
 
 describe("Diagnostics", () => {
   let client: LSPTestClient;
@@ -35,7 +39,7 @@ describe("Diagnostics", () => {
 
     if (result.kind === "full") {
       expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => item.message.match(/Values will be rounded towards zero/))).toBeTruthy();
+      expect(result.items.map(item => diagnosticMessageText(item.message).match(/Values will be rounded towards zero/))).toBeTruthy();
       expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Warning);
       expect(result.items.map(item => item.range.start.line)).toContain(0);
       expect(result.items.map(item => item.range.start.character)).toContain(18);
@@ -53,7 +57,7 @@ describe("Diagnostics", () => {
 
     if (result.kind === "full") {
       expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => item.message.match(/'foo' not in scope/))).toBeTruthy();
+      expect(result.items.map(item => diagnosticMessageText(item.message).match(/'foo' not in scope/))).toBeTruthy();
       expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
       expect(result.items.map(item => item.range.start.line)).toContain(0);
       expect(result.items.map(item => item.range.start.character)).toContain(8);
@@ -98,7 +102,7 @@ model { foo ~ std_normal(); }`;
 
     if (result.kind === "full") {
       expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => item.message.match(/could not find include file 'foo.stan'/))).toBeTruthy();
+      expect(result.items.map(item => diagnosticMessageText(item.message).match(/could not find include file 'foo.stan'/))).toBeTruthy();
       expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
       expect(result.items.map(item => item.range.start.line)).toContain(0);
       expect(result.items.map(item => item.range.start.character)).toContain(0);
@@ -171,7 +175,7 @@ model { foo ~ std_normal(); }`;
 
     if (result.kind === "full") {
       expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => item.message.match(/recursively included itself/))).toBeTruthy();
+      expect(result.items.map(item => diagnosticMessageText(item.message).match(/recursively included itself/))).toBeTruthy();
       expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
     }
   });
@@ -194,7 +198,7 @@ model { foo ~ std_normal(); }`;
 
     if (result.kind === "full") {
       expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => item.message.match(/^Error in included file:/))).toBeTruthy();
+      expect(result.items.map(item => diagnosticMessageText(item.message).match(/^Error in included file:/))).toBeTruthy();
       expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
       expect(result.items.map(item => item.range.start.line)).toContain(1);
       expect(result.items.map(item => item.range.start.character)).toContain(0);
@@ -219,7 +223,7 @@ model { foo ~ std_normal(); }`;
 
     if (result.kind === "full") {
       expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => item.message.match(/^Warning in included file:/))).toBeTruthy();
+      expect(result.items.map(item => diagnosticMessageText(item.message).match(/^Warning in included file:/))).toBeTruthy();
       expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Warning);
       expect(result.items.map(item => item.range.start.line)).toContain(1);
       expect(result.items.map(item => item.range.start.character)).toContain(0);
@@ -252,7 +256,7 @@ model { foo ~ std_normal(); }`;
     expect(result.kind).toBeDefined();
     if (result.kind === "full") {
       expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items[0]!.message).toBe("The parameter foo has 2 priors.");
+      expect(diagnosticMessageText(result.items[0]!.message)).toBe("The parameter foo has 2 priors.");
     }
   });
 });
