@@ -14,7 +14,7 @@ jobs:
       id-token: write # For npm provenance and trusted publishing
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
       - name: Setup Bun
