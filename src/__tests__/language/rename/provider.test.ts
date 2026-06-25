@@ -105,6 +105,22 @@ model {
     expect(provideRename(entry, { line: 4, character: 7 })).toEqual([]);
   });
 
+  it("does not rename user-defined overloads of built-in Stan functions", async () => {
+    const entry = await createIndexedEntry(`
+functions {
+  real sqrt(real x) {
+    return x;
+  }
+}
+transformed data {
+  real y = sqrt(1.0);
+}
+`.trimStart());
+
+    expect(provideRename(entry, { line: 1, character: 8 })).toEqual([]);
+    expect(provideRename(entry, { line: 6, character: 12 })).toEqual([]);
+  });
+
   it("renames transformed parameters variables referenced in model", async () => {
     const entry = await createIndexedEntry(`
 parameters {
@@ -585,7 +601,7 @@ functions {
 
   const mapRectProgram = `
 functions {
-  vector beta(vector theta, vector phi, array[] real x_r, array[] int x_i) {
+  vector shard(vector theta, vector phi, array[] real x_r, array[] int x_i) {
     return theta;
   }
 }
@@ -594,7 +610,7 @@ parameters {
 }
 transformed parameters {
   vector[2] y;
-  y = map_rect(beta, beta, beta, rep_array(0.0, 0), rep_array(0, 0))[1:2];
+  y = map_rect(shard, beta, beta, rep_array(0.0, 0), rep_array(0, 0))[1:2];
 }
 `.trimStart();
 
@@ -602,13 +618,13 @@ transformed parameters {
     {
       range: {
         start: { line: 1, character: 9 },
-        end: { line: 1, character: 13 },
+        end: { line: 1, character: 14 },
       },
     },
     {
       range: {
         start: { line: 10, character: 15 },
-        end: { line: 10, character: 19 },
+        end: { line: 10, character: 20 },
       },
     },
   ];
@@ -622,14 +638,14 @@ transformed parameters {
     },
     {
       range: {
-        start: { line: 10, character: 21 },
-        end: { line: 10, character: 25 },
+        start: { line: 10, character: 22 },
+        end: { line: 10, character: 26 },
       },
     },
     {
       range: {
-        start: { line: 10, character: 27 },
-        end: { line: 10, character: 31 },
+        start: { line: 10, character: 28 },
+        end: { line: 10, character: 32 },
       },
     },
   ];
@@ -705,7 +721,7 @@ model {
   it("renames a map_rect beta reference without renaming the function beta", async () => {
     const entry = await createIndexedEntry(mapRectProgram);
 
-    expect(provideRename(entry, { line: 10, character: 22 })).toEqual(
+    expect(provideRename(entry, { line: 10, character: 23 })).toEqual(
       mapRectParameterBetaOccurrences,
     );
   });

@@ -1,5 +1,5 @@
 import type { Node } from "web-tree-sitter";
-import { isHigherOrderStanFunction } from "../stan-symbols";
+import { STAN_FUNCTIONS, isHigherOrderStanFunction } from "../stan-symbols";
 import type {
   NameInfo,
   SemanticIndex,
@@ -505,7 +505,7 @@ export const buildSemanticIndex = (
   const finalState = walkProgram(tree.rootNode, {
     scope: createScope(null),
     functionScope: createScope(null),
-    overloadedFunctionNames: new Set(),
+    overloadedFunctionNames: new Set(STAN_FUNCTIONS),
     nextSymbolId: 1,
     nextReferenceId: 1,
     symbolsById,
