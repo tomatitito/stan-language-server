@@ -91,6 +91,20 @@ model {
     expect(result).toEqual([]);
   });
 
+  it("does not rename built-in Stan functions", async () => {
+    const entry = await createIndexedEntry(`
+transformed data {
+  real x = sqrt(4);
+}
+model {
+  x ~ normal(0, 1);
+}
+`.trimStart());
+
+    expect(provideRename(entry, { line: 1, character: 12 })).toEqual([]);
+    expect(provideRename(entry, { line: 4, character: 7 })).toEqual([]);
+  });
+
   it("renames transformed parameters variables referenced in model", async () => {
     const entry = await createIndexedEntry(`
 parameters {
