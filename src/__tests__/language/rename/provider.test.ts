@@ -413,6 +413,126 @@ generated quantities {
     );
   });
 
+  it("renames non-overloaded user-defined functions from expressions", async () => {
+    const entry = await createIndexedEntry(`
+functions {
+  real foo(real x) {
+    return x;
+  }
+}
+transformed data {
+  real y = foo(1.0);
+}
+`.trimStart());
+
+    const occurrences = [
+      {
+        range: {
+          start: { line: 1, character: 7 },
+          end: { line: 1, character: 10 },
+        },
+      },
+      {
+        range: {
+          start: { line: 6, character: 11 },
+          end: { line: 6, character: 14 },
+        },
+      },
+    ];
+
+    expect(provideRename(entry, { line: 1, character: 8 })).toEqual(
+      occurrences,
+    );
+    expect(provideRename(entry, { line: 6, character: 12 })).toEqual(
+      occurrences,
+    );
+  });
+
+  it("does not rename overloaded user-defined function declarations", async () => {
+    const entry = await createIndexedEntry(`
+functions {
+  real foo(real x) {
+    return x;
+  }
+
+  real foo(int x) {
+    return x;
+  }
+}
+model {
+  real y = foo(1.0);
+  real z = foo(1);
+}
+`.trimStart());
+
+    expect(provideRename(entry, { line: 1, character: 8 })).toEqual([]);
+    expect(provideRename(entry, { line: 5, character: 8 })).toEqual([]);
+  });
+
+  it("does not rename overloaded user-defined function references", async () => {
+    const entry = await createIndexedEntry(`
+functions {
+  real foo(real x) {
+    return x;
+  }
+
+  real foo(int x) {
+    return x;
+  }
+}
+model {
+  real y = foo(1.0);
+  real z = foo(1);
+}
+`.trimStart());
+
+    expect(provideRename(entry, { line: 10, character: 12 })).toEqual([]);
+    expect(provideRename(entry, { line: 11, character: 12 })).toEqual([]);
+  });
+
+  it("keeps same-named values renameable when function overloads exist", async () => {
+    const entry = await createIndexedEntry(`
+functions {
+  real foo(real x) {
+    return x;
+  }
+  real foo(int x) {
+    return x;
+  }
+}
+parameters {
+  real foo;
+}
+model {
+  foo ~ normal(0, 1);
+  real y = foo(1.0);
+}
+`.trimStart());
+
+    const occurrences = [
+      {
+        range: {
+          start: { line: 9, character: 7 },
+          end: { line: 9, character: 10 },
+        },
+      },
+      {
+        range: {
+          start: { line: 12, character: 2 },
+          end: { line: 12, character: 5 },
+        },
+      },
+    ];
+
+    expect(provideRename(entry, { line: 9, character: 8 })).toEqual(
+      occurrences,
+    );
+    expect(provideRename(entry, { line: 12, character: 3 })).toEqual(
+      occurrences,
+    );
+    expect(provideRename(entry, { line: 13, character: 12 })).toEqual([]);
+  });
+
   it("renames forward references to user-defined functions", async () => {
     const entry = await createIndexedEntry(`
 functions {

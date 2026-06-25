@@ -46,6 +46,7 @@ type Scope = {
 type WalkState = {
   scope: Scope;
   functionScope: Scope;
+  overloadedFunctionNames: Set<string>;
   nextSymbolId: number;
   nextReferenceId: number;
   symbolsById: Map<SymbolId, SymbolInfo>;
@@ -230,6 +231,13 @@ const referenceKindForNode = (node: Node): SymbolKind => {
   return "value";
 };
 
+// Remove this once the Stan language server can resolve overloaded
+// user-defined functions by signature instead of by name only.
+const isOverloadedFunctionName = (
+  name: string,
+  overloadedFunctionNames: Set<string>,
+): boolean => overloadedFunctionNames.has(name);
+
 export const buildSemanticIndex = (
   source: string,
   tree: SemanticIndexEntry["tree"],
@@ -254,6 +262,7 @@ export const buildSemanticIndex = (
     state: WalkState,
     targetScope: Scope,
     kind: SymbolKind,
+    renameable: boolean,
   ): WalkState {
     const symbolId: SymbolId = `symbol-${state.nextSymbolId}`;
     state.symbolsById.set(symbolId, {
@@ -266,7 +275,7 @@ export const buildSemanticIndex = (
     state.nameInfoByNodeId.set(node.id, {
       kind: "declaration",
       symbolId,
-      renameable: true,
+      renameable,
     });
     const declarations = targetScope.declarations.get(node.text) ?? [];
     targetScope.declarations.set(node.text, [...declarations, symbolId]);
@@ -283,9 +292,49 @@ export const buildSemanticIndex = (
     return functionDeclarator?.childForFieldName("name") ?? null;
   }
 
+  // Remove this once the Stan language server can resolve overloaded
+  // user-defined functions by signature instead of by name only.
+  function getOverloadedFunctionNames(
+    functionsBlock: Node,
+    existingOverloadedFunctionNames: Set<string>,
+  ): Set<string> {
+    const functionNameCounts = new Map<string, number>();
+
+    for (const functionDefinition of functionsBlock.namedChildren) {
+      if (functionDefinition.type !== "function_definition") {
+        continue;
+      }
+
+      const nameIdentifier = functionNameIdentifier(functionDefinition);
+      if (nameIdentifier === null) {
+        continue;
+      }
+
+      functionNameCounts.set(
+        nameIdentifier.text,
+        (functionNameCounts.get(nameIdentifier.text) ?? 0) + 1,
+      );
+    }
+
+    return new Set([
+      ...existingOverloadedFunctionNames,
+      ...[...functionNameCounts.entries()]
+        .filter(([, count]) => count > 1)
+        .map(([name]) => name),
+    ]);
+  }
+
   function walkFunctionsBlock(node: Node, state: WalkState): WalkState {
     const functionValueScope = createScope(null);
     let nextState = state;
+    const overloadedFunctionNames = getOverloadedFunctionNames(
+      node,
+      state.overloadedFunctionNames,
+    );
+    nextState = {
+      ...nextState,
+      overloadedFunctionNames,
+    };
 
     for (const functionDefinition of node.namedChildren) {
       if (functionDefinition.type !== "function_definition") {
@@ -302,6 +351,7 @@ export const buildSemanticIndex = (
         nextState,
         nextState.functionScope,
         "function",
+        !isOverloadedFunctionName(nameIdentifier.text, overloadedFunctionNames),
       );
       nextState.predeclaredDeclarationNodeIds.add(nameIdentifier.id);
     }
@@ -396,15 +446,21 @@ export const buildSemanticIndex = (
         nextState,
         targetScope,
         declarationKindForNode(node),
+        true,
       );
     } else if (isReferenceIdentifier(node)) {
       const referenceKind = referenceKindForNode(node);
-      const symbolId = resolveSymbol(
-        referenceKind === "function" ? nextState.functionScope : currentScope,
+      const symbolId = isOverloadedFunctionName(
         node.text,
-        referenceKind,
-        nextState.symbolsById,
-      );
+        nextState.overloadedFunctionNames,
+      ) && referenceKind === "function"
+        ? undefined
+        : resolveSymbol(
+            referenceKind === "function" ? nextState.functionScope : currentScope,
+            node.text,
+            referenceKind,
+            nextState.symbolsById,
+          );
       if (symbolId === undefined) {
         nextState.nameInfoByNodeId.set(node.id, {
           kind: "reference",
@@ -449,6 +505,7 @@ export const buildSemanticIndex = (
   const finalState = walkProgram(tree.rootNode, {
     scope: createScope(null),
     functionScope: createScope(null),
+    overloadedFunctionNames: new Set(),
     nextSymbolId: 1,
     nextReferenceId: 1,
     symbolsById,
