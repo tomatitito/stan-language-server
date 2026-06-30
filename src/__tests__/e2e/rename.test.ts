@@ -193,4 +193,121 @@ model {
     });
   });
 
+
+  it("renames a later same-line variable after ranged rename edits", async () => {
+    const uri = "file:///test-workspace/rename-after-ranged-edits.stan";
+    const content = `
+data {
+  int<lower=0> N;
+  vector[N] x;
+  vector[N] y;
+}
+parameters {
+  real alpha;
+  real foo;
+  real next;
+  real ab;
+}
+model {
+  real bar = 1 + 2 + 3;
+  y ~ normal(alpha  + foo * 1 + ab+next, 1);
+}
+`.trimStart();
+
+    await client.didOpen(uri, "stan", content);
+
+    expect(await client.prepareRename(uri, 13, 23)).toEqual({
+      start: { line: 13, character: 22 },
+      end: { line: 13, character: 25 },
+    });
+
+    expect(await client.prepareRename(uri, 13, 36)).toEqual({
+      start: { line: 13, character: 35 },
+      end: { line: 13, character: 39 },
+    });
+
+    expect(await client.rename(uri, 13, 23, "blackjacxk")).toEqual({
+      documentChanges: [
+        {
+          textDocument: {
+            uri,
+            version: 1,
+          },
+          edits: [
+            {
+              range: {
+                start: { line: 7, character: 7 },
+                end: { line: 7, character: 10 },
+              },
+              newText: "blackjacxk",
+            },
+            {
+              range: {
+                start: { line: 13, character: 22 },
+                end: { line: 13, character: 25 },
+              },
+              newText: "blackjacxk",
+            },
+          ],
+        },
+      ],
+    });
+
+    await client.didChangeRanges(
+      uri,
+      [
+        {
+          range: {
+            start: { line: 13, character: 22 },
+            end: { line: 13, character: 25 },
+          },
+          rangeLength: 3,
+          text: "blackjacxk",
+        },
+        {
+          range: {
+            start: { line: 7, character: 7 },
+            end: { line: 7, character: 10 },
+          },
+          rangeLength: 3,
+          text: "blackjacxk",
+        },
+      ],
+      2,
+    );
+
+    expect(await client.prepareRename(uri, 13, 35)).toBeNull();
+    expect(await client.prepareRename(uri, 13, 43)).toEqual({
+      start: { line: 13, character: 42 },
+      end: { line: 13, character: 46 },
+    });
+
+    expect(await client.rename(uri, 13, 43, "later")).toEqual({
+      documentChanges: [
+        {
+          textDocument: {
+            uri,
+            version: 2,
+          },
+          edits: [
+            {
+              range: {
+                start: { line: 8, character: 7 },
+                end: { line: 8, character: 11 },
+              },
+              newText: "later",
+            },
+            {
+              range: {
+                start: { line: 13, character: 42 },
+                end: { line: 13, character: 46 },
+              },
+              newText: "later",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
 });
