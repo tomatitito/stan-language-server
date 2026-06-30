@@ -40,7 +40,7 @@ describe("workspace index", () => {
     const updatedEntry = getSemanticIndexEntry(updatedIndex, editedDocument);
 
     expect(parseDocument).toHaveBeenCalledTimes(2);
-    expect(parseDocument.mock.calls[1]).toEqual([editedDocument.getText(), tree]);
+    expect(parseDocument.mock.calls[1]).toEqual([editedDocument.getText()]);
     expect(updatedEntry).not.toBeNull();
     expect(updatedEntry).not.toBe(entry);
     expect(updatedEntry?.version).toBe(editedDocument.version);

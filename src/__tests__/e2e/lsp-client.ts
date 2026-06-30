@@ -349,6 +349,18 @@ export class LSPTestClient {
     this.sendNotification("textDocument/didChange", params);
   }
 
+  async didChangeRanges(
+    uri: string,
+    contentChanges: DidChangeTextDocumentParams["contentChanges"],
+    version: number,
+  ): Promise<void> {
+    const params: DidChangeTextDocumentParams = {
+      textDocument: { uri, version },
+      contentChanges,
+    };
+    this.sendNotification("textDocument/didChange", params);
+  }
+
   async didClose(uri: string): Promise<void> {
     const params: DidCloseTextDocumentParams = {
       textDocument: { uri },
