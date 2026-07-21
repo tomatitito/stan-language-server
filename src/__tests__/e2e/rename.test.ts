@@ -194,6 +194,61 @@ model {
   });
 
 
+  it("uses the latest document version after rapid didChange notifications", async () => {
+    const uri = "file:///test-workspace/rename-after-rapid-changes.stan";
+    const initialContent = `
+data {
+  int<lower=0> N;
+}
+parameters {
+  real alpha;
+}
+model {
+  alpha ~ normal(0, 1);
+}
+`.trimStart();
+    const firstChange = initialContent.replaceAll("alpha", "beta");
+    const secondChange = initialContent.replaceAll("alpha", "gamma");
+    const latestContent = initialContent.replaceAll("alpha", "latest_value");
+
+    await client.didOpen(uri, "stan", initialContent);
+    void client.didChange(uri, firstChange, 2);
+    void client.didChange(uri, secondChange, 3);
+    void client.didChange(uri, latestContent, 4);
+
+    expect(await client.prepareRename(uri, 7, 5)).toEqual({
+      start: { line: 7, character: 2 },
+      end: { line: 7, character: 14 },
+    });
+
+    expect(await client.rename(uri, 7, 5, "renamed")).toEqual({
+      documentChanges: [
+        {
+          textDocument: {
+            uri,
+            version: 4,
+          },
+          edits: [
+            {
+              range: {
+                start: { line: 4, character: 7 },
+                end: { line: 4, character: 19 },
+              },
+              newText: "renamed",
+            },
+            {
+              range: {
+                start: { line: 7, character: 2 },
+                end: { line: 7, character: 14 },
+              },
+              newText: "renamed",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it("renames a later same-line variable after ranged rename edits", async () => {
     const uri = "file:///test-workspace/rename-after-ranged-edits.stan";
     const content = `
