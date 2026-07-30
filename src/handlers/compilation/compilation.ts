@@ -1,11 +1,10 @@
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import {
-  type TextDocuments,
   type WorkspaceFolder,
   type RemoteConsole,
 } from "vscode-languageserver";
 import { handleIncludes } from "./includes";
-import type { FileSystemReader } from "../../types/common";
+import type { FileSystemReader, TextDocumentProvider } from "../../types/common";
 import { URI } from "vscode-uri";
 import { stanc, type StancReturn } from "stanc3";
 
@@ -25,7 +24,7 @@ export type Purpose = "formatting" | "linting";
 
 export async function handleCompilation(
   document: TextDocument,
-  documentManager: TextDocuments<TextDocument>,
+  documentManager: TextDocumentProvider,
   workspaceFolders: WorkspaceFolder[],
   settings: Settings,
   purpose: Purpose,

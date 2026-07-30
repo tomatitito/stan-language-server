@@ -1,21 +1,20 @@
 import {
     Diagnostic,
-    DiagnosticSeverity, TextDocuments,
+    DiagnosticSeverity,
     WorkspaceFolder,
     type DocumentDiagnosticParams,
     type RemoteConsole
 } from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
 import { SERVER_ID } from "../constants";
 import {
     provideDiagnostics
 } from "../language/diagnostics/provider";
-import type { FileSystemReader } from "../types";
+import type { FileSystemReader, TextDocumentProvider } from "../types";
 import { handleCompilation, type Settings } from "./compilation/compilation";
 
 export async function handleDiagnostics(
   params: DocumentDiagnosticParams,
-  documents: TextDocuments<TextDocument>,
+  documents: TextDocumentProvider,
   workspaceFolders: WorkspaceFolder[],
   settings: Settings,
   logger: RemoteConsole,

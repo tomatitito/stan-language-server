@@ -5,7 +5,6 @@ import {
   DocumentDiagnosticRequest,
   MessageType,
   TextDocumentSyncKind,
-  TextDocuments,
   CompletionItemKind,
   type Connection,
   type InitializeParams,
@@ -30,6 +29,12 @@ import {
   type Settings,
 } from "../handlers/compilation/compilation.ts";
 import { SERVER_ID } from "../constants/index.ts";
+import {
+  changeDocument,
+  closeDocument,
+  emptyDocumentState,
+  openDocument,
+} from "./document_state.ts";
 
 const startLanguageServer = (
   connection: Connection,
@@ -137,7 +142,7 @@ const startLanguageServer = (
     return docSettings;
   };
 
-  const documents = new TextDocuments(TextDocument);
+  let documents = emptyDocumentState();
   let workspaceIndex = createWorkspaceIndex();
   let workspaceIndexUpdate: Promise<void> = Promise.resolve();
   const workspaceIndexDebounceMs = 75;
@@ -324,19 +329,34 @@ const startLanguageServer = (
     return handleRename(document, params, workspaceIndex);
   });
 
-  documents.onDidChangeContent((event) => {
-    void queueWorkspaceIndexUpdate(event.document);
+  connection.onDidOpenTextDocument((params) => {
+    const transition = openDocument(documents, params);
+    documents = transition.state;
+    if (transition.accepted) {
+      void queueWorkspaceIndexUpdate(transition.value);
+    }
   });
 
-  documents.onDidClose((event) => {
-    clearPendingWorkspaceIndexUpdate(event.document.uri);
+  connection.onDidChangeTextDocument((params) => {
+    const transition = changeDocument(documents, params);
+    documents = transition.state;
+    if (transition.accepted) {
+      void queueWorkspaceIndexUpdate(transition.value.document);
+    }
+  });
+
+  connection.onDidCloseTextDocument((params) => {
+    const transition = closeDocument(documents, params);
+    documents = transition.state;
+    if (!transition.accepted) {
+      return;
+    }
+    clearPendingWorkspaceIndexUpdate(transition.value.uri);
     workspaceIndex = removeSemanticIndexEntry(
       workspaceIndex,
-      event.document.uri,
+      transition.value.uri,
     );
   });
-
-  documents.listen(connection);
 
   connection.listen();
 };
