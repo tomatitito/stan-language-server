@@ -1,17 +1,15 @@
 import type {
   DocumentFormattingParams,
   RemoteConsole,
-  TextDocuments,
   TextEdit,
   WorkspaceFolder,
 } from "vscode-languageserver";
-import type { TextDocument } from "vscode-languageserver-textdocument";
 import { handleCompilation, type Settings } from "./compilation/compilation";
-import type { FileSystemReader } from "../types";
+import type { FileSystemReader, TextDocumentProvider } from "../types";
 
 export async function handleFormatting(
   params: DocumentFormattingParams,
-  documents: TextDocuments<TextDocument>,
+  documents: TextDocumentProvider,
   workspaceFolders: WorkspaceFolder[],
   settings: Settings,
   logger: RemoteConsole,

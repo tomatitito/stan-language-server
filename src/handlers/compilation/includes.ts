@@ -1,12 +1,11 @@
 import {
-  TextDocuments,
   WorkspaceFolder,
   type RemoteConsole,
 } from "vscode-languageserver";
 import { join } from "path";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { URI, Utils } from "vscode-uri";
-import type { FileSystemReader } from "../../types";
+import type { FileSystemReader, TextDocumentProvider } from "../../types";
 
 export type Filename = string;
 export type FileContent = string;
@@ -27,7 +26,7 @@ export function isFilePathError(value: unknown): value is FilePathError {
 
 export async function handleIncludes(
   document: TextDocument,
-  documentManager: TextDocuments<TextDocument>,
+  documentManager: TextDocumentProvider,
   workspaceFolders: WorkspaceFolder[],
   includePaths: string[],
   logger: RemoteConsole,
@@ -98,7 +97,7 @@ export async function handleIncludes(
 
 const readIncludedFile = async (
   document: TextDocument,
-  documentManager: TextDocuments<TextDocument>,
+  documentManager: TextDocumentProvider,
   workspaceFolders: WorkspaceFolder[],
   includePaths: string[],
   filename: Filename,
@@ -133,7 +132,7 @@ const readIncludedFile = async (
 };
 
 const readIncludedFileFromWorkspace = (
-  documentManager: TextDocuments<TextDocument>,
+  documentManager: TextDocumentProvider,
   workspaceFolders: WorkspaceFolder[],
   filename: Filename,
   currentDir: URI

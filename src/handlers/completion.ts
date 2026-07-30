@@ -1,10 +1,10 @@
 import {
   type CompletionParams,
-  TextDocuments,
   CompletionItem,
   CompletionItemKind,
 } from "vscode-languageserver";
-import { TextDocument, type Position } from "vscode-languageserver-textdocument";
+import { type Position } from "vscode-languageserver-textdocument";
+import type { TextDocumentProvider } from "../types/common";
 
 import TrieSearch from "trie-search";
 
@@ -85,7 +85,7 @@ export const getTextUpToCursor = (text: string, position: Position): string => {
 
 export function handleCompletion(
   { position, textDocument }: CompletionParams,
-  documents: TextDocuments<TextDocument>,
+  documents: TextDocumentProvider,
   supportsSnippets: boolean,
 ): CompletionItem[] {
   const document = documents.get(textDocument.uri);
