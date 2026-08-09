@@ -18,11 +18,6 @@ import {
   handlePrepareRename,
   handleRename,
 } from "../handlers/index.ts";
-import {
-  createWorkspaceIndex,
-  removeSemanticIndexEntry,
-  upsertSemanticIndexEntry,
-} from "../language/ast/workspace_index.ts";
 import { type FileSystemReader } from "../types/common.ts";
 import {
   defaultSettings,
@@ -30,11 +25,13 @@ import {
 } from "../handlers/compilation/compilation.ts";
 import { SERVER_ID } from "../constants/index.ts";
 import {
-  changeDocument,
-  closeDocument,
-  emptyDocumentState,
-  openDocument,
-} from "./document_state.ts";
+  changeWorkspaceDocument,
+  closeWorkspaceDocument,
+  createServerWorkspaceState,
+  forceWorkspaceIndexUpdate,
+  openWorkspaceDocument,
+  type WorkspaceIndexUpdateOptions,
+} from "./workspace_state.ts";
 
 const startLanguageServer = (
   connection: Connection,
@@ -142,115 +139,22 @@ const startLanguageServer = (
     return docSettings;
   };
 
-  let documents = emptyDocumentState();
-  let workspaceIndex = createWorkspaceIndex();
-  let workspaceIndexUpdate: Promise<void> = Promise.resolve();
-  const workspaceIndexDebounceMs = 75;
-  type PendingWorkspaceIndexUpdate = {
-    timer?: ReturnType<typeof setTimeout>;
-    version: number;
-    promise: Promise<void>;
-    resolve: () => void;
+  const workspace = createServerWorkspaceState();
+  const workspaceIndexUpdateOptions: WorkspaceIndexUpdateOptions = {
+    debounceMs: 75,
+    reportError: (uri, error) => {
+      connection.console.error(
+        `Failed to update workspace index for ${uri}: ${String(error)}`,
+      );
+    },
   };
-  const pendingWorkspaceIndexUpdates = new Map<
-    string,
-    PendingWorkspaceIndexUpdate
-  >();
 
   const isStanDocument = (document: TextDocument) => {
     return document.languageId.startsWith("stan");
   };
 
-  const runWorkspaceIndexUpdate = (uri: string) => {
-    workspaceIndexUpdate = workspaceIndexUpdate
-      .catch(() => undefined)
-      .then(async () => {
-        const latestDocument = documents.get(uri);
-        if (!latestDocument || !isStanDocument(latestDocument)) {
-          return;
-        }
-
-        const nextWorkspaceIndex = await upsertSemanticIndexEntry(
-          workspaceIndex,
-          latestDocument,
-        );
-        const currentDocument = documents.get(uri);
-        if (currentDocument?.version === latestDocument.version) {
-          workspaceIndex = nextWorkspaceIndex;
-        }
-      })
-      .catch((error: unknown) => {
-        connection.console.error(
-          `Failed to update workspace index for ${uri}: ${String(error)}`,
-        );
-      });
-
-    return workspaceIndexUpdate;
-  };
-
-  const queueWorkspaceIndexUpdate = (document: TextDocument) => {
-    const uri = document.uri;
-    const existingUpdate = pendingWorkspaceIndexUpdates.get(uri);
-    if (existingUpdate?.timer) {
-      clearTimeout(existingUpdate.timer);
-    }
-
-    const createPendingUpdate = (): PendingWorkspaceIndexUpdate => {
-      let resolve!: () => void;
-      const promise = new Promise<void>((resolver) => {
-        resolve = resolver;
-      });
-      return {
-        version: document.version,
-        promise,
-        resolve,
-      };
-    };
-
-    const pendingUpdate = existingUpdate ?? createPendingUpdate();
-
-    pendingUpdate.version = document.version;
-    pendingUpdate.timer = setTimeout(() => {
-      if (pendingWorkspaceIndexUpdates.get(uri) !== pendingUpdate) {
-        return;
-      }
-      pendingWorkspaceIndexUpdates.delete(uri);
-      void runWorkspaceIndexUpdate(uri).finally(pendingUpdate.resolve);
-    }, workspaceIndexDebounceMs);
-    pendingWorkspaceIndexUpdates.set(uri, pendingUpdate);
-
-    return pendingUpdate.promise;
-  };
-
-  const clearPendingWorkspaceIndexUpdate = (uri: string) => {
-    const pendingUpdate = pendingWorkspaceIndexUpdates.get(uri);
-    if (!pendingUpdate) {
-      return;
-    }
-    if (pendingUpdate.timer) {
-      clearTimeout(pendingUpdate.timer);
-    }
-    pendingWorkspaceIndexUpdates.delete(uri);
-    pendingUpdate.resolve();
-  };
-
-  const forceWorkspaceIndexUpdate = async (document: TextDocument) => {
-    const pendingUpdate = pendingWorkspaceIndexUpdates.get(document.uri);
-    if (pendingUpdate) {
-      if (pendingUpdate.timer) {
-        clearTimeout(pendingUpdate.timer);
-      }
-      pendingWorkspaceIndexUpdates.delete(document.uri);
-      await runWorkspaceIndexUpdate(document.uri);
-      pendingUpdate.resolve();
-    } else {
-      await workspaceIndexUpdate;
-    }
-    workspaceIndex = await upsertSemanticIndexEntry(workspaceIndex, document);
-  };
-
   connection.onCompletion((params) => {
-    return handleCompletion(params, documents, hasSnippetSupport);
+    return handleCompletion(params, workspace.documents, hasSnippetSupport);
   });
 
   const getWorkspaceFolders = async () => {
@@ -267,7 +171,7 @@ const startLanguageServer = (
       kind: "full",
       items: await handleDiagnostics(
         params,
-        documents,
+        workspace.documents,
         folders,
         settings,
         connection.console,
@@ -281,7 +185,7 @@ const startLanguageServer = (
     const settings = await getDocumentSettings(params.textDocument.uri);
     const formattingResult = await handleFormatting(
       params,
-      documents,
+      workspace.documents,
       folders,
       settings,
       connection.console,
@@ -304,7 +208,7 @@ const startLanguageServer = (
   });
 
   connection.onHover((params) => {
-    const document = documents.get(params.textDocument.uri);
+    const document = workspace.documents.get(params.textDocument.uri);
     if (!document || !isStanDocument(document)) {
       return null;
     }
@@ -312,50 +216,45 @@ const startLanguageServer = (
   });
 
   connection.onPrepareRename(async (params) => {
-    const document = documents.get(params.textDocument.uri);
+    const document = workspace.documents.get(params.textDocument.uri);
     if (!document || !isStanDocument(document)) {
       return null;
     }
-    await forceWorkspaceIndexUpdate(document);
-    return handlePrepareRename(document, params, workspaceIndex);
+    await forceWorkspaceIndexUpdate(
+      workspace,
+      document,
+      workspaceIndexUpdateOptions,
+    );
+    return handlePrepareRename(
+      document,
+      params,
+      workspace.indexing.index,
+    );
   });
 
   connection.onRenameRequest(async (params) => {
-    const document = documents.get(params.textDocument.uri);
+    const document = workspace.documents.get(params.textDocument.uri);
     if (!document || !isStanDocument(document)) {
       return { documentChanges: [] };
     }
-    await forceWorkspaceIndexUpdate(document);
-    return handleRename(document, params, workspaceIndex);
+    await forceWorkspaceIndexUpdate(
+      workspace,
+      document,
+      workspaceIndexUpdateOptions,
+    );
+    return handleRename(document, params, workspace.indexing.index);
   });
 
   connection.onDidOpenTextDocument((params) => {
-    const transition = openDocument(documents, params);
-    documents = transition.state;
-    if (transition.accepted) {
-      void queueWorkspaceIndexUpdate(transition.value);
-    }
+    openWorkspaceDocument(workspace, params, workspaceIndexUpdateOptions);
   });
 
   connection.onDidChangeTextDocument((params) => {
-    const transition = changeDocument(documents, params);
-    documents = transition.state;
-    if (transition.accepted) {
-      void queueWorkspaceIndexUpdate(transition.value.document);
-    }
+    changeWorkspaceDocument(workspace, params, workspaceIndexUpdateOptions);
   });
 
   connection.onDidCloseTextDocument((params) => {
-    const transition = closeDocument(documents, params);
-    documents = transition.state;
-    if (!transition.accepted) {
-      return;
-    }
-    clearPendingWorkspaceIndexUpdate(transition.value.uri);
-    workspaceIndex = removeSemanticIndexEntry(
-      workspaceIndex,
-      transition.value.uri,
-    );
+    closeWorkspaceDocument(workspace, params);
   });
 
   connection.listen();
