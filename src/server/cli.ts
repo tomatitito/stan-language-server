@@ -1,5 +1,3 @@
-import { promises } from "fs";
-
 import { createConnection, type Connection } from "vscode-languageserver/node";
 import startLanguageServer from "./index";
 
@@ -42,4 +40,4 @@ try {
   }
   process.exit(1);
 }
-startLanguageServer(connection, (f) => promises.readFile(f, "utf-8"));
+startLanguageServer(connection);
