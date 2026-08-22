@@ -28,6 +28,7 @@ import {
   type Settings,
 } from "../handlers/compilation/compilation.ts";
 import { SERVER_ID } from "../constants/index.ts";
+import type { ContentProvider } from "../types/common.ts";
 import {
   changeWorkspaceDocument,
   closeWorkspaceDocument,
@@ -46,11 +47,6 @@ export const workspaceFoldersFromInitialize = (
   return params.rootUri
     ? [{ uri: params.rootUri, name: params.rootUri }]
     : [];
-};
-
-type ContentProvider = {
-  listWorkspaceFiles: typeof listWorkspaceFiles;
-  readWorkspaceFile: typeof readWorkspaceFile;
 };
 
 const contentProvider: ContentProvider = {
