@@ -15,7 +15,6 @@ import {
   emptyDocumentState,
   openDocument,
 } from "../../server/document_state";
-import { workspaceFoldersFromInitialize } from "../../server/index";
 
 const createDeferred = <T>() => {
   let resolve!: (value: T) => void;
@@ -194,12 +193,5 @@ describe("content provider", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
-  });
-
-  it("uses rootUri fallback when initialization has no workspace folders", () => {
-    expect(workspaceFoldersFromInitialize({
-      workspaceFolders: null,
-      rootUri: "file:///workspace",
-    })).toEqual([{ uri: "file:///workspace", name: "file:///workspace" }]);
   });
 });

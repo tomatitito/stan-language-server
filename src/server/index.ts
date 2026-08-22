@@ -29,6 +29,7 @@ import {
 } from "../handlers/compilation/compilation.ts";
 import { SERVER_ID } from "../constants/index.ts";
 import type { ContentProvider } from "../types/common.ts";
+import { workspaceFoldersFromInitialize } from "./initialization.ts";
 import {
   changeWorkspaceDocument,
   closeWorkspaceDocument,
@@ -37,17 +38,6 @@ import {
   openWorkspaceDocument,
   type WorkspaceIndexUpdateOptions,
 } from "./workspace_state.ts";
-
-export const workspaceFoldersFromInitialize = (
-  params: Pick<InitializeParams, "workspaceFolders" | "rootUri">,
-): WorkspaceFolder[] => {
-  if (params.workspaceFolders && params.workspaceFolders.length > 0) {
-    return [...params.workspaceFolders];
-  }
-  return params.rootUri
-    ? [{ uri: params.rootUri, name: params.rootUri }]
-    : [];
-};
 
 const contentProvider: ContentProvider = {
   listWorkspaceFiles,
