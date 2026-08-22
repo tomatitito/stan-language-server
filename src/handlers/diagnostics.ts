@@ -9,7 +9,7 @@ import { SERVER_ID } from "../constants";
 import {
     provideDiagnostics
 } from "../language/diagnostics/provider";
-import type { FileSystemReader, TextDocumentProvider } from "../types";
+import type { TextDocumentProvider, WorkspaceFileReader } from "../types";
 import { handleCompilation, type Settings } from "./compilation/compilation";
 
 export async function handleDiagnostics(
@@ -18,7 +18,7 @@ export async function handleDiagnostics(
   workspaceFolders: WorkspaceFolder[],
   settings: Settings,
   logger: RemoteConsole,
-  reader?: FileSystemReader
+  reader?: WorkspaceFileReader
 ): Promise<Diagnostic[]> {
   const document = documents.get(params.textDocument.uri);
   if (!document || !document.languageId.startsWith("stan")) {
