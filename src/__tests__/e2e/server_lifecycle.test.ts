@@ -1,5 +1,9 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 import { RegistrationRequest, TextDocumentSyncKind, type InitializeResult } from "vscode-languageserver-protocol";
+import { URI } from "vscode-uri";
 import { LSPTestClient } from "./lsp-client";
 
 describe("Server Lifecycle", () => {
@@ -45,6 +49,35 @@ describe("Server Lifecycle", () => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       expect(client.serverMessages.map(message => message.params?.message)).toContain("Stan language server is initialized");
+    });
+
+    it("should discover Stan files during initialization", async () => {
+      const root = await mkdtemp(path.join(tmpdir(), "sls-discovery-"));
+      try {
+        await writeFile(path.join(root, "model.stan"), "model {}");
+        await writeFile(path.join(root, "functions.stanfunctions"), "");
+        await writeFile(path.join(root, "notes.txt"), "ignored");
+
+        client = new LSPTestClient();
+        await client.start();
+        await client.initialize(URI.file(root).toString());
+        await client.initialized();
+
+        const deadline = Date.now() + 2000;
+        while (
+          !client.serverMessages.some(
+            (message) => message.params?.message ===
+              "Discovered 2 Stan workspace files",
+          ) && Date.now() < deadline
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+
+        expect(client.serverMessages.map((message) => message.params?.message))
+          .toContain("Discovered 2 Stan workspace files");
+      } finally {
+        await rm(root, { recursive: true, force: true });
+      }
     });
   });
 
