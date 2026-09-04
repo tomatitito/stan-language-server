@@ -1,7 +1,7 @@
 {
   "name": "stan-language-server",
   "version": "0.4.2",
-  "packageManager": "bun@1.3.13",
+  "packageManager": "bun@1.4.0",
   "description": "Language Server Protocol implementation for the Stan probabilistic programming language",
   "main": "dist/server/index.js",
   "module": "src/server/index.ts",
@@ -70,25 +70,25 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@types/bun": "1.3.14",
-    "@types/node": "26.1.2",
-    "@typescript-eslint/eslint-plugin": "8.66.0",
-    "@typescript-eslint/parser": "8.66.0",
+    "@types/bun": "1.4.0",
+    "@types/node": "26.4.0",
+    "@typescript-eslint/eslint-plugin": "8.68.0",
+    "@typescript-eslint/parser": "8.68.0",
     "@wardbrian/tree-sitter-stan": "0.3.1",
-    "eslint": "10.8.0",
-    "globals": "17.9.0",
+    "eslint": "10.9.1",
+    "globals": "17.11.0",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.66.0",
-    "web-tree-sitter": "0.26.11"
+    "typescript-eslint": "8.68.0",
+    "web-tree-sitter": "0.26.13"
   },
   "dependencies": {
     "stanc3": "2.39.1",
     "trie-search": "2.2.1",
-    "vscode-languageserver": "10.1.0",
-    "vscode-languageserver-textdocument": "1.0.12",
-    "vscode-uri": "3.1.0"
+    "vscode-languageserver": "10.1.1",
+    "vscode-languageserver-textdocument": "1.0.14",
+    "vscode-uri": "3.2.0"
   },
   "overrides": {
-    "@types/node": "26.1.2"
+    "@types/node": "26.4.0"
   }
 }
