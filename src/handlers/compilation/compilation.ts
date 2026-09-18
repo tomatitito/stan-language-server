@@ -4,7 +4,10 @@ import {
   type RemoteConsole,
 } from "vscode-languageserver";
 import { handleIncludes } from "./includes";
-import type { FileSystemReader, TextDocumentProvider } from "../../types/common";
+import type {
+  TextDocumentProvider,
+  WorkspaceFileReader,
+} from "../../types/common";
 import { URI } from "vscode-uri";
 import { stanc, type StancReturn } from "stanc3";
 
@@ -29,7 +32,7 @@ export async function handleCompilation(
   settings: Settings,
   purpose: Purpose,
   logger: RemoteConsole,
-  reader?: FileSystemReader,
+  reader?: WorkspaceFileReader,
 ): Promise<StancReturn> {
   const filename = URI.parse(document.uri).fsPath;
   const code = document.getText();

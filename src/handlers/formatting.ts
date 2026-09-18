@@ -5,7 +5,7 @@ import type {
   WorkspaceFolder,
 } from "vscode-languageserver";
 import { handleCompilation, type Settings } from "./compilation/compilation";
-import type { FileSystemReader, TextDocumentProvider } from "../types";
+import type { TextDocumentProvider, WorkspaceFileReader } from "../types";
 
 export async function handleFormatting(
   params: DocumentFormattingParams,
@@ -13,7 +13,7 @@ export async function handleFormatting(
   workspaceFolders: WorkspaceFolder[],
   settings: Settings,
   logger: RemoteConsole,
-  reader?: FileSystemReader,
+  reader?: WorkspaceFileReader,
 ): Promise<TextEdit[] | { errors: string[] }> {
   const document = documents.get(params.textDocument.uri);
   if (!document || !document.languageId.startsWith("stan")) {

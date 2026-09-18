@@ -9,6 +9,7 @@ import {
   type Connection,
   type InitializeParams,
   type InitializeResult,
+  type WorkspaceFolder,
 } from "vscode-languageserver/node";
 import {
   handleCompletion,
@@ -18,12 +19,17 @@ import {
   handlePrepareRename,
   handleRename,
 } from "../handlers/index.ts";
-import { type FileSystemReader } from "../types/common.ts";
+import {
+  listWorkspaceFiles,
+  readWorkspaceFile,
+} from "./content_provider.ts";
 import {
   defaultSettings,
   type Settings,
 } from "../handlers/compilation/compilation.ts";
 import { SERVER_ID } from "../constants/index.ts";
+import type { ContentProvider } from "../types/common.ts";
+import { workspaceFoldersFromInitialize } from "./initialization.ts";
 import {
   changeWorkspaceDocument,
   closeWorkspaceDocument,
@@ -33,19 +39,24 @@ import {
   type WorkspaceIndexUpdateOptions,
 } from "./workspace_state.ts";
 
-const startLanguageServer = (
-  connection: Connection,
-  reader?: FileSystemReader,
-) => {
+const contentProvider: ContentProvider = {
+  listWorkspaceFiles,
+  readWorkspaceFile,
+};
+
+const startLanguageServer = (connection: Connection) => {
   let hasConfigurationCapability: boolean = false;
   let hasWorkspaceFolderCapability: boolean = false;
   let hasDynamicConfigurationRequestCapability: boolean = false;
   let hasSnippetSupport: boolean = false;
+  let initializationWorkspaceFolders: WorkspaceFolder[] = [];
+  let discoveredWorkspaceFiles: readonly string[] = [];
 
   connection.onInitialize((params: InitializeParams): InitializeResult => {
     connection.console.info("Initializing Stan language server...");
 
     const capabilities = params.capabilities;
+    initializationWorkspaceFolders = workspaceFoldersFromInitialize(params);
 
     hasConfigurationCapability = Boolean(capabilities.workspace?.configuration);
     hasDynamicConfigurationRequestCapability = Boolean(
@@ -95,6 +106,12 @@ const startLanguageServer = (
       connection.console.info("Registered for didChangeConfiguration");
     }
     connection.console.info("Stan language server is initialized");
+    discoveredWorkspaceFiles = await contentProvider.listWorkspaceFiles(
+      initializationWorkspaceFolders,
+    );
+    connection.console.info(
+      `Discovered ${discoveredWorkspaceFiles.length} Stan workspace files`,
+    );
   });
 
   connection.onExit(() => {
@@ -139,7 +156,9 @@ const startLanguageServer = (
     return docSettings;
   };
 
-  const workspace = createServerWorkspaceState();
+  const workspaceState = createServerWorkspaceState();
+  const readFile = (uri: string) =>
+    contentProvider.readWorkspaceFile(uri, workspaceState.documents);
   const workspaceIndexUpdateOptions: WorkspaceIndexUpdateOptions = {
     debounceMs: 75,
     reportError: (uri, error) => {
@@ -154,14 +173,17 @@ const startLanguageServer = (
   };
 
   connection.onCompletion((params) => {
-    return handleCompletion(params, workspace.documents, hasSnippetSupport);
+    return handleCompletion(params, workspaceState.documents, hasSnippetSupport);
   });
 
-  const getWorkspaceFolders = async () => {
+  const getWorkspaceFolders = async (): Promise<WorkspaceFolder[]> => {
     if (hasWorkspaceFolderCapability) {
-      return (await connection.workspace.getWorkspaceFolders()) || [];
+      const currentFolders = await connection.workspace.getWorkspaceFolders();
+      if (currentFolders && currentFolders.length > 0) {
+        return currentFolders;
+      }
     }
-    return [];
+    return initializationWorkspaceFolders;
   };
 
   connection.onRequest(DocumentDiagnosticRequest.method, async (params) => {
@@ -171,11 +193,11 @@ const startLanguageServer = (
       kind: "full",
       items: await handleDiagnostics(
         params,
-        workspace.documents,
+        workspaceState.documents,
         folders,
         settings,
         connection.console,
-        reader,
+        readFile,
       ),
     };
   });
@@ -185,11 +207,11 @@ const startLanguageServer = (
     const settings = await getDocumentSettings(params.textDocument.uri);
     const formattingResult = await handleFormatting(
       params,
-      workspace.documents,
+      workspaceState.documents,
       folders,
       settings,
       connection.console,
-      reader,
+      readFile,
     );
     if (Array.isArray(formattingResult)) {
       return formattingResult;
@@ -208,7 +230,7 @@ const startLanguageServer = (
   });
 
   connection.onHover((params) => {
-    const document = workspace.documents.get(params.textDocument.uri);
+    const document = workspaceState.documents.get(params.textDocument.uri);
     if (!document || !isStanDocument(document)) {
       return null;
     }
@@ -216,45 +238,45 @@ const startLanguageServer = (
   });
 
   connection.onPrepareRename(async (params) => {
-    const document = workspace.documents.get(params.textDocument.uri);
+    const document = workspaceState.documents.get(params.textDocument.uri);
     if (!document || !isStanDocument(document)) {
       return null;
     }
     await forceWorkspaceIndexUpdate(
-      workspace,
+      workspaceState,
       document,
       workspaceIndexUpdateOptions,
     );
     return handlePrepareRename(
       document,
       params,
-      workspace.indexing.index,
+      workspaceState.indexing.index,
     );
   });
 
   connection.onRenameRequest(async (params) => {
-    const document = workspace.documents.get(params.textDocument.uri);
+    const document = workspaceState.documents.get(params.textDocument.uri);
     if (!document || !isStanDocument(document)) {
       return { documentChanges: [] };
     }
     await forceWorkspaceIndexUpdate(
-      workspace,
+      workspaceState,
       document,
       workspaceIndexUpdateOptions,
     );
-    return handleRename(document, params, workspace.indexing.index);
+    return handleRename(document, params, workspaceState.indexing.index);
   });
 
   connection.onDidOpenTextDocument((params) => {
-    openWorkspaceDocument(workspace, params, workspaceIndexUpdateOptions);
+    openWorkspaceDocument(workspaceState, params, workspaceIndexUpdateOptions);
   });
 
   connection.onDidChangeTextDocument((params) => {
-    changeWorkspaceDocument(workspace, params, workspaceIndexUpdateOptions);
+    changeWorkspaceDocument(workspaceState, params, workspaceIndexUpdateOptions);
   });
 
   connection.onDidCloseTextDocument((params) => {
-    closeWorkspaceDocument(workspace, params);
+    closeWorkspaceDocument(workspaceState, params);
   });
 
   connection.listen();
