@@ -3,7 +3,7 @@ import type {
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
   DidOpenTextDocumentParams,
-} from "vscode-languageserver/node";
+} from "vscode-languageserver";
 import {
   createWorkspaceIndex,
   removeSemanticIndexEntry,
