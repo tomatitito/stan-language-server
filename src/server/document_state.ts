@@ -3,7 +3,7 @@ import type {
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
   DidOpenTextDocumentParams,
-} from "vscode-languageserver/node";
+} from "vscode-languageserver";
 
 export type DocumentState = ReadonlyMap<string, TextDocument>;
 

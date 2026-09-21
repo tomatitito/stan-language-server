@@ -9,7 +9,7 @@ import {
   type Connection,
   type InitializeParams,
   type InitializeResult,
-} from "vscode-languageserver/node";
+} from "vscode-languageserver";
 import {
   handleCompletion,
   handleDiagnostics,
