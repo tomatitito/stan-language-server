@@ -8,13 +8,17 @@ import { URI } from "vscode-uri";
 import {
   listWorkspaceFiles,
   readWorkspaceFile,
-} from "../../server/content_provider";
+} from "../../server/node_content_provider";
 import {
   changeDocument,
   closeDocument,
   emptyDocumentState,
   openDocument,
 } from "../../server/document_state";
+import {
+  createServerWorkspaceState,
+  createWorkspaceFileReader,
+} from "../../server/workspace_state";
 
 const createDeferred = <T>() => {
   let resolve!: (value: T) => void;
@@ -25,6 +29,35 @@ const createDeferred = <T>() => {
 };
 
 describe("content provider", () => {
+  it("never accesses disk for non-file URIs but still reads open documents", async () => {
+    const readFile = spyOn(fs, "readFile");
+    const stat = spyOn(fs, "stat");
+    try {
+      for (const uri of [
+        "memfs:/workspace/model.stan",
+        "https://example.com/workspace/model.stan",
+        "untitled:Untitled-1",
+      ]) {
+        expect(readWorkspaceFile(uri, new Map())).resolves.toBeNull();
+        expect(listWorkspaceFiles([{ uri, name: "virtual" }]))
+              .resolves.toEqual([]);
+        const document = TextDocument.create(uri, "stan", 1, "model {}");
+        expect(readWorkspaceFile(uri, new Map([[uri, document]])))
+              .resolves.toEqual({
+                  uri,
+                  text: "model {}",
+                  version: 1,
+                  location: "documentStore",
+              });
+      }
+      expect(readFile).not.toHaveBeenCalled();
+      expect(stat).not.toHaveBeenCalled();
+    } finally {
+      readFile.mockRestore();
+      stat.mockRestore();
+    }
+  });
+
   it("discovers supported files with stable ordering and duplicated-folder deduplication", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "sls-discovery-"));
     try {
@@ -74,28 +107,65 @@ describe("content provider", () => {
     }
   });
 
-  it("rechecks document store after awaited disk reads", async () => {
+  it("rechecks the current immutable document state after awaited disk reads", async () => {
     const uri = URI.file("/pending/model.stan").toString();
-    const documentStore = new Map<string, TextDocument>();
-    const diskRead = createDeferred<Buffer>();
+    const state = createServerWorkspaceState();
+    const originalDocuments = state.documents;
+    const readFile = createWorkspaceFileReader(state, {
+      listWorkspaceFiles,
+      readWorkspaceFile,
+    });
+    const diskRead = createDeferred<string>();
     const mockedReadFile = spyOn(fs as any, "readFile").mockImplementation(
       async () => await diskRead.promise,
     );
 
     try {
-      const read = readWorkspaceFile(uri, documentStore);
-      documentStore.set(
-        uri,
-        TextDocument.create(uri, "stan", 3, "opened while reading"),
-      );
-      diskRead.resolve(Buffer.from("stale disk"));
+      const read = readFile(uri);
+      expect(mockedReadFile).toHaveBeenCalledTimes(1);
+      const opened = openDocument(state.documents, {
+        textDocument: {
+          uri,
+          languageId: "stan",
+          version: 3,
+          text: "opened while reading",
+        },
+      });
+      expect(opened.accepted).toBe(true);
+      state.documents = opened.state;
+      expect(state.documents).not.toBe(originalDocuments);
+      expect(originalDocuments.get(uri)).toBeUndefined();
+      diskRead.resolve("stale disk");
 
       expect(read).resolves.toMatchObject({
             text: "opened while reading",
             version: 3,
             location: "documentStore",
         });
+
+      const changed = changeDocument(state.documents, {
+        textDocument: { uri, version: 4 },
+        contentChanges: [{ text: "edited after opening" }],
+      });
+      expect(changed.accepted).toBe(true);
+      state.documents = changed.state;
+      expect(readFile(uri)).resolves.toMatchObject({
+            text: "edited after opening",
+            version: 4,
+            location: "documentStore",
+        });
+      expect(mockedReadFile).toHaveBeenCalledTimes(1);
+
+      const closed = closeDocument(state.documents, { textDocument: { uri } });
+      expect(closed.accepted).toBe(true);
+      state.documents = closed.state;
+      expect(readFile(uri)).resolves.toMatchObject({
+            text: "stale disk",
+            location: "disk",
+        });
+      expect(mockedReadFile).toHaveBeenCalledTimes(2);
     } finally {
+      diskRead.resolve("stale disk");
       mockedReadFile.mockRestore();
     }
   });

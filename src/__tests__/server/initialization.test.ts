@@ -2,6 +2,13 @@ import { describe, expect, it } from "bun:test";
 import { workspaceFoldersFromInitialize } from "../../server/initialization";
 
 describe("server initialization", () => {
+  it("preserves an explicitly empty workspace instead of restoring rootUri", () => {
+    expect(workspaceFoldersFromInitialize({
+      workspaceFolders: [],
+      rootUri: "file:///old-workspace",
+    })).toEqual([]);
+  });
+
   it("uses rootUri when workspace folders are unavailable", () => {
     expect(workspaceFoldersFromInitialize({
       workspaceFolders: null,

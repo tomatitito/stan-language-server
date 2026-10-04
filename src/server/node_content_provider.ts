@@ -4,28 +4,24 @@ import path from "node:path";
 import type { WorkspaceFolder } from "vscode-languageserver";
 import type { TextDocument } from "vscode-languageserver-textdocument";
 import { URI } from "vscode-uri";
+import type {
+  DocumentStoreReader,
+  FileUri,
+  WorkspaceFile,
+} from "../types/common.ts";
 
 const supportedStanExtensions = [".stan", ".stanfunctions"] as const;
-
-export type FileUri = string;
-export type FileLocation = "documentStore" | "disk";
-export type FileVersion = number | string;
-
-export type WorkspaceFile = {
-  uri: FileUri;
-  text: string;
-  version: FileVersion;
-  location: FileLocation;
-};
-
-export type DocumentStoreReader = {
-  get(uri: FileUri): TextDocument | undefined;
-};
 
 const filePathToUri = (filePath: string): FileUri =>
   URI.file(filePath).toString();
 
-const uriToFilePath = (uri: FileUri): string => URI.parse(uri).fsPath;
+const uriToFilePath = (uri: FileUri): string => {
+  const parsed = URI.parse(uri);
+  if (parsed.scheme !== "file") {
+    throw new Error(`Cannot access non-file URI on disk: ${uri}`);
+  }
+  return parsed.fsPath;
+};
 
 const isSupportedStanUri = (uri: FileUri): boolean => {
   try {
@@ -97,19 +93,18 @@ export const listWorkspaceFiles = async (
   );
 };
 
-const workspaceFileFromDocument = (document: TextDocument): WorkspaceFile => ({
-  uri: document.uri,
-  text: document.getText(),
-  version: document.version,
-  location: "documentStore",
-});
 
 const readOpenDocument = (
   uri: FileUri,
   documents: DocumentStoreReader,
 ): WorkspaceFile | null => {
   const document = documents.get(uri);
-  return document ? workspaceFileFromDocument(document) : null;
+  return document ? ((document: TextDocument): WorkspaceFile => ({
+      uri: document.uri,
+      text: document.getText(),
+      version: document.version,
+      location: "documentStore",
+  }))(document) : null;
 };
 
 const readFromDisk = async (

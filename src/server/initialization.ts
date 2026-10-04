@@ -1,12 +1,12 @@
 import type {
   InitializeParams,
   WorkspaceFolder,
-} from "vscode-languageserver/node";
+} from "vscode-languageserver";
 
 export const workspaceFoldersFromInitialize = (
   params: Pick<InitializeParams, "workspaceFolders" | "rootUri">,
 ): WorkspaceFolder[] => {
-  if (params.workspaceFolders?.length) {
+  if (params.workspaceFolders !== null && params.workspaceFolders !== undefined) {
     return [...params.workspaceFolders];
   }
 

@@ -20,10 +20,6 @@ import {
   handleRename,
 } from "../handlers/index.ts";
 import {
-  listWorkspaceFiles,
-  readWorkspaceFile,
-} from "./content_provider.ts";
-import {
   defaultSettings,
   type Settings,
 } from "../handlers/compilation/compilation.ts";
@@ -34,17 +30,16 @@ import {
   changeWorkspaceDocument,
   closeWorkspaceDocument,
   createServerWorkspaceState,
+  createWorkspaceFileReader,
   forceWorkspaceIndexUpdate,
   openWorkspaceDocument,
   type WorkspaceIndexUpdateOptions,
 } from "./workspace_state.ts";
 
-const contentProvider: ContentProvider = {
-  listWorkspaceFiles,
-  readWorkspaceFile,
-};
-
-const startLanguageServer = (connection: Connection) => {
+const startLanguageServer = (
+  connection: Connection,
+  contentProvider: ContentProvider,
+) => {
   let hasConfigurationCapability: boolean = false;
   let hasWorkspaceFolderCapability: boolean = false;
   let hasDynamicConfigurationRequestCapability: boolean = false;
@@ -157,8 +152,7 @@ const startLanguageServer = (connection: Connection) => {
   };
 
   const workspaceState = createServerWorkspaceState();
-  const readFile = (uri: string) =>
-    contentProvider.readWorkspaceFile(uri, workspaceState.documents);
+  const readFile = createWorkspaceFileReader(workspaceState, contentProvider);
   const workspaceIndexUpdateOptions: WorkspaceIndexUpdateOptions = {
     debounceMs: 75,
     reportError: (uri, error) => {
@@ -179,7 +173,7 @@ const startLanguageServer = (connection: Connection) => {
   const getWorkspaceFolders = async (): Promise<WorkspaceFolder[]> => {
     if (hasWorkspaceFolderCapability) {
       const currentFolders = await connection.workspace.getWorkspaceFolders();
-      if (currentFolders && currentFolders.length > 0) {
+      if (currentFolders !== null && currentFolders !== undefined) {
         return currentFolders;
       }
     }
