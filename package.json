@@ -71,24 +71,24 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/bun": "1.4.2",
-    "@types/node": "26.5.1",
-    "@typescript-eslint/eslint-plugin": "8.70.0",
-    "@typescript-eslint/parser": "8.70.0",
+    "@types/node": "26.6.3",
+    "@typescript-eslint/eslint-plugin": "8.71.0",
+    "@typescript-eslint/parser": "8.71.0",
     "@wardbrian/tree-sitter-stan": "0.3.1",
-    "eslint": "10.10.0",
+    "eslint": "10.11.0",
     "globals": "17.12.0",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.70.0"
+    "typescript-eslint": "8.71.0"
   },
   "dependencies": {
     "stanc3": "2.40.0",
     "trie-search": "2.2.1",
-    "vscode-languageserver": "10.1.1",
-    "vscode-languageserver-textdocument": "1.0.14",
+    "vscode-languageserver": "10.1.2",
+    "vscode-languageserver-textdocument": "1.0.15",
     "vscode-uri": "3.2.0",
     "web-tree-sitter": "0.27.0"
   },
   "overrides": {
-    "@types/node": "26.5.1"
+    "@types/node": "26.6.3"
   }
 }
