@@ -30,9 +30,9 @@ describe("Compilation Handler", () => {
       warn: mock(() => {}),
     } as any;
 
-    handleIncludesSpy = spyOn(includesModule, "handleIncludes").mockResolvedValue({
+    handleIncludesSpy = spyOn(includesModule, "handleIncludes").mockResolvedValue([{
       "foo.stan": "real foo;",
-    });
+    }, {}]);
   });
 
   afterEach(() => {
