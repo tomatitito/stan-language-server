@@ -47,7 +47,7 @@ export class LSPTestClient {
     resolve: (result: any) => void;
     reject: (error: any) => void;
   }>();
-  private buffer = "";
+  private buffer = Buffer.from("");
   private currentSettings: any = {};
   private workspaceUri: string | null = null;
   private registrationResolve: (() => void) | null = null;
@@ -116,32 +116,33 @@ export class LSPTestClient {
   }
 
   private handleServerMessage(data: string): void {
-    this.buffer += data;
+    this.buffer = Buffer.concat([this.buffer,  Buffer.from(data)]);
 
     // Process complete messages
     while (true) {
       const headerEnd = this.buffer.indexOf("\r\n\r\n");
       if (headerEnd === -1) break;
 
-      const headerPart = this.buffer.substring(0, headerEnd);
+      const headerPart = this.buffer.subarray(0, headerEnd).toString();
       const contentLengthMatch = headerPart.match(/Content-Length: (\d+)/);
 
       if (!contentLengthMatch) {
         console.error("Invalid LSP message format");
-        this.buffer = this.buffer.substring(headerEnd + 4);
+        this.buffer = this.buffer.subarray(headerEnd + 4);
         continue;
       }
 
       const contentLength = parseInt(contentLengthMatch[1] ?? "0");
       const messageStart = headerEnd + 4;
 
-      if (this.buffer.length < messageStart + contentLength) {
+      if (Buffer.byteLength(this.buffer) < messageStart + contentLength) {
         // Wait for complete message
         break;
       }
 
-      const messageContent = this.buffer.substring(messageStart, messageStart + contentLength);
-      this.buffer = this.buffer.substring(messageStart + contentLength);
+
+      const messageContent = this.buffer.subarray(messageStart, messageStart + contentLength).toString();
+      this.buffer = this.buffer.subarray(messageStart + contentLength);
 
       const message: LSPMessage = JSON.parse(messageContent);
       this.serverMessages.push(message);

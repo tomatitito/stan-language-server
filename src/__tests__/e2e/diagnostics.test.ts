@@ -3,260 +3,262 @@ import { DiagnosticSeverity, type MarkupContent } from "vscode-languageserver";
 import { LSPTestClient } from "./lsp-client";
 
 function diagnosticMessageText(message: string | MarkupContent): string {
-  return typeof message === "string" ? message : message.value;
+    return typeof message === "string" ? message : message.value;
 }
 
 describe("Diagnostics", () => {
-  let client: LSPTestClient;
+    let client: LSPTestClient;
 
-  beforeAll(async () => {
-    client = new LSPTestClient();
-    await client.start();
-  });
+    beforeAll(async () => {
+        client = new LSPTestClient();
+        await client.start();
+    });
 
-  afterEach(async () => {
-    await client.closeAll();
-  });
+    afterEach(async () => {
+        await client.closeAll();
+    });
 
-  afterAll(async () => {
-    try {
-      await client.shutdown();
-      await client.exit();
-    } catch (error) {
-      // Server might already be stopped
-    }
-    await client.stop();
-  });
+    afterAll(async () => {
+        try {
+            await client.shutdown();
+            await client.exit();
+        } catch (error) {
+            // Server might already be stopped
+        }
+        await client.stop();
+    });
 
-  it("should provide a warning", async () => {
-    const content = "model {real foo = 1 / 2;}";
-    const uri = "file:///test/warning.stan";
-    await client.didOpen(uri, "stan", content);
+    it("should provide a warning", async () => {
+        const content = "model {real foo = 1 / 2;}";
+        const uri = "file:///test/warning.stan";
+        await client.didOpen(uri, "stan", content);
 
-    const result = await client.diagnostics(uri);
+        const result = await client.diagnostics(uri);
 
-    expect(result).toBeDefined();
+        expect(result).toBeDefined();
 
-    if (result.kind === "full") {
-      expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => diagnosticMessageText(item.message).match(/Values will be rounded towards zero/))).toBeTruthy();
-      expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Warning);
-      expect(result.items.map(item => item.range.start.line)).toContain(0);
-      expect(result.items.map(item => item.range.start.character)).toContain(18);
-    }
-  });
+        if (result.kind === "full") {
+            expect(result.items.length).toBeGreaterThan(0);
+            expect(result.items.map(item => diagnosticMessageText(item.message).match(/Values will be rounded towards zero/))).toBeTruthy();
+            expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Warning);
+            expect(result.items.map(item => item.range.start.line)).toContain(0);
+            expect(result.items.map(item => item.range.start.character)).toContain(18);
+        }
+    });
 
-  it("should report an error", async () => {
-    const content = "model { foo ~ std_normal(); }";
-    const uri = "file:///test/error.stan";
-    await client.didOpen(uri, "stan", content);
+    it("should report an error", async () => {
+        const content = "model { foo ~ std_normal(); }";
+        const uri = "file:///test/error.stan";
+        await client.didOpen(uri, "stan", content);
 
-    const result = await client.diagnostics(uri);
+        const result = await client.diagnostics(uri);
 
-    expect(result).toBeDefined();
+        expect(result).toBeDefined();
 
-    if (result.kind === "full") {
-      expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => diagnosticMessageText(item.message).match(/'foo' not in scope/))).toBeTruthy();
-      expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
-      expect(result.items.map(item => item.range.start.line)).toContain(0);
-      expect(result.items.map(item => item.range.start.character)).toContain(8);
-    }
-  });
+        if (result.kind === "full") {
+            expect(result.items.length).toBeGreaterThan(0);
+            expect(result.items.map(item => diagnosticMessageText(item.message).match(/'foo' not in scope/))).toBeTruthy();
+            expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
+            expect(result.items.map(item => item.range.start.line)).toContain(0);
+            expect(result.items.map(item => item.range.start.character)).toContain(8);
+        }
+    });
 
-  it("should not report diagnostics with a valid stanfunctions file", async () => {
-    const content = "real id(real x) { return x; }";
-    const uri = "file:///test/valid.stanfunctions";
-    await client.didOpen(uri, "stanfunctions", content);
+    it("should not report diagnostics with a valid stanfunctions file", async () => {
+        const content = "real id(real x) { return x; }";
+        const uri = "file:///test/valid.stanfunctions";
+        await client.didOpen(uri, "stanfunctions", content);
 
-    const result = await client.diagnostics(uri);
+        const result = await client.diagnostics(uri);
 
-    expect(result).toBeDefined();
-    if (result.kind === "full") {
-      expect(result.items.length).toEqual(0);
-    }
-  });
+        expect(result).toBeDefined();
+        if (result.kind === "full") {
+            expect(result.items.length).toEqual(0);
+        }
+    });
 
-  it("should report an error when a .stanfunctions file is opened as .stan file", async () => {
-    const content = "real id(real x) { return x; }";
-    const uri = "file:///test/invalid.stan";
-    await client.didOpen(uri, "stan", content);
+    it("should report an error when a .stanfunctions file is opened as .stan file", async () => {
+        const content = "real id(real x) { return x; }";
+        const uri = "file:///test/invalid.stan";
+        await client.didOpen(uri, "stan", content);
 
-    const result = await client.diagnostics(uri);
+        const result = await client.diagnostics(uri);
 
-    expect(result).toBeDefined();
-    if (result.kind === "full") {
-      expect(result.items.length).toBeGreaterThan(0);
-    }
-  })
+        expect(result).toBeDefined();
+        if (result.kind === "full") {
+            expect(result.items.length).toBeGreaterThan(0);
+        }
+    })
 
-  it("should report an error when included file is not found", async () => {
-    const content = `#include "foo.stan"
+    it("should report an error when included file is not found", async () => {
+        const content = `#include "foo.stan"
 model { foo ~ std_normal(); }`;
-    const uri = "file:///test/include-failing.stan";
-    await client.didOpen(uri, "stan", content);
+        const uri = "file:///test/include-failing.stan";
+        await client.didOpen(uri, "stan", content);
 
-    const result = await client.diagnostics(uri);
+        const result = await client.diagnostics(uri);
 
-    expect(result).toBeDefined();
+        expect(result).toBeDefined();
 
-    if (result.kind === "full") {
-      expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => diagnosticMessageText(item.message).match(/could not find include file 'foo.stan'/))).toBeTruthy();
-      expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
-      expect(result.items.map(item => item.range.start.line)).toContain(0);
-      expect(result.items.map(item => item.range.start.character)).toContain(0);
-    }
-  });
+        if (result.kind === "full") {
+            expect(result.items.length).toBeGreaterThan(0);
+            expect(result.items.map(item => diagnosticMessageText(item.message).match(/could not find include file 'foo.stan'/))).toBeTruthy();
+            expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
+            expect(result.items.map(item => item.range.start.line)).toContain(0);
+            expect(result.items.map(item => item.range.start.character)).toContain(0);
+        }
+    });
 
-  it("should not report diagnostics when included file is found", async () => {
-    const mainContent = `#include "included.stan"
+    it("should not report diagnostics when included file is found", async () => {
+        const mainContent = `#include "included.stan"
 model { foo ~ std_normal(); }`;
-    const includedContent = "parameters { real foo; }";
+        const includedContent = "parameters { real foo; }";
 
-    // Open the included file first
-    const includedUri = "file:///test/included.stan";
-    await client.didOpen(includedUri, "stan", includedContent);
+        // Open the included file first
+        const includedUri = "file:///test/included.stan";
+        await client.didOpen(includedUri, "stan", includedContent);
 
-    // Then open the main file
-    const mainUri = "file:///test/main.stan";
-    await client.didOpen(mainUri, "stan", mainContent);
+        // Then open the main file
+        const mainUri = "file:///test/main.stan";
+        await client.didOpen(mainUri, "stan", mainContent);
 
-    const result = await client.diagnostics(mainUri);
+        const result = await client.diagnostics(mainUri);
 
-    expect(result).toBeDefined();
+        expect(result).toBeDefined();
 
-    if (result.kind === "full") {
-      expect(result.items.length).toEqual(0);
-    }
-  });
+        if (result.kind === "full") {
+            expect(result.items.length).toEqual(0);
+        }
+    });
 
-  it("should handle nested includes without errors", async () => {
-    const mainContent = `parameters { real foo; }
+    it("should handle nested includes without errors", async () => {
+        const mainContent = `parameters { real foo; }
 #include "foo.stan"`;
-    const fooContent = `#include <bar.stan>`;
-    const barContent = `model { foo ~ std_normal(); }`;
+        const fooContent = `#include <bar.stan>`;
+        const barContent = `model { foo ~ std_normal(); }`;
 
-    const barUri = "file:///test/bar.stan";
-    await client.didOpen(barUri, "stan", barContent);
+        const barUri = "file:///test/bar.stan";
+        await client.didOpen(barUri, "stan", barContent);
 
-    const fooUri = "file:///test/foo.stan";
-    await client.didOpen(fooUri, "stan", fooContent);
+        const fooUri = "file:///test/foo.stan";
+        await client.didOpen(fooUri, "stan", fooContent);
 
-    const mainUri = "file:///test/main.stan";
-    await client.didOpen(mainUri, "stan", mainContent);
+        const mainUri = "file:///test/main.stan";
+        await client.didOpen(mainUri, "stan", mainContent);
 
-    const result = await client.diagnostics(mainUri);
+        const result = await client.diagnostics(mainUri);
 
-    expect(result).toBeDefined();
+        expect(result).toBeDefined();
 
-    if (result.kind === "full") {
-      expect(result.items.length).toEqual(0);
-    }
-  });
+        if (result.kind === "full") {
+            expect(result.items.length).toEqual(0);
+        }
+    });
 
-  it("should detect recursive includes", async () => {
-    const bazContent = `#include "foo.stan"`;
-    const fooContent = `#include bar.stan`;
-    const barContent = `#include <baz.stan>`;
+    it("should detect recursive includes", async () => {
+        const bazContent = `#include "foo.stan"`;
+        const fooContent = `#include bar.stan`;
+        const barContent = `#include <baz.stan>`;
 
-    const barUri = "file:///test/bar.stan";
-    await client.didOpen(barUri, "stan", barContent);
+        const barUri = "file:///test/bar.stan";
+        await client.didOpen(barUri, "stan", barContent);
 
-    const fooUri = "file:///test/foo.stan";
-    await client.didOpen(fooUri, "stan", fooContent);
+        const fooUri = "file:///test/foo.stan";
+        await client.didOpen(fooUri, "stan", fooContent);
 
-    const bazUri = "file:///test/baz.stan";
-    await client.didOpen(bazUri, "stan", bazContent);
+        const bazUri = "file:///test/baz.stan";
+        await client.didOpen(bazUri, "stan", bazContent);
 
-    const result = await client.diagnostics(bazUri);
+        const result = await client.diagnostics(bazUri);
 
-    expect(result).toBeDefined();
+        expect(result).toBeDefined();
 
-    if (result.kind === "full") {
-      expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => diagnosticMessageText(item.message).match(/recursively included itself/))).toBeTruthy();
-      expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
-    }
-  });
+        if (result.kind === "full") {
+            expect(result.items.length).toBeGreaterThan(0);
+            expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
+        }
+    });
 
-  it("should report an error in included file", async () => {
-    const mainContent = `
+    it("should report an error in included file", async () => {
+        const mainContent = `
 #include "foo.stan"
 model { foo ~ std_normal(); }`;
-    const includedContent = "parameters { real foo }"; // Missing semicolon - syntax error
+        const includedContent = "parameters { real foo }"; // Missing semicolon - syntax error
 
-    const includedUri = "file:///test/foo.stan";
-    await client.didOpen(includedUri, "stan", includedContent);
+        const includedUri = "file:///test/foo.stan";
+        await client.didOpen(includedUri, "stan", includedContent);
 
-    const mainUri = "file:///test/include-error.stan";
-    await client.didOpen(mainUri, "stan", mainContent);
+        const mainUri = "file:///test/include-error.stan";
+        await client.didOpen(mainUri, "stan", mainContent);
 
-    const result = await client.diagnostics(mainUri);
+        const result = await client.diagnostics(mainUri);
 
-    expect(result).toBeDefined();
 
-    if (result.kind === "full") {
-      expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => diagnosticMessageText(item.message).match(/^Error in included file:/))).toBeTruthy();
-      expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
-      expect(result.items.map(item => item.range.start.line)).toContain(1);
-      expect(result.items.map(item => item.range.start.character)).toContain(0);
-    }
-  });
+        expect(result).toBeDefined();
 
-  it("should report warning in included file", async () => {
-    const mainContent = `
+
+        if (result.kind === "full") {
+            expect(result.items.length).toBeGreaterThan(0);
+
+            expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
+            expect(result?.relatedDocuments?.[includedUri]).toBeDefined()
+            expect(result.items.map(item => item.range.start.line)).toContain(1);
+            expect(result.items.map(item => item.range.start.character)).toContain(0);
+        }
+    });
+
+    it("should report warning in included file", async () => {
+        const mainContent = `
 #include "foo.stan"
 model { foo ~ std_normal(); }`;
-    const includedContent = "parameters { real foo; } transformed parameters { real bar = 1 / 2; }"; // Integer division warning
+        const includedContent = "parameters { real foo; } transformed parameters { real bar = 1 / 2; }"; // Integer division warning
 
-    const includedUri = "file:///test/foo.stan";
-    await client.didOpen(includedUri, "stan", includedContent);
+        const includedUri = "file:///test/foo.stan";
+        await client.didOpen(includedUri, "stan", includedContent);
 
-    const mainUri = "file:///test/include-warning.stan";
-    await client.didOpen(mainUri, "stan", mainContent);
+        const mainUri = "file:///test/include-warning.stan";
+        await client.didOpen(mainUri, "stan", mainContent);
 
-    const result = await client.diagnostics(mainUri);
+        const result = await client.diagnostics(mainUri);
 
-    expect(result).toBeDefined();
+        expect(result).toBeDefined();
 
-    if (result.kind === "full") {
-      expect(result.items.length).toBeGreaterThan(0);
-      expect(result.items.map(item => diagnosticMessageText(item.message).match(/^Warning in included file:/))).toBeTruthy();
-      expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Warning);
-      expect(result.items.map(item => item.range.start.line)).toContain(1);
-      expect(result.items.map(item => item.range.start.character)).toContain(0);
-    }
-  });
+        if (result.kind === "full") {
+            expect(result.items.length).toBeGreaterThan(0);
+            expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Warning);
+            expect(result?.relatedDocuments?.[includedUri]).toBeDefined()
+            expect(result.items.map(item => item.range.start.line)).toContain(1);
+            expect(result.items.map(item => item.range.start.character)).toContain(0);
+        }
+    });
 
-  it("should pick up a configuration change", async () => {
-    const content = "parameters {real foo; } model { foo ~ std_normal(); foo ~ std_normal(); }";
-    const uri = "file:///test/config-change.stan";
-    await client.didOpen(uri, "stan", content);
+    it("should pick up a configuration change", async () => {
+        const content = "parameters {real foo; } model { foo ~ std_normal(); foo ~ std_normal(); }";
+        const uri = "file:///test/config-change.stan";
+        await client.didOpen(uri, "stan", content);
 
-    let result = await client.diagnostics(uri);
+        let result = await client.diagnostics(uri);
 
-    expect(result).toBeDefined();
-    expect(result.kind).toBe("full");
-    if (result.kind === "full") {
-      expect(result.items.length).toBe(0);
-    }
+        expect(result).toBeDefined();
+        expect(result.kind).toBe("full");
+        if (result.kind === "full") {
+            expect(result.items.length).toBe(0);
+        }
 
-    const initialRefreshCount = client.numRefreshRequest;
+        const initialRefreshCount = client.numRefreshRequest;
 
-    await client.didChangeConfiguration({ "stan-language-server": { warnPedantic: true } });
+        await client.didChangeConfiguration({ "stan-language-server": { warnPedantic: true } });
 
-    // Wait a bit for the server to process the configuration change
-    await new Promise(resolve => setTimeout(resolve, 100));
+        // Wait a bit for the server to process the configuration change
+        await new Promise(resolve => setTimeout(resolve, 100));
 
-    expect(client.numRefreshRequest).toBeGreaterThan(initialRefreshCount);
+        expect(client.numRefreshRequest).toBeGreaterThan(initialRefreshCount);
 
-    result = await client.diagnostics(uri);
-    expect(result.kind).toBeDefined();
-    if (result.kind === "full") {
-      expect(result.items.length).toBeGreaterThan(0);
-      expect(diagnosticMessageText(result.items[0]!.message)).toBe("The parameter foo has 2 priors.");
-    }
-  });
+        result = await client.diagnostics(uri);
+        expect(result.kind).toBeDefined();
+        if (result.kind === "full") {
+            expect(result.items.length).toBeGreaterThan(0);
+            expect(diagnosticMessageText(result.items[0]!.message)).toBe("The parameter foo has 2 priors.");
+        }
+    });
 });

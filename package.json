@@ -81,7 +81,7 @@
     "typescript-eslint": "8.71.0"
   },
   "dependencies": {
-    "stanc3": "2.40.0",
+    "stanc3": "./stanc3-nightly.tgz",
     "trie-search": "2.2.1",
     "vscode-languageserver": "10.1.2",
     "vscode-languageserver-textdocument": "1.0.15",

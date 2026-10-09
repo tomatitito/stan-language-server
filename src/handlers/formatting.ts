@@ -4,7 +4,7 @@ import type {
   TextEdit,
   WorkspaceFolder,
 } from "vscode-languageserver";
-import { handleCompilation, type Settings } from "./compilation/compilation";
+import { formatWithStanc, type Settings } from "./compilation/compilation";
 import type { FileSystemReader, TextDocumentProvider } from "../types";
 
 export async function handleFormatting(
@@ -19,12 +19,11 @@ export async function handleFormatting(
   if (!document || !document.languageId.startsWith("stan")) {
     return [];
   }
-  const result = await handleCompilation(
+  const result = await formatWithStanc(
     document,
     documents,
     workspaceFolders,
     settings,
-    "formatting",
     logger,
     reader,
   );

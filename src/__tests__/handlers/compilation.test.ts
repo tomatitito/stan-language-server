@@ -3,13 +3,13 @@ import type { RemoteConsole, TextDocuments, WorkspaceFolder } from "vscode-langu
 import { TextDocument } from "vscode-languageserver-textdocument";
 import type { StancReturn } from "stanc3";
 import * as stancModule from "stanc3";
-import { handleCompilation } from "../../handlers/compilation/compilation";
+import { formatWithStanc } from "../../handlers/compilation/compilation";
 import * as includesModule from "../../handlers/compilation/includes";
 
 describe("Compilation Handler", () => {
   const mockManager = {} as TextDocuments<TextDocument>;
   const mockFolders: WorkspaceFolder[] = [{ uri: "file:///workspace", name: "test" }];
-  const purpose = "formatting";
+
 
   const settings = {
     maxLineLength: 120,
@@ -30,9 +30,9 @@ describe("Compilation Handler", () => {
       warn: mock(() => {}),
     } as any;
 
-    handleIncludesSpy = spyOn(includesModule, "handleIncludes").mockResolvedValue({
+    handleIncludesSpy = spyOn(includesModule, "handleIncludes").mockResolvedValue([{
       "foo.stan": "real foo;",
-    });
+    }, {}]);
   });
 
   afterEach(() => {
@@ -46,7 +46,7 @@ describe("Compilation Handler", () => {
       "parameters { real x; } model { x ~ normal(0, 1); }"
     );
 
-    const result = await handleCompilation(document, mockManager, mockFolders, settings, purpose, mockLogger);
+    const result = await formatWithStanc(document, mockManager, mockFolders, settings, mockLogger);
 
     expect(handleIncludesSpy).toHaveBeenCalledTimes(1);
     expect(handleIncludesSpy).toHaveBeenCalledWith(
@@ -59,6 +59,7 @@ describe("Compilation Handler", () => {
     );
 
     expect(result.errors).not.toBeDefined();
+    expect(result).toHaveProperty("result");
     expect(result.result).toBe("parameters {\n  real x;\n}\nmodel {\n  x ~ normal(0, 1);\n}\n");
     expect(result.warnings).toEqual([]);
   });
@@ -69,7 +70,7 @@ describe("Compilation Handler", () => {
       "real f(real x) { return x * 2; }"
     );
 
-    const result = await handleCompilation(document, mockManager, mockFolders, settings, purpose, mockLogger);
+    const result = await formatWithStanc(document, mockManager, mockFolders, settings, mockLogger);
 
     expect(result.errors).not.toBeDefined();
     expect(result.result).toBe("real f(real x) {\n  return x * 2;\n}");
@@ -86,7 +87,7 @@ describe("Compilation Handler", () => {
     stancSpy.mockReturnValueOnce(compilerErrorResult);
 
     const document = createDocument("file:///workspace/error.stan", "invalid stan code");
-    const result = await handleCompilation(document, mockManager, mockFolders, settings, purpose, mockLogger);
+    const result = await formatWithStanc(document, mockManager, mockFolders, settings, mockLogger);
 
     expect(result).toEqual(compilerErrorResult);
   });
