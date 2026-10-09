@@ -11,7 +11,7 @@ import {
 
 import type { FileSystemReader, TextDocumentProvider } from "../types";
 import { SERVER_ID } from "../constants";
-import type { CheckResult, Diagnostic as StancDiagnostic } from "stanc3";
+import type { CheckResult, Diagnostic as StancDiagnostic, Severity, Range } from "stanc3";
 import { checkWithStanc, type Settings } from "./compilation/compilation";
 import { URI } from "vscode-uri";
 
@@ -66,7 +66,7 @@ export async function handleDiagnostics(
 }
 
 
-function convertSeverity(severity: StancDiagnostic['severity']): DiagnosticSeverity {
+function convertSeverity(severity: Severity): DiagnosticSeverity {
     switch (severity) {
         case "help": return DiagnosticSeverity.Hint;
         case "note": return DiagnosticSeverity.Information;
@@ -75,7 +75,7 @@ function convertSeverity(severity: StancDiagnostic['severity']): DiagnosticSever
     }
 }
 
-function convertRange(range: StancDiagnostic['labels'][0]['range']): Location {
+function convertRange(range: Range): Location {
 
     return {
         uri: URI.file(range.source ?? "string").toString(),
@@ -87,13 +87,13 @@ function convertRange(range: StancDiagnostic['labels'][0]['range']): Location {
 }
 
 function convertDiagnostics(compilerDiagnostic: StancDiagnostic): { [uri: string]: Diagnostic[] } {
+    const severity = convertSeverity(compilerDiagnostic.severity);
 
     const diagnostics: { [uri: string]: Diagnostic[] } = {};
 
     for (const label of compilerDiagnostic.labels) {
         const { range, uri } = convertRange(label.range);
         if (diagnostics[uri] === undefined) diagnostics[uri] = [];
-
         if (label.priority === "primary") {
             let message = compilerDiagnostic.message;
             if (label.message != message && label.message != "here.") {
@@ -112,20 +112,43 @@ function convertDiagnostics(compilerDiagnostic: StancDiagnostic): { [uri: string
                 {
                     range,
                     message,
-                    severity: convertSeverity(compilerDiagnostic.severity),
+                    severity,
                     code: compilerDiagnostic.error_code,
                     source: SERVER_ID,
                 });
         } else {
-            // TODO: once more clients support it, this could be DiagnosticRelatedInformation
-            diagnostics[uri].push(
-                {
-                    range,
-                    message: label.message,
-                    severity: DiagnosticSeverity.Information,
-                    code: compilerDiagnostic.error_code,
-                    source: SERVER_ID,
-                });
+            if (label.message.includes("included here")) {
+                // display the error also at the site of the include
+                let message = compilerDiagnostic.severity + " in included file: ";
+                const file = label.message.match(/file '(?<file>[a-z0-9 ._-]+)' included/)?.groups?.file;
+                if (file) {
+                    const uri = URI.file(file).toString();
+                    for (const d of diagnostics[uri] ?? []) {
+                        if (d.severity === severity) {
+                            message += d.message + "\n";
+                        }
+                    }
+                }
+                message += label.message
+                diagnostics[uri].push(
+                    {
+                        range,
+                        message,
+                        severity,
+                        code: compilerDiagnostic.error_code,
+                        source: SERVER_ID,
+                    });
+            } else {
+                // TODO: once more clients support it, this could be DiagnosticRelatedInformation
+                diagnostics[uri].push(
+                    {
+                        range,
+                        message: label.message,
+                        severity: DiagnosticSeverity.Information,
+                        code: compilerDiagnostic.error_code,
+                        source: SERVER_ID,
+                    });
+            }
         }
     }
 

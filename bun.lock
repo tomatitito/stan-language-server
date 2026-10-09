@@ -222,7 +222,7 @@
 
     "shebang-regex": ["shebang-regex@3.0.0", "", {}, "sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A=="],
 
-    "stanc3": ["stanc3@./stanc3-nightly.tgz", {}, "sha512-Mirkc4vyLHZB8XfeuIbHscYR1E32W6rh5A95AeZnkE8DFLK0mm5wrE2heIZQjTIKdh+sKxCytKE+U/ik72yYwA=="],
+    "stanc3": ["stanc3@./stanc3-nightly.tgz", {}, "sha512-Jxtv3Y4t/abTCWLuX1rlTRHQGQ7D4Aci5V/tZkIAZTeFJwbCzqpPnTvjp5RaNv9by6f51gv7gxvO9LVGJcw3oA=="],
 
     "tinyglobby": ["tinyglobby@0.2.15", "", { "dependencies": { "fdir": "^6.5.0", "picomatch": "^4.0.3" } }, "sha512-j2Zq4NyQYG5XMST4cbs02Ak8iJUdxRM0XI5QyxXuZOzKOINmWurp3smXu3y5wDcJrptwpSjgXHzIQxR0omXljQ=="],
 
