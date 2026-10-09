@@ -25,10 +25,10 @@ describe("Diagnostic Handler", () => {
         mockLogger = {
             warn: mock(() => { }),
         } as any;
-        mockHandleCompilation = spyOn(compilationModule, "checkWithStanc").mockResolvedValue({
+        mockHandleCompilation = spyOn(compilationModule, "checkWithStanc").mockResolvedValue([{
             errors: [],
             warnings: []
-        });
+        }, {}]);
 
     });
 

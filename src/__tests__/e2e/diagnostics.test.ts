@@ -201,8 +201,7 @@ model { foo ~ std_normal(); }`;
             expect(result.items.length).toBeGreaterThan(0);
 
             expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Error);
-            // TODO test related files contains the correct uri for the include
-            // expect(result?.relatedDocuments?.[includedUri]).toBeDefined()
+            expect(result?.relatedDocuments?.[includedUri]).toBeDefined()
             expect(result.items.map(item => item.range.start.line)).toContain(1);
             expect(result.items.map(item => item.range.start.character)).toContain(0);
         }
@@ -227,6 +226,7 @@ model { foo ~ std_normal(); }`;
         if (result.kind === "full") {
             expect(result.items.length).toBeGreaterThan(0);
             expect(new Set(result.items.map(item => item.severity))).toContain(DiagnosticSeverity.Warning);
+            expect(result?.relatedDocuments?.[includedUri]).toBeDefined()
             expect(result.items.map(item => item.range.start.line)).toContain(1);
             expect(result.items.map(item => item.range.start.character)).toContain(0);
         }

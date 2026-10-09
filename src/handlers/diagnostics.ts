@@ -29,7 +29,7 @@ export async function handleDiagnostics(
         return { kind: "full", items: [] };
     }
 
-    const compilerResult = await checkWithStanc(
+    const [compilerResult, include_uris] = await checkWithStanc(
         document,
         documents,
         workspaceFolders,
@@ -45,10 +45,8 @@ export async function handleDiagnostics(
         if (uri === params.textDocument.uri) {
             items = diagnostics[uri] ?? [];
         } else {
-            // TODO this uri is wrong and leads to no diagnostic atm
-            // need to make it a full path somehow?
-            // maybe map from included name to uri needs to be returned from the compilation function?
-            relatedDocuments[uri] =
+            const new_uri = include_uris[URI.parse(uri).fsPath.slice(1)]?.toString() ?? uri;
+            relatedDocuments[new_uri] =
             {
                 kind: "full",
                 items: diagnostics[uri] ?? []

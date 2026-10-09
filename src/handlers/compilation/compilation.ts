@@ -27,11 +27,11 @@ export async function checkWithStanc(
   settings: Settings,
   logger: RemoteConsole,
   reader?: FileSystemReader,
-): Promise<CheckResult> {
+): Promise<[CheckResult, Record<string, URI>]> {
   const filename = URI.parse(document.uri).fsPath;
   const code = document.getText();
 
-  const includes = await handleIncludes(
+  const [includes, include_uris] = await handleIncludes(
     document,
     documentManager,
     workspaceFolders,
@@ -39,6 +39,7 @@ export async function checkWithStanc(
     logger,
     reader,
   );
+
 
   const stanc_args = [`filename-in-msg=${filename}`, "allow-undefined"];
   if (filename.endsWith(".stanfunctions")) {
@@ -48,7 +49,7 @@ export async function checkWithStanc(
     // warn-pedantic is run late in the pipeline, so only functions if you don't request formatting
     stanc_args.push("warn-pedantic");
   }
-  return Promise.resolve(check_model(filename, code, stanc_args, includes));
+  return Promise.resolve([check_model(filename, code, stanc_args, includes), include_uris]);
 }
 
 export async function formatWithStanc(
@@ -62,7 +63,7 @@ export async function formatWithStanc(
   const filename = URI.parse(document.uri).fsPath;
   const code = document.getText();
 
-  const includes = await handleIncludes(
+  const [includes, _] = await handleIncludes(
     document,
     documentManager,
     workspaceFolders,
