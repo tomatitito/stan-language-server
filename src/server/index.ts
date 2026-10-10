@@ -6,11 +6,13 @@ import {
   MessageType,
   TextDocumentSyncKind,
   CompletionItemKind,
+  CodeActionKind,
   type Connection,
   type InitializeParams,
   type InitializeResult,
 } from "vscode-languageserver";
 import {
+  handleCodeAction,
   handleCompletion,
   handleDiagnostics,
   handleFormatting,
@@ -41,12 +43,20 @@ const startLanguageServer = (
   let hasWorkspaceFolderCapability: boolean = false;
   let hasDynamicConfigurationRequestCapability: boolean = false;
   let hasSnippetSupport: boolean = false;
+  let hasCodeActionLiteralSupport = false;
+  let hasDocumentChangesSupport = false;
 
   connection.onInitialize((params: InitializeParams): InitializeResult => {
     connection.console.info("Initializing Stan language server...");
 
     const capabilities = params.capabilities;
 
+    hasCodeActionLiteralSupport = Boolean(
+      capabilities.textDocument?.codeAction?.codeActionLiteralSupport,
+    );
+    hasDocumentChangesSupport = Boolean(
+      capabilities.workspace?.workspaceEdit?.documentChanges,
+    );
     hasConfigurationCapability = Boolean(capabilities.workspace?.configuration);
     hasDynamicConfigurationRequestCapability = Boolean(
       capabilities.workspace?.configuration &&
@@ -71,6 +81,9 @@ const startLanguageServer = (
         },
         documentFormattingProvider: true,
         documentRangeFormattingProvider: false,
+        codeActionProvider: hasCodeActionLiteralSupport ? {
+          codeActionKinds: [CodeActionKind.RefactorRewrite],
+        } : false,
         workspace: {
           workspaceFolders: {
             supported: hasWorkspaceFolderCapability,
@@ -213,6 +226,24 @@ const startLanguageServer = (
       return null;
     }
     return handleHover(document, params);
+  });
+
+  connection.onCodeAction(async (params) => {
+    const document = workspace.documents.get(params.textDocument.uri);
+    if (!hasCodeActionLiteralSupport || !document || !isStanDocument(document)) {
+      return [];
+    }
+    await forceWorkspaceIndexUpdate(
+      workspace,
+      document,
+      workspaceIndexUpdateOptions,
+    );
+    return handleCodeAction(
+      document,
+      params,
+      hasDocumentChangesSupport,
+      workspace.indexing.index,
+    );
   });
 
   connection.onPrepareRename(async (params) => {
