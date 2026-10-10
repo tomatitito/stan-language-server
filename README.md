@@ -9,6 +9,7 @@ A language server for the Stan probabilistic programming language written in Typ
 - **Diagnostics**: Real-time syntax and semantic error detection
 - **Code formatting**: Using the official Stan compiler
 - **Include file support**: Full `#include` resolution and compilation
+- **Documentation templates**: Code action to generate Doxygen-style documentation for user-defined functions
 
 ## Editor-specific configuration
 
