@@ -1,5 +1,8 @@
 import { spawn, type ChildProcess } from "child_process";
 import type {
+  CodeAction,
+  CodeActionParams,
+  Command,
   CompletionItem,
   CompletionList,
   CompletionParams,
@@ -262,7 +265,12 @@ export class LSPTestClient {
     });
   }
 
-  async initialize(workspaceUri?: string, dynamicRegistration: boolean = true): Promise<InitializeResult> {
+  async initialize(
+    workspaceUri?: string,
+    dynamicRegistration: boolean = true,
+    codeActionLiteralSupport = true,
+    documentChanges = true,
+  ): Promise<InitializeResult> {
     // Store workspace URI so we can respond to workspace/workspaceFolders requests
     this.workspaceUri = workspaceUri || null;
 
@@ -278,8 +286,14 @@ export class LSPTestClient {
           },
           hover: {},
           formatting: {},
+          codeAction: codeActionLiteralSupport ? {
+            codeActionLiteralSupport: {
+              codeActionKind: { valueSet: ["refactor.rewrite"] },
+            },
+          } : {},
         },
         workspace: {
+          workspaceEdit: { documentChanges },
           workspaceFolders: true,
           configuration: true,
           didChangeConfiguration: {
@@ -399,6 +413,19 @@ export class LSPTestClient {
       },
     };
     return this.sendRequest<TextEdit[]>("textDocument/formatting", params);
+  }
+
+  async codeAction(
+    uri: string,
+    range: CodeActionParams["range"],
+    context: CodeActionParams["context"] = { diagnostics: [] },
+  ): Promise<(CodeAction | Command)[] | null> {
+    const params: CodeActionParams = {
+      textDocument: { uri },
+      range,
+      context,
+    };
+    return this.sendRequest<(CodeAction | Command)[] | null>("textDocument/codeAction", params);
   }
 
   async hover(uri: string, line: number, character: number): Promise<Hover | null> {
