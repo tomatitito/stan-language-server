@@ -1,11 +1,13 @@
-import {
+import type {
+  RemoteConsole,
   WorkspaceFolder,
-  type RemoteConsole,
 } from "vscode-languageserver";
-import { join } from "path";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { URI, Utils } from "vscode-uri";
-import type { FileSystemReader, TextDocumentProvider } from "../../types";
+import type {
+  TextDocumentProvider,
+  WorkspaceFileReader,
+} from "../../types";
 
 export type Filename = string;
 export type FileContent = string;
@@ -13,11 +15,9 @@ export type FilePathError = { msg: string };
 
 export function getFilenames(fileContent: string): Filename[] {
   const includePattern = /#include\s*[<"]?([^>"\s]*)[>"]?/g;
-
-  const matches = Array.from(fileContent.matchAll(includePattern));
-  const results = matches.map((match) => match[1] || "");
-
-  return results;
+  return Array.from(fileContent.matchAll(includePattern)).map(
+    (match) => match[1] || "",
+  );
 }
 
 export function isFilePathError(value: unknown): value is FilePathError {
@@ -30,12 +30,11 @@ export async function handleIncludes(
   workspaceFolders: WorkspaceFolder[],
   includePaths: string[],
   logger: RemoteConsole,
-  reader?: FileSystemReader,
-  alreadyIncluded: Set<Filename> = new Set()
+  reader?: WorkspaceFileReader,
+  alreadyIncluded: Set<Filename> = new Set(),
 ): Promise<Record<Filename, FileContent>> {
   try {
     const includeFilenames = getFilenames(document.getText());
-
     if (includeFilenames.length === 0) {
       return {};
     }
@@ -52,36 +51,35 @@ export async function handleIncludes(
             workspaceFolders,
             includePaths,
             filename,
-            reader
+            reader,
           );
           return [filename, content];
         } catch (err) {
           return [filename, { msg: `${(err as Error).message}` }];
         }
-      })
+      }),
     );
 
     const validResults = allResults.filter(
-      ([_, content]) => !isFilePathError(content)
+      ([, content]) => !isFilePathError(content),
     ) as [Filename, TextDocument][];
 
     const currentlyIncluded = new Set(
-      validResults.map(([filename, _]) => filename)
+      validResults.map(([filename]) => filename),
     ).union(alreadyIncluded);
 
     const recursiveIncludes = await Promise.all(
-      validResults.map(
-        async ([_, content]) =>
-          await handleIncludes(
-            content,
-            documentManager,
-            workspaceFolders,
-            includePaths,
-            logger,
-            reader,
-            currentlyIncluded
-          )
-      )
+      validResults.map(([, content]) =>
+        handleIncludes(
+          content,
+          documentManager,
+          workspaceFolders,
+          includePaths,
+          logger,
+          reader,
+          currentlyIncluded,
+        ),
+      ),
     );
 
     const results = validResults
@@ -91,9 +89,24 @@ export async function handleIncludes(
     return Object.fromEntries(results);
   } catch (error) {
     logger.warn(`Resolving included files failed: ${error}`);
-    return Promise.resolve({});
+    return {};
   }
 }
+
+const candidateUris = (
+  documentUri: string,
+  workspaceFolders: readonly WorkspaceFolder[],
+  includePaths: readonly string[],
+  filename: Filename,
+): readonly string[] => {
+  const bases = [
+    Utils.dirname(URI.parse(documentUri)),
+    ...workspaceFolders.map(({ uri }) => URI.parse(uri)),
+    ...includePaths.map((includePath) => URI.file(includePath)),
+  ];
+
+  return [...new Set(bases.map((base) => Utils.joinPath(base, filename).toString()))];
+};
 
 const readIncludedFile = async (
   document: TextDocument,
@@ -101,82 +114,33 @@ const readIncludedFile = async (
   workspaceFolders: WorkspaceFolder[],
   includePaths: string[],
   filename: Filename,
-  reader?: FileSystemReader
+  reader?: WorkspaceFileReader,
 ): Promise<TextDocument | FilePathError> => {
-  const currentDir = Utils.dirname(URI.parse(document.uri));
-
-  let includedFileContent = await readIncludedFileFromWorkspace(
-    documentManager,
+  for (const uri of candidateUris(
+    document.uri,
     workspaceFolders,
+    includePaths,
     filename,
-    currentDir
-  );
+  )) {
+    const openDocument = documentManager.get(uri);
+    if (openDocument) {
+      return openDocument;
+    }
 
-  if (!isFilePathError(includedFileContent)) {
-    return Promise.resolve(includedFileContent);
-  }
-
-  if (reader) {
-    includedFileContent = await readIncludedFileFromFileSystem(
-      filename,
-      [currentDir.fsPath, ...includePaths],
-      reader
-    );
-  }
-
-  if (!isFilePathError(includedFileContent)) {
-    return Promise.resolve(includedFileContent);
-  }
-
-  return Promise.resolve({ msg: `File not found: ${filename}` });
-};
-
-const readIncludedFileFromWorkspace = (
-  documentManager: TextDocumentProvider,
-  workspaceFolders: WorkspaceFolder[],
-  filename: Filename,
-  currentDir: URI
-): Promise<TextDocument | FilePathError> => {
-  const searchFolders = [
-    { uri: currentDir.toString(), name: "stan file directory" },
-    ...workspaceFolders,
-  ];
-
-  const paths = searchFolders.map((folder) => folder.uri + "/" + filename);
-  const documents = paths.map((path) => {
-    const doc = documentManager.get(path);
-
-    return { path, doc };
-  });
-
-  const includedFile = documents
-    .filter(({ doc }) => doc !== undefined)
-    .map(({ doc }) => doc)[0];
-
-  if (!includedFile) {
-    return Promise.resolve({ msg: `File not found: ${filename}` });
-  }
-  return Promise.resolve(includedFile);
-};
-
-const readIncludedFileFromFileSystem = async (
-  filename: Filename,
-  dirs: string[],
-  fileSystemReader: FileSystemReader
-): Promise<TextDocument | FilePathError> => {
-  for (const currentDir of dirs) {
     try {
-      const localPath = join(currentDir, filename);
-      const content = await fileSystemReader(localPath);
-      return TextDocument.create(
-        URI.file(localPath).toString(),
-        "stan",
-        0,
-        content
-      );
-    } catch (_error) {
-      // ignored
+      const file = await reader?.(uri);
+      if (file) {
+        return TextDocument.create(
+          file.uri,
+          file.uri.endsWith(".stanfunctions") ? "stanfunctions" : "stan",
+          typeof file.version === "number" ? file.version : 0,
+          file.text,
+        );
+      }
+    } catch {
+      // Try remaining workspace/include-path candidates.
     }
   }
-  return Promise.resolve({ msg: `File not found: ${filename}` });
+
+  return { msg: `File not found: ${filename}` };
 };

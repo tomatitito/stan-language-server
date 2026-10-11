@@ -1,5 +1,4 @@
-import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
-import { promises } from "fs";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { RemoteConsole } from "vscode-languageserver";
 import { TextDocuments, WorkspaceFolder } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -92,12 +91,9 @@ describe("Includes Handler", () => {
       expect(result).toEqual(expected);
     });
 
-    it("should prioritize workspace documents over filesystem", async () => {
+    it("should prioritize open documents over filesystem content", async () => {
       const includeFilename = "config.stan";
       const workspaceContent = "real workspace_function() { return 1; }";
-      const filesystemContent = "real filesystem_function() { return 2; }";
-
-      // Set up workspace document (should be chosen)
       const includeDocument = createMockDocument(
         "file:///workspace/config.stan",
         workspaceContent
@@ -106,59 +102,79 @@ describe("Includes Handler", () => {
         "file:///workspace/main.stan",
         '#include "config.stan"\nparameters { real x; } model { x ~ normal(0, 1); }'
       );
-
       const documentManager = createMockDocumentManager([includeDocument]);
-      const workspaceFolders = createMockWorkspaceFolders();
+      let reads = 0;
+      const reader = async (uri: string) => {
+        reads += 1;
+        return { uri, text: "disk", version: "disk-1", location: "disk" as const };
+      };
 
-      // Mock filesystem to return different content
-      const mockReadFile = spyOn(promises, "readFile").mockResolvedValue(filesystemContent);
+      const result = await handleIncludes(
+        mainDocument,
+        documentManager,
+        createMockWorkspaceFolders(),
+        [],
+        mockLogger,
+        reader,
+      );
 
-      try {
-        const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
-
-        // Should use workspace version, NOT filesystem version
-        expect(result).toEqual({
-          [includeFilename]: workspaceContent
-        });
-
-        // Filesystem should not be called since workspace succeeded
-        expect(mockReadFile).not.toHaveBeenCalled();
-      } finally {
-        mockReadFile.mockRestore();
-      }
+      expect(result).toEqual({ [includeFilename]: workspaceContent });
+      expect(reads).toBe(0);
     });
 
-    it("should fall back to filesystem when workspace document not found", async () => {
+    it("should fall back to filesystem when document is not open", async () => {
       const includeFilename = "config.stan";
       const filesystemContent = "real filesystem_function() { return 2; }";
-
       const mainDocument = createMockDocument(
         "file:///workspace/main.stan",
         '#include "config.stan"\nparameters { real x; } model { x ~ normal(0, 1); }'
       );
+      const reader = async (uri: string) => ({
+        uri,
+        text: filesystemContent,
+        version: "disk-1",
+        location: "disk" as const,
+      });
 
-      const reader = (filename: string) => promises.readFile(filename, "utf-8");
+      const result = await handleIncludes(
+        mainDocument,
+        createMockDocumentManager([]),
+        createMockWorkspaceFolders(),
+        [],
+        mockLogger,
+        reader,
+      );
 
-      // Empty document manager (no workspace documents)
-      const documentManager = createMockDocumentManager([]);
-      const workspaceFolders = createMockWorkspaceFolders();
+      expect(result).toEqual({ [includeFilename]: filesystemContent });
+    });
 
-      // Mock filesystem to return content
-      const mockReadFile = spyOn(promises, "readFile").mockResolvedValue(filesystemContent);
+    it("should continue after an unreadable include candidate", async () => {
+      const mainDocument = createMockDocument(
+        "file:///current/main.stan",
+        '#include "config.stan"',
+      );
+      const reader = async (uri: string) => {
+        if (uri.startsWith("file:///current/")) {
+          throw new Error("unreadable");
+        }
+        return {
+          uri,
+          text: "real workspace_function() { return 1; }",
+          version: "disk-1",
+          location: "disk" as const,
+        };
+      };
 
-      try {
-        const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger, reader);
+      const result = await handleIncludes(
+        mainDocument,
+        createMockDocumentManager([]),
+        createMockWorkspaceFolders(),
+        [],
+        mockLogger,
+        reader,
+      );
 
-        // Should use filesystem version since workspace had nothing
-        expect(result).toEqual({
-          [includeFilename]: filesystemContent
-        });
-
-        // Filesystem should have been called as fallback
-        expect(mockReadFile).toHaveBeenCalled();
-      } finally {
-        mockReadFile.mockRestore();
-      }
+      expect(result["config.stan"]).toContain("workspace_function");
     });
 
     it("should handle current directory includes", async () => {

@@ -126,6 +126,51 @@ add the following to your `init.el`.
                                         . ("stan-language-server" "--stdio")))
 ```
 
+## Embedding the server
+
+The library entry point is platform-neutral. Hosts must supply both an LSP
+connection and a `ContentProvider`:
+
+```ts
+import startLanguageServer from "stan-language-server";
+import type { ContentProvider } from "stan-language-server/types";
+
+// Minimal provider for hosts that only support open documents.
+const contentProvider: ContentProvider = {
+  async listWorkspaceFiles() {
+    return [];
+  },
+  async readWorkspaceFile(uri, documents) {
+    const document = documents.get(uri);
+    return document
+      ? {
+          uri,
+          text: document.getText(),
+          version: document.version,
+          location: "documentStore",
+        }
+      : null;
+  },
+};
+
+startLanguageServer(connection, contentProvider);
+```
+
+Create `connection` using the appropriate transport for your host (for example,
+`vscode-languageserver/browser` in a web worker). The CLI supplies its own Node
+filesystem provider; browser hosts should use their virtual filesystem or client
+requests for workspace discovery and unopened files. The minimal provider above
+cannot resolve unopened includes.
+
+When bundling all dependencies with Bun for a browser, use `--external module`:
+`web-tree-sitter` contains a dynamic `import("module")` guarded by Node runtime
+detection. That branch is not executed in browsers; no Node polyfill is needed.
+
+Provider reads must prefer open documents over persisted content, including
+documents opened while an asynchronous read is pending. Return `null` when a file
+is unavailable. The second startup argument is required; existing library
+consumers must supply it.
+
 ## For developers
 
 Development uses [bun](https://bun.sh/)

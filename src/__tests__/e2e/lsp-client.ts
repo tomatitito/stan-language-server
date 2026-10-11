@@ -150,7 +150,10 @@ export class LSPTestClient {
   }
 
   private handleMessage(message: LSPMessage): void {
-    if (message.id && this.pendingRequests.has(message.id as number)) {
+    // Server requests have their own ID sequence and may share an ID with one
+    // of our pending requests. Only a response may resolve a pending request.
+    if (message.method === undefined && message.id !== undefined &&
+        this.pendingRequests.has(message.id as number)) {
       const request = this.pendingRequests.get(message.id as number)!;
       this.pendingRequests.delete(message.id as number);
 
@@ -295,6 +298,17 @@ export class LSPTestClient {
 
   async initialized(): Promise<void> {
     this.sendNotification("initialized");
+  }
+
+  async didChangeWorkspaceFolders(workspaceUri: string | null): Promise<void> {
+    const previousUri = this.workspaceUri;
+    this.workspaceUri = workspaceUri;
+    this.sendNotification("workspace/didChangeWorkspaceFolders", {
+      event: {
+        added: workspaceUri ? [{ uri: workspaceUri, name: "test-workspace" }] : [],
+        removed: previousUri ? [{ uri: previousUri, name: "test-workspace" }] : [],
+      },
+    });
   }
 
   async waitForRegistration(timeout: number = 2000): Promise<void> {

@@ -1,7 +1,9 @@
-import { promises } from "fs";
-
 import { createConnection, type Connection } from "vscode-languageserver/node";
 import startLanguageServer from "./index";
+import {
+  listWorkspaceFiles,
+  readWorkspaceFile,
+} from "./node_content_provider.ts";
 
 const printUsage = () => {
   console.log("Usage: stan-language-server -- [options]");
@@ -42,4 +44,4 @@ try {
   }
   process.exit(1);
 }
-startLanguageServer(connection, (f) => promises.readFile(f, "utf-8"));
+startLanguageServer(connection, { listWorkspaceFiles, readWorkspaceFile });

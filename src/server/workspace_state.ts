@@ -10,6 +10,7 @@ import {
   upsertSemanticIndexEntry,
 } from "../language/ast/workspace_index.ts";
 import type { WorkspaceIndex } from "../language/ast/types.ts";
+import type { ContentProvider, WorkspaceFileReader } from "../types/common.ts";
 import {
   changeDocument,
   closeDocument,
@@ -52,6 +53,16 @@ export const createServerWorkspaceState = (): ServerWorkspaceState => ({
     changeHistory: new Map(),
   },
 });
+
+export const createWorkspaceFileReader = (
+  state: ServerWorkspaceState,
+  contentProvider: ContentProvider,
+): WorkspaceFileReader => {
+  // Transitions replace the document map. Resolve it on every lookup, including
+  // provider rechecks after an asynchronous read, rather than capturing a snapshot.
+  const documents = { get: (uri: string) => state.documents.get(uri) };
+  return (uri) => contentProvider.readWorkspaceFile(uri, documents);
+};
 
 const isStanDocument = (document: TextDocument): boolean => {
   return document.languageId.startsWith("stan");
