@@ -45,6 +45,7 @@ const startLanguageServer = (
   let hasSnippetSupport: boolean = false;
   let hasCodeActionLiteralSupport = false;
   let hasDocumentChangesSupport = false;
+  let hasSnippetEditSupport = false;
 
   connection.onInitialize((params: InitializeParams): InitializeResult => {
     connection.console.info("Initializing Stan language server...");
@@ -56,6 +57,9 @@ const startLanguageServer = (
     );
     hasDocumentChangesSupport = Boolean(
       capabilities.workspace?.workspaceEdit?.documentChanges,
+    );
+    hasSnippetEditSupport = Boolean(
+      capabilities.workspace?.workspaceEdit?.snippetEditSupport,
     );
     hasConfigurationCapability = Boolean(capabilities.workspace?.configuration);
     hasDynamicConfigurationRequestCapability = Boolean(
@@ -243,6 +247,7 @@ const startLanguageServer = (
       params,
       hasDocumentChangesSupport,
       workspace.indexing.index,
+      hasSnippetEditSupport,
     );
   });
 
