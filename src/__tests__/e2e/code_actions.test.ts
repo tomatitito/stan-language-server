@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import type { CodeAction, InitializeResult, TextDocumentEdit, TextEdit } from "vscode-languageserver-protocol";
 import { LSPTestClient } from "./lsp-client";
@@ -33,6 +33,146 @@ describe("Code action client capabilities", () => {
     } finally {
       await client.stop();
     }
+  });
+});
+
+describe("Documentation template snippet edit capabilities", () => {
+  let client: LSPTestClient;
+
+  beforeEach(async () => {
+    client = new LSPTestClient();
+    await client.start();
+  });
+
+  afterEach(async () => {
+    await client.stop();
+  });
+
+  it("uses plain changes when neither capability is supported", async () => {
+    await client.initialize(undefined, false, true, false, false);
+    await client.initialized();
+    const uri = "file:///plain-changes.stan";
+    await client.didOpen(uri, "stan", "functions {\n  real identity(real value) { return value; }\n}");
+
+    expect(await client.codeAction(uri, {
+      start: { line: 1, character: 10 },
+      end: { line: 1, character: 10 },
+    })).toEqual([{
+      title: "Generate documentation template",
+      kind: "refactor.rewrite",
+      edit: {
+        changes: {
+          [uri]: [{
+            range: { start: { line: 1, character: 0 }, end: { line: 1, character: 0 } },
+            newText: "  /**\n   * @brief\n   *\n   * @param value\n   * @return\n   */\n",
+          }],
+        },
+      },
+    }]);
+  });
+
+  it("uses plain documentChanges when only documentChanges is supported", async () => {
+    await client.initialize(undefined, false, true, true, false);
+    await client.initialized();
+    const uri = "file:///plain-document-changes.stan";
+    await client.didOpen(uri, "stan", "functions {\n  real identity(real value) { return value; }\n}");
+
+    expect(await client.codeAction(uri, {
+      start: { line: 1, character: 10 },
+      end: { line: 1, character: 10 },
+    })).toEqual([{
+      title: "Generate documentation template",
+      kind: "refactor.rewrite",
+      edit: {
+        documentChanges: [{
+          textDocument: { uri, version: 1 },
+          edits: [{
+            range: { start: { line: 1, character: 0 }, end: { line: 1, character: 0 } },
+            newText: "  /**\n   * @brief\n   *\n   * @param value\n   * @return\n   */\n",
+          }],
+        }],
+      },
+    }]);
+  });
+
+  it("uses plain changes when snippet edits are supported but documentChanges is not", async () => {
+    await client.initialize(undefined, false, true, false, true);
+    await client.initialized();
+    const uri = "file:///snippet-without-document-changes.stan";
+    await client.didOpen(uri, "stan", "functions {\n  real identity(real value) { return value; }\n}");
+
+    expect(await client.codeAction(uri, {
+      start: { line: 1, character: 10 },
+      end: { line: 1, character: 10 },
+    })).toEqual([{
+      title: "Generate documentation template",
+      kind: "refactor.rewrite",
+      edit: {
+        changes: {
+          [uri]: [{
+            range: { start: { line: 1, character: 0 }, end: { line: 1, character: 0 } },
+            newText: "  /**\n   * @brief\n   *\n   * @param value\n   * @return\n   */\n",
+          }],
+        },
+      },
+    }]);
+  });
+
+  it("uses a versioned snippet edit with cursor placed after `brief` when both capabilities are supported", async () => {
+    await client.initialize(undefined, false, true, true, true);
+    await client.initialized();
+    const uri = "file:///snippet-document-changes.stan";
+    const content = "functions {\n  real weighted(real value, vector weights) { return value; }\n}";
+    await client.didOpen(uri, "stan", content);
+    await client.didChange(uri, content, 7);
+
+    expect(await client.codeAction(uri, {
+      start: { line: 1, character: 10 },
+      end: { line: 1, character: 10 },
+    })).toEqual([{
+      title: "Generate documentation template",
+      kind: "refactor.rewrite",
+      edit: {
+        documentChanges: [{
+          textDocument: { uri, version: 7 },
+          edits: [{
+            range: { start: { line: 1, character: 0 }, end: { line: 1, character: 0 } },
+            snippet: {
+              kind: "snippet",
+              value: "  /**\n   * @brief $0\n   *\n   * @param value\n   * @param weights\n   * @return\n   */\n",
+            },
+          }],
+        }],
+      },
+    }]);
+  });
+
+  it("preserves CRLF and tabs in the snippet response", async () => {
+    await client.initialize(undefined, false, true, true, true);
+    await client.initialized();
+    const uri = "file:///snippet-crlf.stan";
+    const content = "functions {\r\n\tvoid notify(real value) { print(value); }\r\n}";
+    await client.didOpen(uri, "stan", content);
+
+    expect(await client.codeAction(uri, {
+      start: { line: 1, character: 8 },
+      end: { line: 1, character: 8 },
+    })).toEqual([{
+      title: "Generate documentation template",
+      kind: "refactor.rewrite",
+      edit: {
+        documentChanges: [{
+          textDocument: { uri, version: 1 },
+          edits: [{
+            range: { start: { line: 1, character: 0 }, end: { line: 1, character: 0 } },
+            snippet: {
+              kind: "snippet",
+              value: "\t/**\r\n\t * @brief $0\r\n\t *\r\n\t * @param value\r\n\t */\r\n",
+            },
+          }],
+        }],
+      },
+    }]);
   });
 });
 
@@ -252,6 +392,38 @@ describe("Generate documentation template code action", () => {
         }],
       },
     }]);
+  });
+
+  it.each([
+    ["real identity(real value) { return value; }", 6],
+    ["void notify() { print(1); }", 6],
+    ["array[] real identity(array[] real value) { return value; }", 14],
+  ])("offers documentation throughout the return type: %s", async (signature, returnTypeEnd) => {
+    const uri = "file:///test-workspace/document-return-type.stan";
+    await client.didOpen(uri, "stan", [
+      "functions {",
+      `  ${signature}`,
+      "}",
+    ].join("\n"));
+
+    // Every position in the return type, including array brackets and whitespace.
+    for (let character = 2; character < returnTypeEnd; character++) {
+      const actions = await client.codeAction(uri, {
+        start: { line: 1, character },
+        end: { line: 1, character },
+      });
+      expect(actions).toHaveLength(1);
+      expect(actions![0]?.title).toBe("Generate documentation template");
+    }
+    // A selection covering only the return type is also eligible.
+    expect(await client.codeAction(uri, {
+      start: { line: 1, character: 2 },
+      end: { line: 1, character: returnTypeEnd },
+    })).toHaveLength(1);
+    expect(await client.codeAction(uri, {
+      start: { line: 1, character: 1 },
+      end: { line: 1, character: 1 },
+    })).toEqual([]);
   });
 
   it("accepts ranges wholly inside a multiline signature, but not leading indentation or the body", async () => {
