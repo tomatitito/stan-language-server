@@ -270,10 +270,12 @@ export class LSPTestClient {
     dynamicRegistration: boolean = true,
     codeActionLiteralSupport = true,
     documentChanges = true,
+    snippetEditSupport = false,
   ): Promise<InitializeResult> {
     // Store workspace URI so we can respond to workspace/workspaceFolders requests
     this.workspaceUri = workspaceUri || null;
 
+    const workspaceEdit = { documentChanges, snippetEditSupport };
     const params: InitializeParams = {
       processId: process.pid,
       rootUri: workspaceUri || null,
@@ -293,7 +295,7 @@ export class LSPTestClient {
           } : {},
         },
         workspace: {
-          workspaceEdit: { documentChanges },
+          workspaceEdit,
           workspaceFolders: true,
           configuration: true,
           didChangeConfiguration: {
