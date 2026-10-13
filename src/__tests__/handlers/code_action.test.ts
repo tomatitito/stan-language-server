@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { TextDocument } from "vscode-languageserver-textdocument";
+import type { SnippetTextEdit } from "vscode-languageserver";
 import { handleCodeAction } from "../../handlers/code_action.ts";
 import type { WorkspaceIndex } from "../../language/ast/types.ts";
 import {
@@ -35,14 +36,14 @@ describe("documentation template code action", () => {
       },
       context: { diagnostics: [] },
     };
-    expect(handleCodeAction(document, params, false, createWorkspaceIndex())).toEqual([]);
+    expect(handleCodeAction(document, params, false, createWorkspaceIndex(), false)).toEqual([]);
     const newerDocument = TextDocument.create(
       document.uri,
       "stan",
       8,
       document.getText(),
     );
-    expect(handleCodeAction(newerDocument, params, false, index)).toEqual([]);
+    expect(handleCodeAction(newerDocument, params, false, index, false)).toEqual([]);
   });
 
   test.each([false, true])(
@@ -60,6 +61,7 @@ describe("documentation template code action", () => {
         },
         supportsDocumentChanges,
         index,
+        false,
       );
       const edits = [{
         range: {
@@ -83,6 +85,58 @@ describe("documentation template code action", () => {
     },
   );
 
+  test.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+  ])(
+    "uses a cursor snippet only with both capabilities (documentChanges: %j, snippetEdits: %j)",
+    (supportsDocumentChanges, supportsSnippetEdits) => {
+      const actions = handleCodeAction(
+        document,
+        {
+          textDocument: { uri: document.uri },
+          range: {
+            start: { line: 1, character: 7 },
+            end: { line: 1, character: 7 },
+          },
+          context: { diagnostics: [] },
+        },
+        supportsDocumentChanges,
+        index,
+        supportsSnippetEdits,
+      );
+      const range = {
+        start: { line: 1, character: 0 },
+        end: { line: 1, character: 0 },
+      };
+      const plainEdit = {
+        range,
+        newText: "  /**\n   * @brief\n   *\n   * @param x\n   * @return\n   */\n",
+      };
+      const snippetEdit: SnippetTextEdit = {
+        range,
+        snippet: {
+          kind: "snippet",
+          value: "  /**\n   * @brief $0\n   *\n   * @param x\n   * @return\n   */\n",
+        },
+      };
+      expect(actions).toEqual([{
+        title: "Generate documentation template",
+        kind: "refactor.rewrite",
+        edit: supportsDocumentChanges
+          ? {
+              documentChanges: [{
+                textDocument: { uri: document.uri, version: 7 },
+                edits: [supportsSnippetEdits ? snippetEdit : plainEdit],
+              }],
+            }
+          : { changes: { [document.uri]: [plainEdit] } },
+      }]);
+    },
+  );
+
   test("respects requested code action kinds", () => {
     const params = {
       textDocument: { uri: document.uri },
@@ -94,7 +148,7 @@ describe("documentation template code action", () => {
     };
 
     // No filter: the action is available.
-    expect(handleCodeAction(document, params, false, index)).toHaveLength(1);
+    expect(handleCodeAction(document, params, false, index, false)).toHaveLength(1);
 
     // Matching categories: the action is available.
     for (const only of [["refactor"], ["refactor.rewrite"], [""]]) {
@@ -103,6 +157,7 @@ describe("documentation template code action", () => {
         { ...params, context: { diagnostics: [], only } },
         false,
         index,
+        false,
       )).toHaveLength(1);
     }
 
@@ -113,6 +168,7 @@ describe("documentation template code action", () => {
         { ...params, context: { diagnostics: [], only } },
         false,
         index,
+        false,
       )).toEqual([]);
     }
   });
@@ -135,6 +191,7 @@ describe("documentation template code action", () => {
       },
       false,
       index,
+      false,
     )).toHaveLength(1);
 
     // Start in the signature, but extend into the body.
@@ -149,6 +206,7 @@ describe("documentation template code action", () => {
       },
       false,
       index,
+      false,
     )).toEqual([]);
 
     // Place the cursor on "return", inside the body.
@@ -163,6 +221,7 @@ describe("documentation template code action", () => {
       },
       false,
       index,
+      false,
     )).toEqual([]);
   });
 
@@ -199,6 +258,7 @@ describe("documentation template code action", () => {
           },
           false,
           index,
+          false,
         );
 
         expect(actions[0]?.edit?.changes?.[document.uri]?.[0]).toEqual({
