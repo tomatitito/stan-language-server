@@ -74,7 +74,12 @@ describe("Completion", () => {
 
 
   it("should provide snippet completions", async () => {
-    await client.initialize();
+    await client.initialize({
+      dynamicRegistration: true,
+      codeActionLiteralSupport: true,
+      documentChanges: true,
+      snippetEditSupport: false,
+    });
     await client.initialized();
 
     const content = "data { if (0) {} elsei";

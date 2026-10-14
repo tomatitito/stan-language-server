@@ -43,6 +43,14 @@ export interface LSPMessage {
   };
 }
 
+export type InitializeOptions = {
+  workspaceUri?: string;
+  dynamicRegistration: boolean;
+  codeActionLiteralSupport: boolean;
+  documentChanges: boolean;
+  snippetEditSupport: boolean;
+};
+
 export class LSPTestClient {
   private server: ChildProcess | null = null;
   private messageId = 1;
@@ -265,13 +273,13 @@ export class LSPTestClient {
     });
   }
 
-  async initialize(
-    workspaceUri?: string,
-    dynamicRegistration: boolean = true,
-    codeActionLiteralSupport = true,
-    documentChanges = true,
-    snippetEditSupport = false,
-  ): Promise<InitializeResult> {
+  async initialize({
+    workspaceUri,
+    dynamicRegistration,
+    codeActionLiteralSupport,
+    documentChanges,
+    snippetEditSupport,
+  }: InitializeOptions): Promise<InitializeResult> {
     // Store workspace URI so we can respond to workspace/workspaceFolders requests
     this.workspaceUri = workspaceUri || null;
 

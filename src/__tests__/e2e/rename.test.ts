@@ -8,7 +8,13 @@ describe("Rename", () => {
   beforeAll(async () => {
     client = new LSPTestClient();
     await client.start();
-    await client.initialize("file:///test-workspace");
+    await client.initialize({
+      workspaceUri: "file:///test-workspace",
+      dynamicRegistration: true,
+      codeActionLiteralSupport: true,
+      documentChanges: true,
+      snippetEditSupport: false,
+    });
     await client.initialized();
   });
 
