@@ -8,7 +8,12 @@ describe("Code action client capabilities", () => {
     const client = new LSPTestClient();
     await client.start();
     try {
-      const initialization = await client.initialize(undefined, false, literalSupport, false);
+      const initialization = await client.initialize({
+        dynamicRegistration: false,
+        codeActionLiteralSupport: literalSupport,
+        documentChanges: false,
+        snippetEditSupport: false,
+      });
       await client.initialized();
       const uri = "file:///capabilities.stan";
       await client.didOpen(uri, "stan", "functions {\n  real foo() { return 1; }\n}");
@@ -49,7 +54,12 @@ describe("Documentation template snippet edit capabilities", () => {
   });
 
   it("uses plain changes when neither capability is supported", async () => {
-    await client.initialize(undefined, false, true, false, false);
+    await client.initialize({
+      dynamicRegistration: false,
+      codeActionLiteralSupport: true,
+      documentChanges: false,
+      snippetEditSupport: false,
+    });
     await client.initialized();
     const uri = "file:///plain-changes.stan";
     await client.didOpen(uri, "stan", "functions {\n  real identity(real value) { return value; }\n}");
@@ -72,7 +82,12 @@ describe("Documentation template snippet edit capabilities", () => {
   });
 
   it("uses plain documentChanges when only documentChanges is supported", async () => {
-    await client.initialize(undefined, false, true, true, false);
+    await client.initialize({
+      dynamicRegistration: false,
+      codeActionLiteralSupport: true,
+      documentChanges: true,
+      snippetEditSupport: false,
+    });
     await client.initialized();
     const uri = "file:///plain-document-changes.stan";
     await client.didOpen(uri, "stan", "functions {\n  real identity(real value) { return value; }\n}");
@@ -96,7 +111,12 @@ describe("Documentation template snippet edit capabilities", () => {
   });
 
   it("uses plain changes when snippet edits are supported but documentChanges is not", async () => {
-    await client.initialize(undefined, false, true, false, true);
+    await client.initialize({
+      dynamicRegistration: false,
+      codeActionLiteralSupport: true,
+      documentChanges: false,
+      snippetEditSupport: true,
+    });
     await client.initialized();
     const uri = "file:///snippet-without-document-changes.stan";
     await client.didOpen(uri, "stan", "functions {\n  real identity(real value) { return value; }\n}");
@@ -119,7 +139,12 @@ describe("Documentation template snippet edit capabilities", () => {
   });
 
   it("uses a versioned snippet edit with cursor placed after `brief` when both capabilities are supported", async () => {
-    await client.initialize(undefined, false, true, true, true);
+    await client.initialize({
+      dynamicRegistration: false,
+      codeActionLiteralSupport: true,
+      documentChanges: true,
+      snippetEditSupport: true,
+    });
     await client.initialized();
     const uri = "file:///snippet-document-changes.stan";
     const content = "functions {\n  real weighted(real value, vector weights) { return value; }\n}";
@@ -148,7 +173,12 @@ describe("Documentation template snippet edit capabilities", () => {
   });
 
   it("preserves CRLF and tabs in the snippet response", async () => {
-    await client.initialize(undefined, false, true, true, true);
+    await client.initialize({
+      dynamicRegistration: false,
+      codeActionLiteralSupport: true,
+      documentChanges: true,
+      snippetEditSupport: true,
+    });
     await client.initialized();
     const uri = "file:///snippet-crlf.stan";
     const content = "functions {\r\n\tvoid notify(real value) { print(value); }\r\n}";
@@ -183,7 +213,13 @@ describe("Generate documentation template code action", () => {
   beforeAll(async () => {
     client = new LSPTestClient();
     await client.start();
-    initialization = await client.initialize("file:///test-workspace");
+    initialization = await client.initialize({
+      workspaceUri: "file:///test-workspace",
+      dynamicRegistration: true,
+      codeActionLiteralSupport: true,
+      documentChanges: true,
+      snippetEditSupport: false,
+    });
     await client.initialized();
   });
 

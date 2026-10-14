@@ -20,7 +20,13 @@ describe("Server Lifecycle", () => {
       client = new LSPTestClient();
       await client.start();
 
-      const result: InitializeResult = await client.initialize("file://stan-project");
+      const result: InitializeResult = await client.initialize({
+        workspaceUri: "file://stan-project",
+        dynamicRegistration: true,
+        codeActionLiteralSupport: true,
+        documentChanges: true,
+        snippetEditSupport: false,
+      });
 
       expect(result.capabilities).toBeDefined();
       expect(result.capabilities.textDocumentSync).toEqual(TextDocumentSyncKind.Incremental);
@@ -39,7 +45,13 @@ describe("Server Lifecycle", () => {
       client = new LSPTestClient();
       await client.start();
 
-      await client.initialize("file://stan-project");
+      await client.initialize({
+        workspaceUri: "file://stan-project",
+        dynamicRegistration: true,
+        codeActionLiteralSupport: true,
+        documentChanges: true,
+        snippetEditSupport: false,
+      });
       await client.initialized();
 
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -53,7 +65,13 @@ describe("Server Lifecycle", () => {
       client = new LSPTestClient();
       await client.start();
 
-      await client.initialize("file://stan-project", true);
+      await client.initialize({
+        workspaceUri: "file://stan-project",
+        dynamicRegistration: true,
+        codeActionLiteralSupport: true,
+        documentChanges: true,
+        snippetEditSupport: false,
+      });
       await client.initialized();
 
       await client.waitForRegistration();
@@ -75,7 +93,13 @@ describe("Server Lifecycle", () => {
       client = new LSPTestClient();
       await client.start();
 
-      await client.initialize("file://stan-project", false);
+      await client.initialize({
+        workspaceUri: "file://stan-project",
+        dynamicRegistration: false,
+        codeActionLiteralSupport: true,
+        documentChanges: true,
+        snippetEditSupport: false,
+      });
       await client.initialized();
 
       // Try to wait for registration - it should timeout since server won't send one
@@ -107,7 +131,13 @@ describe("Server Lifecycle", () => {
       client = new LSPTestClient();
       await client.start();
 
-      await client.initialize("file://stan-project");
+      await client.initialize({
+        workspaceUri: "file://stan-project",
+        dynamicRegistration: true,
+        codeActionLiteralSupport: true,
+        documentChanges: true,
+        snippetEditSupport: false,
+      });
       await client.initialized();
 
       const uri = `file://stan-project/close-test.stan`;
