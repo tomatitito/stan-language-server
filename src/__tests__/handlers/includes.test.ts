@@ -38,7 +38,7 @@ describe("Includes Handler", () => {
       const documentManager = createMockDocumentManager();
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(document, documentManager, workspaceFolders, [], mockLogger);
+      const [result,_] = await handleIncludes(document, documentManager, workspaceFolders, [], mockLogger);
 
       expect(result).toEqual({});
     });
@@ -59,7 +59,7 @@ describe("Includes Handler", () => {
       const documentManager = createMockDocumentManager([includeDocument]);
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
+      const [result,_] = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
 
       expect(result).toEqual({
         [includeFilename]: includeContent
@@ -86,7 +86,7 @@ describe("Includes Handler", () => {
       const documentManager = createMockDocumentManager(includeDocuments);
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
+      const [result,_] = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
 
       const expected = Object.fromEntries(includes.map((filename, index) => [filename, contents[index]!]));
       expect(result).toEqual(expected);
@@ -114,7 +114,7 @@ describe("Includes Handler", () => {
       const mockReadFile = spyOn(promises, "readFile").mockResolvedValue(filesystemContent);
 
       try {
-        const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
+        const [result,_] = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
 
         // Should use workspace version, NOT filesystem version
         expect(result).toEqual({
@@ -147,7 +147,7 @@ describe("Includes Handler", () => {
       const mockReadFile = spyOn(promises, "readFile").mockResolvedValue(filesystemContent);
 
       try {
-        const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger, reader);
+        const [result,_] = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger, reader);
 
         // Should use filesystem version since workspace had nothing
         expect(result).toEqual({
@@ -181,7 +181,7 @@ describe("Includes Handler", () => {
       const documentManager = createMockDocumentManager([includeDocument]);
       const workspaceFolders = createMockWorkspaceFolders();
 
-      const result = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
+      const [result,_] = await handleIncludes(mainDocument, documentManager, workspaceFolders, [], mockLogger);
 
       expect(result).toEqual({
         [includeFilename]: includeContent

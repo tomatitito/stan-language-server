@@ -6,7 +6,7 @@ import {
 import { handleIncludes } from "./includes";
 import type { FileSystemReader, TextDocumentProvider } from "../../types/common";
 import { URI } from "vscode-uri";
-import { stanc, type StancReturn } from "stanc3";
+import { check_model, type CheckResult, stanc, type StancReturn } from "stanc3";
 
 export interface Settings {
   maxLineLength: number;
@@ -20,21 +20,18 @@ export const defaultSettings: Settings = {
   warnPedantic: false,
 };
 
-export type Purpose = "formatting" | "linting";
-
-export async function handleCompilation(
+export async function checkWithStanc(
   document: TextDocument,
   documentManager: TextDocumentProvider,
   workspaceFolders: WorkspaceFolder[],
   settings: Settings,
-  purpose: Purpose,
   logger: RemoteConsole,
   reader?: FileSystemReader,
-): Promise<StancReturn> {
+): Promise<[CheckResult, Record<string, URI>]> {
   const filename = URI.parse(document.uri).fsPath;
   const code = document.getText();
 
-  const includes = await handleIncludes(
+  const [includes, include_uris] = await handleIncludes(
     document,
     documentManager,
     workspaceFolders,
@@ -43,20 +40,47 @@ export async function handleCompilation(
     reader,
   );
 
+
   const stanc_args = [`filename-in-msg=${filename}`, "allow-undefined"];
   if (filename.endsWith(".stanfunctions")) {
     stanc_args.push("functions-only");
   }
-
-  if (purpose === "formatting") {
-    stanc_args.push(
-      "auto-format",
-      `max-line-length=${settings.maxLineLength}`,
-      "canonicalze=deprecations",
-    );
-  } else if (settings.warnPedantic) {
+  if (settings.warnPedantic) {
     // warn-pedantic is run late in the pipeline, so only functions if you don't request formatting
     stanc_args.push("warn-pedantic");
+  }
+  return Promise.resolve([check_model(filename, code, stanc_args, includes), include_uris]);
+}
+
+export async function formatWithStanc(
+  document: TextDocument,
+  documentManager: TextDocumentProvider,
+  workspaceFolders: WorkspaceFolder[],
+  settings: Settings,
+  logger: RemoteConsole,
+  reader?: FileSystemReader,
+): Promise<StancReturn> {
+  const filename = URI.parse(document.uri).fsPath;
+  const code = document.getText();
+
+  const [includes, _] = await handleIncludes(
+    document,
+    documentManager,
+    workspaceFolders,
+    settings.includePaths,
+    logger,
+    reader,
+  );
+
+  const stanc_args = [
+    `filename-in-msg=${filename}`,
+    "allow-undefined",
+    "auto-format",
+    `max-line-length=${settings.maxLineLength}`,
+    "canonicalze=deprecations"
+  ];
+  if (filename.endsWith(".stanfunctions")) {
+    stanc_args.push("functions-only");
   }
 
   return Promise.resolve(stanc(filename, code, stanc_args, includes));
