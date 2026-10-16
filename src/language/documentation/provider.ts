@@ -15,6 +15,9 @@ const isDocumented = (fn: Node, text: string): boolean => {
   let boundary = fn.startIndex;
   while (previous?.type === "comment" &&
          /^\s*$/.test(text.slice(previous.endIndex, boundary))) {
+    // Match Doxygen comment prefixes: /**, /*!, ///, or //!.
+    // The (?!<) excludes trailing forms such as /**< and ///<, which document
+    // the preceding declaration rather than the function that follows.
     if (/^(\/\*\*|\/\*!|\/\/\/|\/\/!)(?!<)/.test(previous.text)) {
       return true;
     }
