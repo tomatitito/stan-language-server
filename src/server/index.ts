@@ -17,6 +17,7 @@ import {
   handleDiagnostics,
   handleFormatting,
   handleHover,
+  handleDefinition,
   handlePrepareRename,
   handleRename,
 } from "../handlers/index.ts";
@@ -94,6 +95,7 @@ const startLanguageServer = (
           },
         },
         hoverProvider: true,
+        definitionProvider: true,
         renameProvider: {
           prepareProvider: true,
         },
@@ -249,6 +251,19 @@ const startLanguageServer = (
       workspace.indexing.index,
       hasSnippetEditSupport,
     );
+  });
+
+  connection.onDefinition(async (params) => {
+    const document = workspace.documents.get(params.textDocument.uri);
+    if (!document || !isStanDocument(document)) {
+      return null;
+    }
+    await forceWorkspaceIndexUpdate(
+      workspace,
+      document,
+      workspaceIndexUpdateOptions,
+    );
+    return handleDefinition(document, params, workspace.indexing.index);
   });
 
   connection.onPrepareRename(async (params) => {
