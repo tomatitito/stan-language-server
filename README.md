@@ -6,6 +6,7 @@ A language server for the Stan probabilistic programming language written in Typ
 
 - **Auto-completion**: Keywords, functions, distributions, data types, and constraints
 - **Hover information**: Documentation and type information
+- **Go to definition**: Navigate to variable and user-defined function declarations within the current document; cross-include navigation and overloaded function calls are not supported
 - **Diagnostics**: Real-time syntax and semantic error detection
 - **Code formatting**: Using the official Stan compiler
 - **Include file support**: Full `#include` resolution and compilation
