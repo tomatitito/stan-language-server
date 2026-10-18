@@ -34,7 +34,7 @@ export const symbolAtPosition = (
   source: string,
   position: SourcePosition,
 ):
-  | { symbolId: SymbolId; range: ReturnType<typeof nodeToRange> }
+  | { symbolId: SymbolId; range: ReturnType<typeof nodeToRange>; renameable: boolean }
   | undefined => {
   if (!("rootNode" in index.tree) || !index.tree.rootNode) {
     return undefined;
@@ -57,13 +57,13 @@ export const symbolAtPosition = (
   }
 
   const nameInfo = index.semanticIndex.nameInfoByNodeId.get(node.id);
-  if (!nameInfo?.renameable) {
+  if (nameInfo === undefined) {
     return undefined;
   }
 
   switch (nameInfo.kind) {
     case "declaration":
-      return { symbolId: nameInfo.symbolId, range };
+      return { symbolId: nameInfo.symbolId, range, renameable: nameInfo.renameable };
 
     case "reference": {
       if (nameInfo.refId === undefined) {
@@ -75,7 +75,7 @@ export const symbolAtPosition = (
         return undefined;
       }
 
-      return { symbolId: reference.symbolId, range };
+      return { symbolId: reference.symbolId, range, renameable: nameInfo.renameable };
     }
 
     default:

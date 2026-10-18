@@ -7,7 +7,7 @@ export function prepareRename(
   position: SourcePosition,
 ): RenameTarget | null {
   const symbol = symbolAtPosition(entry, entry.text, position);
-  if (symbol === undefined) {
+  if (symbol === undefined || !symbol.renameable) {
     return null;
   }
 
