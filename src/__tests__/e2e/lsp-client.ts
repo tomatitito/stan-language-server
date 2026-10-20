@@ -6,6 +6,8 @@ import type {
   CompletionItem,
   CompletionList,
   CompletionParams,
+  Definition,
+  DefinitionParams,
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
   DidOpenTextDocumentParams,
@@ -451,6 +453,14 @@ export class LSPTestClient {
       textDocument: { uri },
     };
     return this.sendRequest<DocumentDiagnosticReport>("textDocument/diagnostic", params);
+  }
+
+  async definition(uri: string, line: number, character: number): Promise<Definition | null> {
+    const params: DefinitionParams = {
+      textDocument: { uri },
+      position: { line, character },
+    };
+    return this.sendRequest<Definition | null>("textDocument/definition", params);
   }
 
   async prepareRename(uri: string, line: number, character: number): Promise<PrepareRenameResult | null> {
