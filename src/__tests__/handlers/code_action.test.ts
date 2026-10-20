@@ -1,33 +1,58 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  spyOn,
+  test,
+  type Mock,
+} from "bun:test";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import type { SnippetTextEdit } from "vscode-languageserver";
 import { handleCodeAction } from "../../handlers/code_action.ts";
-import type { WorkspaceIndex } from "../../language/ast/types.ts";
-import {
-  createWorkspaceIndex,
-  upsertSemanticIndexEntry,
-} from "../../language/ast/workspace_index.ts";
+import type {
+  SemanticIndexEntry,
+  WorkspaceIndex,
+} from "../../language/ast/types.ts";
+import * as providerModule from "../../language/documentation/provider.ts";
 
 describe("documentation template code action", () => {
-  let document: TextDocument;
-  let index: WorkspaceIndex;
+  let providerSpy: Mock<typeof providerModule.provideDocumentationTemplate>;
 
-  beforeEach(async () => {
-    document = TextDocument.create(
+  beforeEach(() => {
+    providerSpy = spyOn(
+      providerModule,
+      "provideDocumentationTemplate",
+    ).mockReturnValue({
+      offset: 12,
+      newText: "  /**\n   * @brief\n   *\n   * @param x\n   * @return\n   */\n",
+    });
+  });
+
+  afterEach(() => {
+    providerSpy?.mockRestore();
+  });
+
+  test("returns no actions for missing or stale indexed entries", () => {
+    const document = TextDocument.create(
       "file:///test.stan",
       "stan",
       7,
       "functions {\n  real foo(real x) { return x; }\n}",
     );
-    index = createWorkspaceIndex();
-    index = await upsertSemanticIndexEntry(index, document);
-  });
-
-  afterEach(() => {
-    index?.entries.get(document.uri)?.tree.delete();
-  });
-
-  test("returns no actions for missing or stale indexed entries", () => {
+    // The handler forwards entries; only the provider may inspect their AST.
+    const entry: SemanticIndexEntry = {
+      uri: document.uri,
+      version: document.version,
+      text: document.getText(),
+      get tree(): SemanticIndexEntry["tree"] {
+        throw new Error("Handler tests must not access a real parse tree");
+      },
+      get semanticIndex(): SemanticIndexEntry["semanticIndex"] {
+        throw new Error("Handler tests must not inspect the semantic index");
+      },
+    };
+    const index: WorkspaceIndex = { entries: new Map([[document.uri, entry]]) };
     const params = {
       textDocument: { uri: document.uri },
       range: {
@@ -36,19 +61,86 @@ describe("documentation template code action", () => {
       },
       context: { diagnostics: [] },
     };
-    expect(handleCodeAction(document, params, false, createWorkspaceIndex(), false)).toEqual([]);
+    expect(
+      handleCodeAction(document, params, false, { entries: new Map() }, false),
+    ).toEqual([]);
+    expect(providerSpy).not.toHaveBeenCalled();
     const newerDocument = TextDocument.create(
       document.uri,
       "stan",
       8,
       document.getText(),
     );
-    expect(handleCodeAction(newerDocument, params, false, index, false)).toEqual([]);
+    expect(
+      handleCodeAction(newerDocument, params, false, index, false),
+    ).toEqual([]);
+    expect(providerSpy).not.toHaveBeenCalled();
+  });
+
+  test("returns no actions when the provider returns no template", () => {
+    const document = TextDocument.create(
+      "file:///test.stan",
+      "stan",
+      7,
+      "functions {\n  real foo(real x) { return x; }\n}",
+    );
+    const entry: SemanticIndexEntry = {
+      uri: document.uri,
+      version: document.version,
+      text: document.getText(),
+      get tree(): SemanticIndexEntry["tree"] {
+        throw new Error("Handler tests must not access a real parse tree");
+      },
+      get semanticIndex(): SemanticIndexEntry["semanticIndex"] {
+        throw new Error("Handler tests must not inspect the semantic index");
+      },
+    };
+    const index: WorkspaceIndex = { entries: new Map([[document.uri, entry]]) };
+    providerSpy.mockReturnValue(null);
+
+    const actions = handleCodeAction(
+      document,
+      {
+        textDocument: { uri: document.uri },
+        range: {
+          start: { line: 1, character: 7 },
+          end: { line: 1, character: 7 },
+        },
+        context: { diagnostics: [] },
+      },
+      false,
+      index,
+      false,
+    );
+
+    expect(actions).toEqual([]);
+    expect(providerSpy).toHaveBeenCalledTimes(1);
+    expect(providerSpy).toHaveBeenCalledWith(entry, 19, 19);
   });
 
   test.each([false, true])(
     "returns the documentation action with the supported edit format (documentChanges: %j)",
     (supportsDocumentChanges) => {
+      const document = TextDocument.create(
+        "file:///test.stan",
+        "stan",
+        7,
+        "functions {\n  real foo(real x) { return x; }\n}",
+      );
+      const entry: SemanticIndexEntry = {
+        uri: document.uri,
+        version: document.version,
+        text: document.getText(),
+        get tree(): SemanticIndexEntry["tree"] {
+          throw new Error("Handler tests must not access a real parse tree");
+        },
+        get semanticIndex(): SemanticIndexEntry["semanticIndex"] {
+          throw new Error("Handler tests must not inspect the semantic index");
+        },
+      };
+      const index: WorkspaceIndex = {
+        entries: new Map([[document.uri, entry]]),
+      };
       const actions = handleCodeAction(
         document,
         {
@@ -63,25 +155,32 @@ describe("documentation template code action", () => {
         index,
         false,
       );
-      const edits = [{
-        range: {
-          start: { line: 1, character: 0 },
-          end: { line: 1, character: 0 },
+      const edits = [
+        {
+          range: {
+            start: { line: 1, character: 0 },
+            end: { line: 1, character: 0 },
+          },
+          newText:
+            "  /**\n   * @brief\n   *\n   * @param x\n   * @return\n   */\n",
         },
-        newText: "  /**\n   * @brief\n   *\n   * @param x\n   * @return\n   */\n",
-      }];
-      expect(actions).toEqual([{
-        title: "Generate documentation template",
-        kind: "refactor.rewrite",
-        edit: supportsDocumentChanges
-          ? {
-              documentChanges: [{
-                textDocument: { uri: document.uri, version: 7 },
-                edits,
-              }],
-            }
-          : { changes: { [document.uri]: edits } },
-      }]);
+      ];
+      expect(actions).toEqual([
+        {
+          title: "Generate documentation template",
+          kind: "refactor.rewrite",
+          edit: supportsDocumentChanges
+            ? {
+                documentChanges: [
+                  {
+                    textDocument: { uri: document.uri, version: 7 },
+                    edits,
+                  },
+                ],
+              }
+            : { changes: { [document.uri]: edits } },
+        },
+      ]);
     },
   );
 
@@ -93,6 +192,26 @@ describe("documentation template code action", () => {
   ])(
     "uses a cursor snippet only with both capabilities (documentChanges: %j, snippetEdits: %j)",
     (supportsDocumentChanges, supportsSnippetEdits) => {
+      const document = TextDocument.create(
+        "file:///test.stan",
+        "stan",
+        7,
+        "functions {\n  real foo(real x) { return x; }\n}",
+      );
+      const entry: SemanticIndexEntry = {
+        uri: document.uri,
+        version: document.version,
+        text: document.getText(),
+        get tree(): SemanticIndexEntry["tree"] {
+          throw new Error("Handler tests must not access a real parse tree");
+        },
+        get semanticIndex(): SemanticIndexEntry["semanticIndex"] {
+          throw new Error("Handler tests must not inspect the semantic index");
+        },
+      };
+      const index: WorkspaceIndex = {
+        entries: new Map([[document.uri, entry]]),
+      };
       const actions = handleCodeAction(
         document,
         {
@@ -113,31 +232,55 @@ describe("documentation template code action", () => {
       };
       const plainEdit = {
         range,
-        newText: "  /**\n   * @brief\n   *\n   * @param x\n   * @return\n   */\n",
+        newText:
+          "  /**\n   * @brief\n   *\n   * @param x\n   * @return\n   */\n",
       };
       const snippetEdit: SnippetTextEdit = {
         range,
         snippet: {
           kind: "snippet",
-          value: "  /**\n   * @brief $0\n   *\n   * @param x\n   * @return\n   */\n",
+          value:
+            "  /**\n   * @brief $0\n   *\n   * @param x\n   * @return\n   */\n",
         },
       };
-      expect(actions).toEqual([{
-        title: "Generate documentation template",
-        kind: "refactor.rewrite",
-        edit: supportsDocumentChanges
-          ? {
-              documentChanges: [{
-                textDocument: { uri: document.uri, version: 7 },
-                edits: [supportsSnippetEdits ? snippetEdit : plainEdit],
-              }],
-            }
-          : { changes: { [document.uri]: [plainEdit] } },
-      }]);
+      expect(actions).toEqual([
+        {
+          title: "Generate documentation template",
+          kind: "refactor.rewrite",
+          edit: supportsDocumentChanges
+            ? {
+                documentChanges: [
+                  {
+                    textDocument: { uri: document.uri, version: 7 },
+                    edits: [supportsSnippetEdits ? snippetEdit : plainEdit],
+                  },
+                ],
+              }
+            : { changes: { [document.uri]: [plainEdit] } },
+        },
+      ]);
     },
   );
 
-  test("respects requested code action kinds", () => {
+  test("offers the action when the requested kinds include documentation generation", () => {
+    const document = TextDocument.create(
+      "file:///test.stan",
+      "stan",
+      7,
+      "functions {\n  real foo(real x) { return x; }\n}",
+    );
+    const entry: SemanticIndexEntry = {
+      uri: document.uri,
+      version: document.version,
+      text: document.getText(),
+      get tree(): SemanticIndexEntry["tree"] {
+        throw new Error("Handler tests must not access a real parse tree");
+      },
+      get semanticIndex(): SemanticIndexEntry["semanticIndex"] {
+        throw new Error("Handler tests must not inspect the semantic index");
+      },
+    };
+    const index: WorkspaceIndex = { entries: new Map([[document.uri, entry]]) };
     const params = {
       textDocument: { uri: document.uri },
       range: {
@@ -148,86 +291,128 @@ describe("documentation template code action", () => {
     };
 
     // No filter: the action is available.
-    expect(handleCodeAction(document, params, false, index, false)).toHaveLength(1);
+    expect(
+      handleCodeAction(document, params, false, index, false),
+    ).toHaveLength(1);
+    expect(providerSpy).toHaveBeenCalledTimes(1);
 
     // Matching categories: the action is available.
     for (const only of [["refactor"], ["refactor.rewrite"], [""]]) {
-      expect(handleCodeAction(
-        document,
-        { ...params, context: { diagnostics: [], only } },
-        false,
-        index,
-        false,
-      )).toHaveLength(1);
-    }
-
-    // Empty or unrelated filters: no action is available.
-    for (const only of [[], ["quickfix"], ["source"], ["refactor.extract"]]) {
-      expect(handleCodeAction(
-        document,
-        { ...params, context: { diagnostics: [], only } },
-        false,
-        index,
-        false,
-      )).toEqual([]);
+      providerSpy.mockClear();
+      expect(
+        handleCodeAction(
+          document,
+          { ...params, context: { diagnostics: [], only } },
+          false,
+          index,
+          false,
+        ),
+      ).toHaveLength(1);
+      expect(providerSpy).toHaveBeenCalledTimes(1);
     }
   });
 
-  test("converts both selection endpoints to offsets", () => {
+  test("returns no actions without calling the provider when the requested kinds exclude documentation generation", () => {
+    const document = TextDocument.create(
+      "file:///test.stan",
+      "stan",
+      7,
+      "functions {\n  real foo(real x) { return x; }\n}",
+    );
+    const entry: SemanticIndexEntry = {
+      uri: document.uri,
+      version: document.version,
+      text: document.getText(),
+      get tree(): SemanticIndexEntry["tree"] {
+        throw new Error("Handler tests must not access a real parse tree");
+      },
+      get semanticIndex(): SemanticIndexEntry["semanticIndex"] {
+        throw new Error("Handler tests must not inspect the semantic index");
+      },
+    };
+    const index: WorkspaceIndex = { entries: new Map([[document.uri, entry]]) };
     const params = {
       textDocument: { uri: document.uri },
+      range: {
+        start: { line: 1, character: 7 },
+        end: { line: 1, character: 7 },
+      },
       context: { diagnostics: [] },
     };
 
-    // Select exactly the signature: "real foo(real x)".
-    expect(handleCodeAction(
-      document,
-      {
-        ...params,
-        range: {
-          start: { line: 1, character: 2 },
-          end: { line: 1, character: 18 },
-        },
-      },
-      false,
-      index,
-      false,
-    )).toHaveLength(1);
-
-    // Start in the signature, but extend into the body.
-    expect(handleCodeAction(
-      document,
-      {
-        ...params,
-        range: {
-          start: { line: 1, character: 2 },
-          end: { line: 1, character: 27 },
-        },
-      },
-      false,
-      index,
-      false,
-    )).toEqual([]);
-
-    // Place the cursor on "return", inside the body.
-    expect(handleCodeAction(
-      document,
-      {
-        ...params,
-        range: {
-          start: { line: 1, character: 21 },
-          end: { line: 1, character: 21 },
-        },
-      },
-      false,
-      index,
-      false,
-    )).toEqual([]);
+    // Empty or unrelated filters: no action is available.
+    for (const only of [[], ["quickfix"], ["source"], ["refactor.extract"]]) {
+      providerSpy.mockClear();
+      expect(
+        handleCodeAction(
+          document,
+          { ...params, context: { diagnostics: [], only } },
+          false,
+          index,
+          false,
+        ),
+      ).toEqual([]);
+      expect(providerSpy).not.toHaveBeenCalled();
+    }
   });
 
-  test.each(["\n", "\r\n", "\r"])(
+  test.each([
+    { start: 2, end: 18, startOffset: 14, endOffset: 30 },
+    { start: 2, end: 27, startOffset: 14, endOffset: 39 },
+    { start: 21, end: 21, startOffset: 33, endOffset: 33 },
+  ])(
+    "passes both selection endpoints to the provider: %j",
+    ({ start, end, startOffset, endOffset }) => {
+      const document = TextDocument.create(
+        "file:///test.stan",
+        "stan",
+        7,
+        "functions {\n  real foo(real x) { return x; }\n}",
+      );
+      const entry: SemanticIndexEntry = {
+        uri: document.uri,
+        version: document.version,
+        text: document.getText(),
+        get tree(): SemanticIndexEntry["tree"] {
+          throw new Error("Handler tests must not access a real parse tree");
+        },
+        get semanticIndex(): SemanticIndexEntry["semanticIndex"] {
+          throw new Error("Handler tests must not inspect the semantic index");
+        },
+      };
+      const index: WorkspaceIndex = {
+        entries: new Map([[document.uri, entry]]),
+      };
+      // The provider, not the handler, decides whether a range is eligible.
+      const actions = handleCodeAction(
+        document,
+        {
+          textDocument: { uri: document.uri },
+          range: {
+            start: { line: 1, character: start },
+            end: { line: 1, character: end },
+          },
+          context: { diagnostics: [] },
+        },
+        false,
+        index,
+        false,
+      );
+
+      expect(providerSpy).toHaveBeenCalledTimes(1);
+      expect(providerSpy).toHaveBeenCalledWith(entry, startOffset, endOffset);
+      expect(providerSpy.mock.calls[0]?.[0]).toBe(entry);
+      expect(actions).toHaveLength(1);
+    },
+  );
+
+  test.each([
+    { newline: "\n", insertionOffset: 26, startOffset: 33, endOffset: 36 },
+    { newline: "\r\n", insertionOffset: 28, startOffset: 35, endOffset: 38 },
+    { newline: "\r", insertionOffset: 26, startOffset: 33, endOffset: 36 },
+  ])(
     "converts UTF-16 offsets and insertion ranges with %j line endings",
-    async (newline) => {
+    ({ newline, insertionOffset, startOffset, endOffset }) => {
       const text = [
         "/* 😀 café */",
         "functions {",
@@ -240,45 +425,52 @@ describe("documentation template code action", () => {
         7,
         text,
       );
-      const index = await upsertSemanticIndexEntry(
-        createWorkspaceIndex(),
+      const entry: SemanticIndexEntry = {
+        uri: document.uri,
+        version: document.version,
+        text: document.getText(),
+        get tree(): SemanticIndexEntry["tree"] {
+          throw new Error("Handler tests must not access a real parse tree");
+        },
+        get semanticIndex(): SemanticIndexEntry["semanticIndex"] {
+          throw new Error("Handler tests must not inspect the semantic index");
+        },
+      };
+      const index: WorkspaceIndex = {
+        entries: new Map([[document.uri, entry]]),
+      };
+      // A deliberately fixed provider result: the handler must preserve this
+      // text and translate its insertion offset, not generate documentation.
+      const templateText = ["  /**", "   * @brief", "   */", ""].join(newline);
+      providerSpy.mockReturnValue({
+        offset: insertionOffset,
+        newText: templateText,
+      });
+
+      const actions = handleCodeAction(
         document,
+        {
+          textDocument: { uri: document.uri },
+          range: {
+            start: { line: 2, character: 7 },
+            end: { line: 2, character: 10 },
+          },
+          context: { diagnostics: [] },
+        },
+        false,
+        index,
+        false,
       );
 
-      try {
-        const actions = handleCodeAction(
-          document,
-          {
-            textDocument: { uri: document.uri },
-            range: {
-              start: { line: 2, character: 7 },
-              end: { line: 2, character: 7 },
-            },
-            context: { diagnostics: [] },
-          },
-          false,
-          index,
-          false,
-        );
-
-        expect(actions[0]?.edit?.changes?.[document.uri]?.[0]).toEqual({
-          range: {
-            start: { line: 2, character: 0 },
-            end: { line: 2, character: 0 },
-          },
-          newText: [
-            "  /**",
-            "   * @brief",
-            "   *",
-            "   * @param x",
-            "   * @return",
-            "   */",
-            "",
-          ].join(newline),
-        });
-      } finally {
-        index.entries.get(document.uri)!.tree.delete();
-      }
+      expect(providerSpy).toHaveBeenCalledTimes(1);
+      expect(providerSpy).toHaveBeenCalledWith(entry, startOffset, endOffset);
+      expect(actions[0]?.edit?.changes?.[document.uri]?.[0]).toEqual({
+        range: {
+          start: { line: 2, character: 0 },
+          end: { line: 2, character: 0 },
+        },
+        newText: templateText,
+      });
     },
   );
 });
