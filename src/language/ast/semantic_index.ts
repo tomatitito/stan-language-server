@@ -56,64 +56,24 @@ type WalkState = {
   predeclaredDeclarationNodeIds: Set<number>;
 };
 
-const utf8ByteLength = (value: string): number => {
-  const encoder = new TextEncoder();
-  if (typeof Buffer !== "undefined") {
-    return Buffer.byteLength(value, "utf8");
-  }
-  return encoder.encode(value).byteLength;
-};
-
-const byteColumnToSourceCharacter = (
-  lineText: string,
-  byteColumn: number,
-): number => {
-  let byteOffset = 0;
-  let character = 0;
-
-  while (character < lineText.length) {
-    if (byteOffset >= byteColumn) {
-      return character;
-    }
-
-    const codePoint = lineText.codePointAt(character);
-    if (codePoint === undefined) {
-      break;
-    }
-
-    const symbol = String.fromCodePoint(codePoint);
-    byteOffset += utf8ByteLength(symbol);
-    character += symbol.length;
-  }
-
-  return character;
-};
-
+// web-tree-sitter's JavaScript API uses UTF-16 offsets and columns, like LSP.
 const pointToSourcePosition = (
-  lines: string[],
   point: { row: number; column: number },
 ): SourcePosition => ({
   line: point.row,
-  character: byteColumnToSourceCharacter(lines[point.row] ?? "", point.column),
+  character: point.column,
 });
 
 export const sourcePositionToTreeSitterPoint = (
-  source: string,
   position: SourcePosition,
-): { row: number; column: number } => {
-  const lines = source.split("\n");
-  const lineText = lines[position.line] ?? "";
-  const prefix = lineText.slice(0, position.character);
+): { row: number; column: number } => ({
+  row: position.line,
+  column: position.character,
+});
 
-  return {
-    row: position.line,
-    column: utf8ByteLength(prefix),
-  };
-};
-
-export const nodeToRange = (lines: string[], node: Node) => ({
-  start: pointToSourcePosition(lines, node.startPosition),
-  end: pointToSourcePosition(lines, node.endPosition),
+export const nodeToRange = (node: Node) => ({
+  start: pointToSourcePosition(node.startPosition),
+  end: pointToSourcePosition(node.endPosition),
 });
 
 const createScope = (parent: Scope | null): Scope => ({
@@ -239,10 +199,8 @@ const isOverloadedFunctionName = (
 ): boolean => overloadedFunctionNames.has(name);
 
 export const buildSemanticIndex = (
-  source: string,
   tree: SemanticIndexEntry["tree"],
 ): SemanticIndex => {
-  const lines = source.split("\n");
   const nameInfoByNodeId = new Map<number, NameInfo>();
   const symbolsById = new Map<SymbolId, SymbolInfo>();
   const referencesById = new Map<ReferenceId, ReferenceInfo>();
@@ -269,7 +227,7 @@ export const buildSemanticIndex = (
       id: symbolId,
       name: node.text,
       kind,
-      range: nodeToRange(lines, node),
+      range: nodeToRange(node),
       nodeId: node.id,
     });
     state.nameInfoByNodeId.set(node.id, {
@@ -471,7 +429,7 @@ export const buildSemanticIndex = (
         nextState.referencesById.set(refId, {
           id: refId,
           symbolId,
-          range: nodeToRange(lines, node),
+          range: nodeToRange(node),
           nodeId: node.id,
         });
         const referenceIds = nextState.referenceIdsBySymbolId.get(symbolId) ?? [];

@@ -6,7 +6,7 @@ export function prepareRename(
   entry: SemanticIndexEntry,
   position: SourcePosition,
 ): RenameTarget | null {
-  const symbol = symbolAtPosition(entry, entry.text, position);
+  const symbol = symbolAtPosition(entry, position);
   if (symbol === undefined || !symbol.renameable) {
     return null;
   }

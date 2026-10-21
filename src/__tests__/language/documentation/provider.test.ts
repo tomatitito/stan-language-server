@@ -20,7 +20,7 @@ const createEntry = async (text: string): Promise<SemanticIndexEntry> => {
     version: 1,
     text,
     tree,
-    semanticIndex: buildSemanticIndex(text, tree),
+    semanticIndex: buildSemanticIndex(tree),
   };
 };
 
