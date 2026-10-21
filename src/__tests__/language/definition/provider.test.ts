@@ -21,7 +21,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///variable.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
 
     const result = provideDefinition(entry, { line: 4, character: 13 });
@@ -37,7 +37,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///function.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
 
     const result = provideDefinition(entry, { line: 4, character: 13 });
@@ -53,7 +53,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///parameter.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
 
     const result = provideDefinition(entry, { line: 2, character: 11 });
@@ -69,7 +69,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///loop.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
 
     const result = provideDefinition(entry, { line: 2, character: 14 });
@@ -85,7 +85,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///shadowing.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
 
     expect(provideDefinition(entry, { line: 6, character: 15 })).toEqual({
@@ -103,7 +103,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///declaration.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
 
     const result = provideDefinition(entry, { line: 1, character: 8 });
@@ -119,7 +119,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///overloaded-declaration.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
     const declaration = [...entry.semanticIndex.nameInfoByNodeId.values()]
       .find((info) => info.kind === "declaration" && !info.renameable);
@@ -138,7 +138,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///builtin.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
 
     expect(provideDefinition(entry, { line: 1, character: 13 })).toBeNull();
@@ -149,7 +149,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///unresolved.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
 
     expect(provideDefinition(entry, { line: 1, character: 13 })).toBeNull();
@@ -160,7 +160,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///overloaded-call.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
 
     expect(provideDefinition(entry, { line: 5, character: 13 })).toBeNull();
@@ -176,7 +176,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///nonidentifier.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
 
     expect(provideDefinition(entry, { line, character })).toBeNull();
@@ -197,7 +197,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///unicode.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
 
     // The emoji occupies two UTF-16 code units but four UTF-8 bytes.
@@ -214,7 +214,7 @@ describe("Definition provider", () => {
     tree = await parse(text);
     const entry: SemanticIndexEntry = {
       uri: "file:///borrowed.stan", version: 1, text, tree,
-      semanticIndex: buildSemanticIndex(text, tree),
+      semanticIndex: buildSemanticIndex(tree),
     };
     const originalTree = tree.rootNode.toString();
     const originalIndex = structuredClone(entry.semanticIndex);

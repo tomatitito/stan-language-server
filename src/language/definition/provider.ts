@@ -9,7 +9,7 @@ export function provideDefinition(
   entry: SemanticIndexEntry,
   position: SourcePosition,
 ): SourceRange | null {
-  const target = symbolAtPosition(entry, entry.text, position);
+  const target = symbolAtPosition(entry, position);
   if (target === undefined) {
     return null;
   }

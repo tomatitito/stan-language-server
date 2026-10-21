@@ -149,20 +149,20 @@ describe("workspace index", () => {
       })),
     ).toEqual([
       {
-        startIndex: 3,
-        oldEndIndex: 6,
-        newEndIndex: 13,
-        startPosition: { row: 0, column: 3 },
-        oldEndPosition: { row: 0, column: 6 },
-        newEndPosition: { row: 0, column: 13 },
+        startIndex: 2,
+        oldEndIndex: 5,
+        newEndIndex: 12,
+        startPosition: { row: 0, column: 2 },
+        oldEndPosition: { row: 0, column: 5 },
+        newEndPosition: { row: 0, column: 12 },
       },
       {
-        startIndex: 14,
-        oldEndIndex: 15,
-        newEndIndex: 20,
-        startPosition: { row: 0, column: 14 },
-        oldEndPosition: { row: 0, column: 15 },
-        newEndPosition: { row: 0, column: 20 },
+        startIndex: 13,
+        oldEndIndex: 14,
+        newEndIndex: 19,
+        startPosition: { row: 0, column: 13 },
+        oldEndPosition: { row: 0, column: 14 },
+        newEndPosition: { row: 0, column: 19 },
       },
     ]);
     expect(parseDocument.mock.calls[1]).toEqual([
@@ -231,8 +231,7 @@ describe("workspace index", () => {
     );
     await upsertSemanticIndexEntry(index, version2, changes, parseDocument);
 
-    // Tree-sitter positions use UTF-8 bytes. The leading `α` occupies two
-    // bytes, so absolute byte indices differ from LSP UTF-16 characters.
+    // web-tree-sitter indices and columns use UTF-16 code units.
     expect(
       edit.mock.calls.map(([inputEdit]) => ({
         startIndex: inputEdit.startIndex,
@@ -246,29 +245,29 @@ describe("workspace index", () => {
       // First edit, row 1:
       //   before:
       //     real café;
-      //          ^---^  columns 5..10, indices 8..13
+      //          ^---^  columns 5..9, indices 7..11
       //   after:
       //     real naïve;
-      //          ^----^ columns 5..11, indices 8..14
+      //          ^----^ columns 5..10, indices 7..12
       {
-        startIndex: 8,
-        oldEndIndex: 13,
-        newEndIndex: 14,
+        startIndex: 7,
+        oldEndIndex: 11,
+        newEndIndex: 12,
         startPosition: { row: 1, column: 5 },
-        oldEndPosition: { row: 1, column: 10 },
-        newEndPosition: { row: 1, column: 11 },
+        oldEndPosition: { row: 1, column: 9 },
+        newEndPosition: { row: 1, column: 10 },
       },
       // Second edit is calculated against text after first edit, row 2:
       //   before:
       //     real x;
-      //          ^^     columns 5..6, indices 21..22
+      //          ^^     columns 5..6, indices 19..20
       //   after:
       //     real result;
-      //          ^-----^ columns 5..11, indices 21..27
+      //          ^-----^ columns 5..11, indices 19..25
       {
-        startIndex: 21,
-        oldEndIndex: 22,
-        newEndIndex: 27,
+        startIndex: 19,
+        oldEndIndex: 20,
+        newEndIndex: 25,
         startPosition: { row: 2, column: 5 },
         oldEndPosition: { row: 2, column: 6 },
         newEndPosition: { row: 2, column: 11 },

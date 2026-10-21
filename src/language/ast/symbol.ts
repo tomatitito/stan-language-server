@@ -31,7 +31,6 @@ const normalizeToIdentifierNode = (node: Node | null): Node | null => {
 
 export const symbolAtPosition = (
   index: Pick<SemanticIndexEntry, "tree" | "semanticIndex">,
-  source: string,
   position: SourcePosition,
 ):
   | { symbolId: SymbolId; range: ReturnType<typeof nodeToRange>; renameable: boolean }
@@ -40,7 +39,7 @@ export const symbolAtPosition = (
     return undefined;
   }
 
-  const point = sourcePositionToTreeSitterPoint(source, position);
+  const point = sourcePositionToTreeSitterPoint(position);
   const node = normalizeToIdentifierNode(
     index.tree.rootNode.namedDescendantForPosition(point),
   );
@@ -48,7 +47,7 @@ export const symbolAtPosition = (
     return undefined;
   }
 
-  const range = nodeToRange(source.split("\n"), node);
+  const range = nodeToRange(node);
   if (
     comparePositions(position, range.start) < 0 ||
     comparePositions(position, range.end) >= 0

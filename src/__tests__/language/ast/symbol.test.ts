@@ -43,13 +43,13 @@ model {
     const entry = await createIndexedEntry(stanProgram);
 
     expect(
-      symbolAtPosition(entry, entry.text, { line: 1, character: 5 }),
+      symbolAtPosition(entry, { line: 1, character: 5 }),
     ).toBeUndefined();
     expect(
-      symbolAtPosition(entry, entry.text, { line: 1, character: 6 }),
+      symbolAtPosition(entry, { line: 1, character: 6 }),
     ).toBeUndefined();
     expect(
-      symbolAtPosition(entry, entry.text, { line: 4, character: 8 }),
+      symbolAtPosition(entry, { line: 4, character: 8 }),
     ).toBeUndefined();
   });
 
@@ -58,13 +58,13 @@ model {
     const alphaSymbolId = getSymbolIdByName(entry, "alpha")!;
 
     expect(
-      symbolAtPosition(entry, entry.text, { line: 1, character: 7 })?.symbolId,
+      symbolAtPosition(entry, { line: 1, character: 7 })?.symbolId,
     ).toEqual(alphaSymbolId);
     expect(
-      symbolAtPosition(entry, entry.text, { line: 1, character: 8 })?.symbolId,
+      symbolAtPosition(entry, { line: 1, character: 8 })?.symbolId,
     ).toEqual(alphaSymbolId);
     expect(
-      symbolAtPosition(entry, entry.text, { line: 1, character: 9 })?.symbolId,
+      symbolAtPosition(entry, { line: 1, character: 9 })?.symbolId,
     ).toEqual(alphaSymbolId);
   });
 
@@ -73,10 +73,10 @@ model {
     const alphaSymbolId = getSymbolIdByName(entry, "alpha")!;
 
     expect(
-      symbolAtPosition(entry, entry.text, { line: 4, character: 2 })?.symbolId,
+      symbolAtPosition(entry, { line: 4, character: 2 })?.symbolId,
     ).toEqual(alphaSymbolId);
     expect(
-      symbolAtPosition(entry, entry.text, { line: 4, character: 3 })?.symbolId,
+      symbolAtPosition(entry, { line: 4, character: 3 })?.symbolId,
     ).toEqual(alphaSymbolId);
   });
 });

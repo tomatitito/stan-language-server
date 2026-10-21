@@ -11,10 +11,6 @@ export type ParseDocument = (text: string, oldTree?: Tree) => Promise<Tree>;
 
 type EditProperties = ConstructorParameters<typeof Edit>[0];
 
-const textEncoder = new TextEncoder();
-
-const byteLength = (text: string): number => textEncoder.encode(text).byteLength;
-
 const isCodePointBoundary = (text: string, offset: number): boolean => {
   if (offset <= 0 || offset >= text.length) {
     return true;
@@ -58,7 +54,7 @@ const treeSitterPoint = (
 
   return {
     row: position.line,
-    column: byteLength(document.getText().slice(lineStartOffset, offset)),
+    column: offset - lineStartOffset,
   };
 };
 
@@ -75,8 +71,8 @@ const pointAfterInsertedText = (start: Point, text: string): Point => {
   return {
     row,
     column: row === start.row
-      ? start.column + byteLength(text)
-      : byteLength(text.slice(lastLineStart)),
+      ? start.column + text.length
+      : text.length - lastLineStart,
   };
 };
 
@@ -141,13 +137,13 @@ const buildIncrementalEdits = (
       }
 
       const workingText = workingDocument.getText();
-      const startIndex = byteLength(workingText.slice(0, startOffset));
-      const oldEndIndex = byteLength(workingText.slice(0, endOffset));
-      const insertedByteLength = byteLength(contentChange.text);
+      // Edit indices, like point columns, use UTF-16 code units in this API.
+      const startIndex = startOffset;
+      const oldEndIndex = endOffset;
       edits.push({
         startIndex,
         oldEndIndex,
-        newEndIndex: startIndex + insertedByteLength,
+        newEndIndex: startIndex + contentChange.text.length,
         startPosition,
         oldEndPosition,
         newEndPosition: pointAfterInsertedText(startPosition, contentChange.text),
@@ -246,7 +242,7 @@ export const upsertSemanticIndexEntry = async (
     version: document.version,
     text,
     tree,
-    semanticIndex: buildSemanticIndex(text, tree),
+    semanticIndex: buildSemanticIndex(tree),
   };
 
   const entries = new Map([...index.entries, [document.uri, entry]]);
